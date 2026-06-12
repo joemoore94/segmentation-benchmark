@@ -88,9 +88,12 @@ See [`scripts/run_mesmer.sh`](scripts/run_mesmer.sh) for the invocation.
 
 ### 3. Julia + Baysor (for transcript-based segmentation)
 
+Baysor's `main`/`cpp` branch is a C++ rewrite with no `Project.toml`; install the
+last Julia-package release (`v0.7.1`) instead:
+
 ```bash
 juliaup add 1.10
-julia +1.10 -e 'using Pkg; Pkg.add(url="https://github.com/kharchenkolab/Baysor.git")'
+julia +1.10 -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/kharchenkolab/Baysor.git", rev="v0.7.1")); Pkg.build("Baysor")'
 ```
 
 See [`scripts/run_baysor.sh`](scripts/run_baysor.sh) for the invocation.
@@ -98,7 +101,8 @@ See [`scripts/run_baysor.sh`](scripts/run_baysor.sh) for the invocation.
 ## Status
 
 - [x] Project scaffold + environments
-- [ ] Data acquisition + ROI selection
+- [x] Data acquisition (in progress: `scripts/download_data.sh`, see `docs/dataset.md`)
+- [ ] ROI selection
 - [ ] Segmentation runs (CellPose, Mesmer, Baysor, 10x reference)
 - [ ] Quantification + cross-method comparison
 - [ ] Spatial analysis of disagreement
