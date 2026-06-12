@@ -15,22 +15,22 @@ def test_run_cellpose_default_channels_and_dtype(monkeypatch: pytest.MonkeyPatch
     captured: dict[str, object] = {}
 
     class FakeCellposeModel:
-        def __init__(self, gpu: bool, model_type: str) -> None:
+        def __init__(self, gpu: bool, pretrained_model: str) -> None:
             captured["gpu"] = gpu
-            captured["model_type"] = model_type
+            captured["pretrained_model"] = pretrained_model
 
         def eval(
             self, img: np.ndarray, diameter: float | None, channels: list[int]
-        ) -> tuple[np.ndarray, None, None, None]:
+        ) -> tuple[np.ndarray, None, None]:
             captured["channels"] = channels
             captured["diameter"] = diameter
-            return fake_masks, None, None, None
+            return fake_masks, None, None
 
-    monkeypatch.setattr("cellpose.models.Cellpose", FakeCellposeModel)
+    monkeypatch.setattr("cellpose.models.CellposeModel", FakeCellposeModel)
 
-    result = cellpose_run.run_cellpose(image, model_type="cyto3", gpu=False)
+    result = cellpose_run.run_cellpose(image, model_type="cpsam_v2", gpu=False)
 
     assert result.dtype == np.int32
     assert captured["channels"] == [0, 0]
-    assert captured["model_type"] == "cyto3"
+    assert captured["pretrained_model"] == "cpsam_v2"
     assert captured["gpu"] is False

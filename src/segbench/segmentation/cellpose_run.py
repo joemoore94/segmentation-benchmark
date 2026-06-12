@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 
 def run_cellpose(
     image: NDArray[np.number],
-    model_type: str = "cyto3",
+    model_type: str = "cpsam_v2",
     channels: list[int] | None = None,
     diameter: float | None = None,
     gpu: bool = True,
@@ -20,7 +20,8 @@ def run_cellpose(
     image:
         2D (Y, X) or multi-channel (Y, X, C) image array.
     model_type:
-        CellPose pretrained model name (e.g. ``"cyto3"``, ``"nuclei"``).
+        CellPose pretrained model name, passed through as ``pretrained_model``
+        (e.g. ``"cpsam_v2"``, the default generalist Cellpose-SAM model).
     channels:
         CellPose channel spec, e.g. ``[0, 0]`` for grayscale, or
         ``[cytoplasm_channel, nucleus_channel]`` for two-channel input.
@@ -41,8 +42,6 @@ def run_cellpose(
     if channels is None:
         channels = [0, 0]
 
-    model = models.Cellpose(gpu=gpu, model_type=model_type)
-    masks, _flows, _styles, _diams = model.eval(
-        image, diameter=diameter, channels=channels
-    )
+    model = models.CellposeModel(gpu=gpu, pretrained_model=model_type)
+    masks, _flows, _styles = model.eval(image, diameter=diameter, channels=channels)
     return masks.astype(np.int32)

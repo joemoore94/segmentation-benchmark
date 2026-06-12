@@ -20,6 +20,8 @@ dependencies:
   - pyvips
   - pytest
   - mypy
+  - pytorch
+  - torchvision
   - pip
   - pip:
       - scanpy
