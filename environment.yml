@@ -1,0 +1,31 @@
+name: segbench
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - scipy
+  - scikit-image
+  - matplotlib
+  - seaborn
+  - jupyterlab
+  - ipykernel
+  - pyarrow
+  - tifffile
+  - zarr
+  - dask
+  - geopandas
+  - shapely
+  - pyvips
+  - pytest
+  - mypy
+  - pip
+  - pip:
+      - scanpy
+      - squidpy
+      - anndata
+      - spatialdata
+      - spatialdata-io
+      - spatialdata-plot
+      - cellpose

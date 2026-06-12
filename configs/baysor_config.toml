@@ -1,0 +1,19 @@
+# Baysor configuration template for Xenium transcripts.
+# Column names match the standard Xenium transcripts.parquet schema.
+# Tune `scale` (expected cell diameter, microns) and
+# `prior_segmentation_confidence` once the ROI is selected (docs/dataset.md).
+
+[data]
+x = "x_location"
+y = "y_location"
+z = "z_location"
+gene = "feature_name"
+min_molecules_per_gene = 1
+min_molecules_per_cell = 3
+exclude_genes = "NegControl*,BLANK*,antisense*"
+
+[segmentation]
+scale = 12.5
+scale_std = "25%"
+prior_segmentation_confidence = 0.7
+n_clusters = 4

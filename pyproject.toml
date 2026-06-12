@@ -1,0 +1,32 @@
+[project]
+name = "segbench"
+version = "0.1.0"
+description = "Segmentation method benchmarking on Xenium spatial transcriptomics data"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "cellpose.*",
+    "scanpy.*",
+    "squidpy.*",
+    "spatialdata.*",
+    "spatialdata_io.*",
+    "anndata.*",
+]
+ignore_missing_imports = true

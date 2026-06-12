@@ -1,0 +1,29 @@
+# Data (downloaded/derived - too large for git)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Results that can be regenerated
+results/figures/*
+results/tables/*
+!results/figures/.gitkeep
+!results/tables/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+
+# Environments
+.venv/
+env/
+
+# Julia
+Manifest.toml
+
+# OS
+.DS_Store
