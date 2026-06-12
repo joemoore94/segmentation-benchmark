@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run Mesmer (DeepCell) segmentation via the vanvalenlab/deepcell-applications
-# Docker image (CPU build - no native Apple Silicon deepcell-tf install exists).
+# Docker image. No native arm64 build exists (TF2.8-based image is x86_64
+# only), so it runs under emulation via --platform linux/amd64.
 #
 # Usage: run_mesmer.sh <data_dir> <nuclear_file> <membrane_file> <output_dir> [compartment]
 #
@@ -20,9 +21,9 @@ MOUNT_DIR=/data
 
 mkdir -p "${DATA_DIR}/${OUTPUT_DIR}"
 
-docker run --rm \
+docker run --rm --platform linux/amd64 \
   -v "${DATA_DIR}:${MOUNT_DIR}" \
-  vanvalenlab/deepcell-applications:latest-cpu \
+  vanvalenlab/deepcell-applications:latest \
   mesmer \
   --nuclear-image "${MOUNT_DIR}/${NUCLEAR_FILE}" \
   --membrane-image "${MOUNT_DIR}/${MEMBRANE_FILE}" \

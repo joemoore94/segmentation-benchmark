@@ -77,8 +77,11 @@ conda activate segbench
 
 ### 2. Docker (for Mesmer via `vanvalenlab/deepcell-applications`)
 
+The image is x86_64-only (TF2.8 base), so on Apple Silicon it runs under
+emulation via `--platform linux/amd64`:
+
 ```bash
-docker pull vanvalenlab/deepcell-applications:latest-cpu
+docker pull --platform linux/amd64 vanvalenlab/deepcell-applications:latest
 ```
 
 See [`scripts/run_mesmer.sh`](scripts/run_mesmer.sh) for the invocation.
