@@ -49,6 +49,38 @@ def test_run_mesmer_with_membrane_appends_membrane_file(
     ]
 
 
+def test_run_stardist_invokes_script_with_expected_args(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from segbench.segmentation import stardist_run
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(stardist_run.subprocess, "run", mock_run)
+
+    out = stardist_run.run_stardist(tmp_path, "dapi.tif", "stardist_out")
+
+    mock_run.assert_called_once()
+    args = mock_run.call_args[0][0]
+    assert args[:5] == ["conda", "run", "-n", "stardist", "python"]
+    assert args[5] == str(stardist_run._SCRIPT)
+    assert args[6:] == [str(tmp_path), "dapi.tif", "stardist_out", "2D_versatile_fluo"]
+    assert out == tmp_path / "stardist_out"
+
+
+def test_run_stardist_with_custom_model_name(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from segbench.segmentation import stardist_run
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(stardist_run.subprocess, "run", mock_run)
+
+    stardist_run.run_stardist(tmp_path, "dapi.tif", "stardist_out", model_name="2D_paper_dsb2018")
+
+    args = mock_run.call_args[0][0]
+    assert args[6:] == [str(tmp_path), "dapi.tif", "stardist_out", "2D_paper_dsb2018"]
+
+
 def test_run_baysor_with_prior_column(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

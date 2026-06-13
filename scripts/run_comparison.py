@@ -50,7 +50,13 @@ def main() -> None:
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
-    adatas = {"cellpose": adata_cellpose, "baysor": adata_baysor, "10x_native": adata_10x}
+    adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
+    adatas = {
+        "cellpose": adata_cellpose,
+        "baysor": adata_baysor,
+        "10x_native": adata_10x,
+        "stardist": adata_stardist,
+    }
 
     counts = cell_count_summary(adatas)
     counts.to_csv(TABLES_DIR / "cell_counts.csv")
@@ -68,10 +74,12 @@ def main() -> None:
     x_range, y_range = SUB_REGION
     adata_cellpose_sub = subset_to_region(adata_cellpose, x_range, y_range)
     adata_10x_sub = subset_to_region(adata_10x, x_range, y_range)
+    adata_stardist_sub = subset_to_region(adata_stardist, x_range, y_range)
     adatas_sub = {
         "cellpose": adata_cellpose_sub,
         "baysor": adata_baysor,
         "10x_native": adata_10x_sub,
+        "stardist": adata_stardist_sub,
     }
 
     counts_sub = cell_count_summary(adatas_sub)
@@ -163,6 +171,46 @@ def main() -> None:
         json.dump(spatial_10x, f, indent=2)
     print("\n=== CellPose vs 10x_native spatial structure of disagreement ===")
     print(spatial_10x)
+
+    # CellPose vs. StarDist -- both are nuclear segmentations of the same
+    # DAPI image (full 2mm x 2mm ROI), run the same way as the comparisons
+    # above.
+    matches_stardist = match_cells_by_centroid(
+        adata_cellpose, adata_stardist, max_dist=MAX_MATCH_DIST
+    )
+    matches_stardist.to_csv(TABLES_DIR / "matches_cellpose_stardist.csv", index=False)
+    print(f"\n=== CellPose vs StarDist matched pairs (max_dist={MAX_MATCH_DIST}um) ===")
+    print(f"{len(matches_stardist)} matched pairs out of {adata_cellpose.n_obs} cellpose / "
+          f"{adata_stardist.n_obs} stardist cells")
+
+    corr_stardist = expression_correlation(adata_cellpose, adata_stardist, matches_stardist)
+    corr_stardist.to_csv(TABLES_DIR / "expression_correlation_cellpose_stardist.csv", index=False)
+    print("\n=== CellPose vs StarDist expression correlation (matched pairs) ===")
+    print(corr_stardist["correlation"].describe())
+
+    print("\n=== Clustering cell types (StarDist) ===")
+    labels_stardist = cluster_cell_types(adata_stardist, seed=0)
+    print(f"stardist: {labels_stardist.nunique()} clusters")
+
+    agreement_stardist = cell_type_agreement(labels_cellpose, labels_stardist, matches_stardist)
+    agreement_stardist["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_cellpose_stardist.csv")
+    print("\n=== CellPose vs StarDist cell type agreement ===")
+    print(f"ARI = {agreement_stardist['ari']:.4f}, n_matched = {agreement_stardist['n_matched']}")
+    print(agreement_stardist["confusion"])
+
+    labels_stardist_aligned = match_cluster_labels(
+        labels_cellpose, labels_stardist, matches_stardist
+    )
+    disagreement_stardist = disagreement_table(
+        matches_stardist, labels_cellpose, labels_stardist_aligned, adata_cellpose
+    )
+    disagreement_stardist.to_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv", index=False)
+
+    spatial_stardist = disagreement_spatial_structure(disagreement_stardist, seed=0)
+    with open(TABLES_DIR / "disagreement_spatial_cellpose_stardist.json", "w") as f:
+        json.dump(spatial_stardist, f, indent=2)
+    print("\n=== CellPose vs StarDist spatial structure of disagreement ===")
+    print(spatial_stardist)
 
 
 if __name__ == "__main__":

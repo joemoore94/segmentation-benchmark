@@ -38,8 +38,18 @@ TOTAL_TRANSCRIPTS_1MM2 = 770_748
 sns.set_theme(style="whitegrid", context="talk")
 
 
-METHOD_COLORS = {"cellpose": "#4C72B0", "baysor": "#DD8452", "10x_native": "#55A868"}
-METHOD_LABELS = {"cellpose": "CellPose", "baysor": "Baysor", "10x_native": "10x native"}
+METHOD_COLORS = {
+    "cellpose": "#4C72B0",
+    "baysor": "#DD8452",
+    "10x_native": "#55A868",
+    "stardist": "#8172B2",
+}
+METHOD_LABELS = {
+    "cellpose": "CellPose",
+    "baysor": "Baysor",
+    "10x_native": "10x native",
+    "stardist": "StarDist",
+}
 
 
 def fig_cell_counts_and_sizes() -> None:
@@ -49,19 +59,24 @@ def fig_cell_counts_and_sizes() -> None:
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
+    adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
     x_range, y_range = SUB_REGION
     adata_cellpose_sub = subset_to_region(adata_cellpose, x_range, y_range)
     adata_10x_sub = subset_to_region(adata_10x, x_range, y_range)
+    adata_stardist_sub = subset_to_region(adata_stardist, x_range, y_range)
 
     cellpose_area_um2 = adata_cellpose_sub.obs["area"] * PIXEL_SIZE**2
     tenx_nucleus_area_um2 = adata_10x_sub.obs["nucleus_area_um2"]
+    stardist_area_um2 = adata_stardist_sub.obs["area"] * PIXEL_SIZE**2
     cellpose_transcripts = np.asarray(adata_cellpose_sub.X.sum(axis=1)).ravel()
     baysor_transcripts = np.asarray(adata_baysor.X.sum(axis=1)).ravel()
     tenx_transcripts = np.asarray(adata_10x_sub.X.sum(axis=1)).ravel()
+    stardist_transcripts = np.asarray(adata_stardist_sub.X.sum(axis=1)).ravel()
     transcripts_by_method = {
         "cellpose": cellpose_transcripts,
         "baysor": baysor_transcripts,
         "10x_native": tenx_transcripts,
+        "stardist": stardist_transcripts,
     }
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
@@ -87,23 +102,30 @@ def fig_cell_counts_and_sizes() -> None:
     axes[1].set_title("Transcripts/cell (QC)")
     axes[1].legend()
 
-    # Nucleus area is directly comparable between CellPose (pixel area
-    # converted to µm²) and 10x native (already in µm²) -- both are nuclear
-    # segmentation areas, so this checks whether CellPose's nuclei are
-    # similarly sized to the platform's own reference segmentation.
+    # Nucleus area is directly comparable across CellPose and StarDist (pixel
+    # area converted to µm²) and 10x native (already in µm²) -- all three are
+    # nuclear segmentation areas, so this checks whether the two nuclear
+    # U-Net/star-convex methods are similarly sized to the platform's own
+    # reference segmentation.
     sns.histplot(
         cellpose_area_um2, bins=50, ax=axes[2],
         color=METHOD_COLORS["cellpose"], label=METHOD_LABELS["cellpose"], alpha=0.4,
+    )
+    sns.histplot(
+        stardist_area_um2, bins=50, ax=axes[2],
+        color=METHOD_COLORS["stardist"], label=METHOD_LABELS["stardist"], alpha=0.4,
     )
     sns.histplot(
         tenx_nucleus_area_um2, bins=50, ax=axes[2],
         color=METHOD_COLORS["10x_native"], label=METHOD_LABELS["10x_native"], alpha=0.4,
     )
     axes[2].set_xlabel("Nucleus area (µm²)")
-    axes[2].set_title("Nucleus area: CellPose vs. 10x native (QC)")
+    axes[2].set_title("Nucleus area: CellPose vs. StarDist vs. 10x native (QC)")
     axes[2].legend()
 
-    fig.suptitle("Cell count and QC: CellPose vs. Baysor vs. 10x native (1mm × 1mm sub-region)")
+    fig.suptitle(
+        "Cell count and QC: CellPose vs. Baysor vs. 10x native vs. StarDist (1mm × 1mm sub-region)"
+    )
     capture = counts.loc[methods, "transcript_capture_rate"]
     capture_str = ", ".join(
         f"{METHOD_LABELS[m]} {capture[m]:.0%}" for m in methods
@@ -111,7 +133,7 @@ def fig_cell_counts_and_sizes() -> None:
     fig.text(
         0.5, 0.01,
         f"Transcript capture rate (assigned / {TOTAL_TRANSCRIPTS_1MM2:,} total"
-        f" qv≥20 transcripts in region): {capture_str}. CellPose is"
+        f" qv≥20 transcripts in region): {capture_str}. CellPose and StarDist are"
         " nuclear-only, so cytoplasmic transcripts are not assigned to any cell.",
         ha="center", fontsize=11, style="italic",
     )
@@ -123,11 +145,13 @@ def fig_cell_counts_and_sizes() -> None:
 def fig_expression_correlation() -> None:
     corr_baysor = pd.read_csv(TABLES_DIR / "expression_correlation.csv")
     corr_10x = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_10x.csv")
+    corr_stardist = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_stardist.csv")
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5.5), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(20, 5.5), sharey=True)
     for ax, corr, label, color in [
         (axes[0], corr_baysor, "CellPose vs. Baysor", METHOD_COLORS["baysor"]),
         (axes[1], corr_10x, "CellPose vs. 10x native", METHOD_COLORS["10x_native"]),
+        (axes[2], corr_stardist, "CellPose vs. StarDist", METHOD_COLORS["stardist"]),
     ]:
         median = corr["correlation"].median()
         sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=color)
@@ -146,11 +170,13 @@ def fig_expression_correlation() -> None:
 def fig_disagreement_spatial_map() -> None:
     disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
     disagreement_10x = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv")
+    disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv")
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     for ax, disagreement, label in [
         (axes[0], disagreement_baysor, "CellPose vs. Baysor"),
         (axes[1], disagreement_10x, "CellPose vs. 10x native"),
+        (axes[2], disagreement_stardist, "CellPose vs. StarDist"),
     ]:
         sns.scatterplot(
             data=disagreement,
@@ -178,8 +204,11 @@ def fig_disagreement_spatial_map() -> None:
 def fig_cell_type_confusion() -> None:
     confusion_baysor = pd.read_csv(TABLES_DIR / "cell_type_confusion.csv", index_col=0)
     confusion_10x = pd.read_csv(TABLES_DIR / "cell_type_confusion_cellpose_10x.csv", index_col=0)
+    confusion_stardist = pd.read_csv(
+        TABLES_DIR / "cell_type_confusion_cellpose_stardist.csv", index_col=0
+    )
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(22, 6))
 
     sns.heatmap(confusion_baysor, annot=False, cmap="viridis", ax=axes[0])
     axes[0].set_xlabel("Baysor Leiden cluster")
@@ -190,6 +219,11 @@ def fig_cell_type_confusion() -> None:
     axes[1].set_xlabel("10x native Leiden cluster")
     axes[1].set_ylabel("CellPose Leiden cluster")
     axes[1].set_title("CellPose vs. 10x native")
+
+    sns.heatmap(confusion_stardist, annot=False, cmap="viridis", ax=axes[2])
+    axes[2].set_xlabel("StarDist Leiden cluster")
+    axes[2].set_ylabel("CellPose Leiden cluster")
+    axes[2].set_title("CellPose vs. StarDist")
 
     fig.suptitle("Cell-type cluster correspondence (matched pairs)")
     fig.tight_layout()

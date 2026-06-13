@@ -31,6 +31,11 @@ def main() -> None:
     adata_cellpose.write_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     print(f"cellpose: {adata_cellpose.n_obs} cells -> adata_cellpose.h5ad")
 
+    stardist_masks = tifffile.imread(ROI_DIR / "masks_stardist.tif")
+    adata_stardist = quantify_cells(stardist_masks, transcripts, pixel_size=PIXEL_SIZE)
+    adata_stardist.write_h5ad(ROI_DIR / "adata_stardist.h5ad")
+    print(f"stardist: {adata_stardist.n_obs} cells -> adata_stardist.h5ad")
+
     mesmer_masks = tifffile.imread(ROI_DIR / "mesmer_out" / "mask.tif")
     adata_mesmer = quantify_cells(mesmer_masks, transcripts, pixel_size=PIXEL_SIZE)
     adata_mesmer.write_h5ad(ROI_DIR / "adata_mesmer.h5ad")
