@@ -105,3 +105,46 @@ Extracted via `segbench.io.extract_roi()` into `data/processed/roi/`:
 `dapi.tif`, `he.tif`, `transcripts.parquet`, `cells.parquet`, `cell_boundaries.parquet`,
 `nucleus_boundaries.parquet`, `cell_feature_matrix.h5ad` (all coordinates shifted so the
 ROI's top-left corner is the origin).
+
+## Segmentation runs
+
+CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
+`pixel_size=0.2125`); Baysor segments transcripts directly
+(`transcripts_baysor.csv`/`.parquet`, the qv>=20 non-control-probe subset,
+3,392,051 of 4,360,872 rows).
+
+### CellPose
+
+- Nuclear segmentation on `dapi.tif`, MPS-accelerated (`scripts/run_cellpose_roi.py`).
+- Runtime: ~94 min (5625.6s).
+- Result: 23,660 cells -> `masks_cellpose.tif`.
+
+### Mesmer
+
+- Nuclear-only segmentation on `dapi.tif` via the `vanvalenlab/deepcell-applications`
+  Docker image (no membrane channel available, see image-format gotcha #1).
+- Runtime: ~58 min.
+- Result: 21,693 cells -> `mesmer_out/mask.tif`.
+
+### Baysor
+
+- Transcript-based segmentation, config in `configs/baysor_config.toml`
+  (`scale=12.5`, `scale_std="25%"`, `n_clusters=4`).
+- **Smoke test** on a 500x500um corner (175,411 transcripts, 5.17% of the ROI's
+  transcripts): completed in ~7m48s, 1,155 cells -> `baysor_test_out/`.
+- **Full-ROI run** (3,392,051 transcripts) was killed after ~75 min, at iteration
+  104/500 of the main EM step (21% progress, ETA still >4 hours). Baysor's main-EM
+  runtime scales worse than linearly with molecule count (roughly N^1.8, based on
+  the smoke-test vs full-ROI iteration timing), so the full 2mm x 2mm ROI is
+  impractical for this method on this hardware.
+- **Plan**: rerun Baysor on a smaller, centered 1mm x 1mm sub-region of the same ROI
+  (~850K transcripts, est. ~35-40 min by the same scaling), and restrict any
+  cross-method comparison involving Baysor to that sub-region.
+
+### Resource notes
+
+Running CellPose (MPS), Mesmer (Docker/x86_64 emulation via Rosetta), and Baysor
+(Julia) concurrently on a 16GB M1 caused severe swap thrashing (up to 14.3/15GB
+swap used), stalling CellPose and Baysor at near-0% CPU for extended periods.
+Quitting Docker Desktop after Mesmer finished freed enough memory for both to
+resume normal progress.
