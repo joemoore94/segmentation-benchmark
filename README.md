@@ -39,7 +39,7 @@ details and ROI selection notes (filled in during data acquisition).
 
 | Method | Input | Notes |
 |---|---|---|
-| **10x native** | provided | Xenium's own nucleus/cell boundary segmentation, available as `cell_feature_matrix.h5ad` for the ROI — not yet incorporated into the cross-method comparison below |
+| **10x native** | provided | Xenium Ranger's own nucleus/cell boundary segmentation (`cell_feature_matrix.h5ad` + `cells.parquet`), reshaped into `adata_10x.h5ad` by `scripts/build_10x_adata.py` — no new segmentation run needed, included below as the platform's reference |
 | **CellPose** | DAPI (full 2mm x 2mm ROI) | CellPose 3.x classical `nuclei` U-Net model, CPU. CellPose 4.x dropped the lightweight U-Net models in favor of SAM-based foundation models, which are CPU-prohibitive |
 | **Mesmer** (DeepCell) | DAPI (ROI crop) | not run — blocked on deepcell.org's account system (signup, login, and password reset all fail as of June 2026); wrapper and conda env are ready, see `docs/dataset.md` |
 | **Baysor** | transcripts (centered 1mm x 1mm sub-region of the ROI) | transcript-density-based segmentation, run via Julia 1.10; the full 2mm x 2mm ROI is CPU-impractical for this method (see `docs/dataset.md`) |
@@ -52,10 +52,12 @@ structured.
 
 ## Results
 
-Results cover **CellPose vs. Baysor** — Mesmer could not be run (see Status)
-and this two-method comparison is the deliverable for Project 1.
+Results cover **CellPose vs. Baysor vs. 10x native** — Mesmer could not be run
+(see Status). This section covers CellPose vs. Baysor; the
+[next section](#cellpose-vs-10x-native-platform-reference) adds 10x's own
+segmentation as a reference point for both.
 
-Both methods are compared on the **same centered 1mm x 1mm sub-region** of the
+CellPose and Baysor are compared on the **same centered 1mm x 1mm sub-region** of the
 ROI — Baysor's full segmentation footprint, with CellPose's full-ROI result
 subset to the identical bounds — so cell counts and per-cell transcript counts
 below are directly, area-matched comparable (no density normalization needed).
@@ -96,16 +98,16 @@ different inputs and capture very different numbers of transcripts per cell.
 **Cell-type agreement**: independent Leiden clustering on each method (13
 CellPose clusters, 17 Baysor clusters) was Hungarian-aligned onto a shared
 cluster vocabulary before direct comparison
-([`cell_type_confusion.png`](results/figures/cell_type_confusion.png)).
-**46.7%** of matched pairs were assigned to different cell-type clusters by
-the two methods.
+([`cell_type_confusion.png`](results/figures/cell_type_confusion.png), left
+panel). ARI = **0.445**; **46.7%** of matched pairs were assigned to
+different cell-type clusters by the two methods.
 
 **Spatial structure of disagreement**
-([`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png)):
-Moran's I = **0.0655** (permutation test, p = 0.001) — statistically
-significant but weak spatial autocorrelation. Cross-method disagreement is
-mostly scattered throughout the tissue rather than concentrated in specific
-regions, with only a slight tendency to cluster.
+([`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
+left panel): Moran's I = **0.066** (permutation test, p = 0.001) —
+statistically significant but weak spatial autocorrelation. Cross-method
+disagreement is mostly scattered throughout the tissue rather than
+concentrated in specific regions, with only a slight tendency to cluster.
 
 **Bottom line**: segmentation method choice has a real, measurable effect on
 both per-cell transcript capture (driven by nuclear vs. effectively-whole-cell
@@ -113,6 +115,70 @@ capture) and downstream cell-type calls (47% of matched cells land in
 different clusters depending on method), but the *spatial pattern* of that
 disagreement is close to noise in this tissue — it isn't concentrated at
 tumor/stroma boundaries or any other obvious structure.
+
+## CellPose vs. 10x native (platform reference)
+
+10x's own (Xenium Ranger) segmentation is already part of the downloaded
+dataset — `scripts/build_10x_adata.py` just reshapes `cell_feature_matrix.h5ad`
+and `cells.parquet` into the same AnnData schema used above, no new
+segmentation run needed. Unlike Baysor, 10x native covers the full 2mm x 2mm
+ROI, so this
+comparison runs CellPose's full-ROI result directly against it (no sub-region
+restriction needed for matching, though the table below is still reported on
+the same 1mm x 1mm sub-region for consistency with the rest of this page).
+
+| | CellPose (nuclear, DAPI) | 10x native (whole-cell) |
+|---|---|---|
+| Cells (1mm x 1mm sub-region) | 4,459 | 5,239 |
+| Median transcripts/cell | 48 | 126 |
+| Median nucleus area | ~28.0 µm² | 26.7 µm² |
+| Transcript capture rate | 34.4% | 98.1% |
+
+**Median nucleus area is nearly identical** (28.0 vs. 26.7 µm²)
+([`cell_counts_and_sizes.png`](results/figures/cell_counts_and_sizes.png),
+right panel) — CellPose's nuclear segmentation on the DAPI image produces
+nuclei essentially the same size as 10x's own nuclear segmentation. The much
+higher transcripts/cell and capture rate for 10x native come from its
+*whole-cell* boundary (median cell area ~127 µm², roughly 5x the nucleus),
+which extends into the cytoplasm that CellPose's nuclear-only masks exclude.
+
+**Matching**: 18,966 mutual-nearest-neighbor pairs (≤10 µm centroid distance)
+out of 20,166 CellPose / 23,629 10x native cells — **94%** of CellPose's cells
+have a corresponding 10x cell, much higher overlap than with Baysor (limited
+to Baysor's smaller 1mm² footprint).
+
+**Expression agreement**
+([`expression_correlation.png`](results/figures/expression_correlation.png),
+right panel): median Pearson correlation = **0.82**, notably higher than the
+0.74 vs. Baysor — consistent with CellPose and 10x native both being
+nuclear-pixel-mask segmentations of the *same* DAPI image, vs. Baysor's
+transcript-density approach on a completely different input.
+
+**Cell-type agreement**
+([`cell_type_confusion.png`](results/figures/cell_type_confusion.png), right
+panel): ARI = **0.547** (vs. 0.445 for Baysor); **30.8%** of matched pairs
+land in different clusters (vs. 46.7% for Baysor) — CellPose's cell-type calls
+track the platform's own reference segmentation noticeably more closely than
+they track Baysor's.
+
+**Spatial structure of disagreement**
+([`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
+right panel): Moran's I = **0.176** (p = 0.001) — meaningfully higher spatial
+autocorrelation than the CellPose-vs-Baysor comparison (0.066). Where CellPose
+and 10x's own segmentation disagree on cell type is more spatially clustered
+than where CellPose and Baysor disagree, plausibly reflecting tissue regions
+(e.g. densely packed tumor nests) where nuclear segmentation is intrinsically
+harder and CellPose's calls drift from the platform reference.
+
+**Takeaway**: CellPose's nuclear segmentation reproduces 10x's own reference
+segmentation closely in nucleus *size* and reasonably well in per-cell
+*expression*/*cell-type* calls (ARI 0.55, vs. 0.45 for Baysor) — but, like
+Baysor, the comparison underscores that **what differs most across methods is
+how much of the cell each captures**, not where the nuclei are. For
+downstream analyses that depend on whole-cell expression (most cell-typing
+pipelines), nuclear-only segmentation (CellPose without a membrane channel,
+here) is the more consequential limitation than disagreement between
+algorithms.
 
 ## Repo layout
 
@@ -185,4 +251,5 @@ See [`scripts/run_baysor.sh`](scripts/run_baysor.sh) for the invocation.
 - [ ] Segmentation: Mesmer — blocked externally on deepcell.org's account
       system (signup/login/password-reset all fail); wrapper and conda env
       are ready, revisit if/when access is restored
-- [ ] Stretch: incorporate 10x native segmentation as a third reference
+- [x] Stretch: incorporate 10x native segmentation as a third reference
+      (CellPose vs. 10x native: 18,966 matched pairs, ARI = 0.547)

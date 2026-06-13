@@ -49,7 +49,8 @@ def main() -> None:
 
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
-    adatas = {"cellpose": adata_cellpose, "baysor": adata_baysor}
+    adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
+    adatas = {"cellpose": adata_cellpose, "baysor": adata_baysor, "10x_native": adata_10x}
 
     counts = cell_count_summary(adatas)
     counts.to_csv(TABLES_DIR / "cell_counts.csv")
@@ -61,24 +62,29 @@ def main() -> None:
     print("\n=== Size summary (full ROI per method) ===")
     print(sizes)
 
-    # Direct, area-matched comparison: CellPose subset to Baysor's 1mm x 1mm
-    # sub-region, so raw cell counts/sizes are comparable without density
-    # normalization.
+    # Direct, area-matched comparison: CellPose and 10x_native subset to
+    # Baysor's 1mm x 1mm sub-region, so raw cell counts/sizes are comparable
+    # without density normalization.
     x_range, y_range = SUB_REGION
     adata_cellpose_sub = subset_to_region(adata_cellpose, x_range, y_range)
-    adatas_sub = {"cellpose": adata_cellpose_sub, "baysor": adata_baysor}
+    adata_10x_sub = subset_to_region(adata_10x, x_range, y_range)
+    adatas_sub = {
+        "cellpose": adata_cellpose_sub,
+        "baysor": adata_baysor,
+        "10x_native": adata_10x_sub,
+    }
 
     counts_sub = cell_count_summary(adatas_sub)
     counts_sub["transcript_capture_rate"] = (
         counts_sub["total_transcripts"] / TOTAL_TRANSCRIPTS_1MM2
     )
     counts_sub.to_csv(TABLES_DIR / "cell_counts_1mm2.csv")
-    print("\n=== Cell counts + QC (1mm x 1mm sub-region, both methods) ===")
+    print("\n=== Cell counts + QC (1mm x 1mm sub-region, all methods) ===")
     print(counts_sub)
 
     sizes_sub = size_summary(adatas_sub)
     sizes_sub.to_csv(TABLES_DIR / "size_summary_1mm2.csv")
-    print("\n=== Size summary (1mm x 1mm sub-region, both methods) ===")
+    print("\n=== Size summary (1mm x 1mm sub-region, all methods) ===")
     print(sizes_sub)
 
     matches = match_cells_by_centroid(adata_cellpose, adata_baysor, max_dist=MAX_MATCH_DIST)
@@ -120,6 +126,43 @@ def main() -> None:
         json.dump(spatial, f, indent=2)
     print("\n=== Spatial structure of disagreement ===")
     print(spatial)
+
+    # CellPose vs. 10x's own (Xenium Ranger) segmentation -- both cover the
+    # full 2mm x 2mm ROI, so this is the "does our segmentation reproduce the
+    # platform's reference segmentation" comparison, run the same way as
+    # CellPose vs. Baysor above.
+    matches_10x = match_cells_by_centroid(adata_cellpose, adata_10x, max_dist=MAX_MATCH_DIST)
+    matches_10x.to_csv(TABLES_DIR / "matches_cellpose_10x.csv", index=False)
+    print(f"\n=== CellPose vs 10x_native matched pairs (max_dist={MAX_MATCH_DIST}um) ===")
+    print(f"{len(matches_10x)} matched pairs out of {adata_cellpose.n_obs} cellpose / "
+          f"{adata_10x.n_obs} 10x_native cells")
+
+    corr_10x = expression_correlation(adata_cellpose, adata_10x, matches_10x)
+    corr_10x.to_csv(TABLES_DIR / "expression_correlation_cellpose_10x.csv", index=False)
+    print("\n=== CellPose vs 10x_native expression correlation (matched pairs) ===")
+    print(corr_10x["correlation"].describe())
+
+    print("\n=== Clustering cell types (10x_native) ===")
+    labels_10x = cluster_cell_types(adata_10x, seed=0)
+    print(f"10x_native: {labels_10x.nunique()} clusters")
+
+    agreement_10x = cell_type_agreement(labels_cellpose, labels_10x, matches_10x)
+    agreement_10x["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_cellpose_10x.csv")
+    print("\n=== CellPose vs 10x_native cell type agreement ===")
+    print(f"ARI = {agreement_10x['ari']:.4f}, n_matched = {agreement_10x['n_matched']}")
+    print(agreement_10x["confusion"])
+
+    labels_10x_aligned = match_cluster_labels(labels_cellpose, labels_10x, matches_10x)
+    disagreement_10x = disagreement_table(
+        matches_10x, labels_cellpose, labels_10x_aligned, adata_cellpose
+    )
+    disagreement_10x.to_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv", index=False)
+
+    spatial_10x = disagreement_spatial_structure(disagreement_10x, seed=0)
+    with open(TABLES_DIR / "disagreement_spatial_cellpose_10x.json", "w") as f:
+        json.dump(spatial_10x, f, indent=2)
+    print("\n=== CellPose vs 10x_native spatial structure of disagreement ===")
+    print(spatial_10x)
 
 
 if __name__ == "__main__":

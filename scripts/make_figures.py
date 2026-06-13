@@ -38,112 +38,160 @@ TOTAL_TRANSCRIPTS_1MM2 = 770_748
 sns.set_theme(style="whitegrid", context="talk")
 
 
+METHOD_COLORS = {"cellpose": "#4C72B0", "baysor": "#DD8452", "10x_native": "#55A868"}
+METHOD_LABELS = {"cellpose": "CellPose", "baysor": "Baysor", "10x_native": "10x native"}
+
+
 def fig_cell_counts_and_sizes() -> None:
     counts = pd.read_csv(TABLES_DIR / "cell_counts_1mm2.csv", index_col="method")
+    methods = list(counts.index)
 
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
+    adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
     x_range, y_range = SUB_REGION
     adata_cellpose_sub = subset_to_region(adata_cellpose, x_range, y_range)
+    adata_10x_sub = subset_to_region(adata_10x, x_range, y_range)
+
     cellpose_area_um2 = adata_cellpose_sub.obs["area"] * PIXEL_SIZE**2
+    tenx_nucleus_area_um2 = adata_10x_sub.obs["nucleus_area_um2"]
     cellpose_transcripts = np.asarray(adata_cellpose_sub.X.sum(axis=1)).ravel()
     baysor_transcripts = np.asarray(adata_baysor.X.sum(axis=1)).ravel()
+    tenx_transcripts = np.asarray(adata_10x_sub.X.sum(axis=1)).ravel()
+    transcripts_by_method = {
+        "cellpose": cellpose_transcripts,
+        "baysor": baysor_transcripts,
+        "10x_native": tenx_transcripts,
+    }
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
     axes[0].bar(
-        counts.index, counts["n_cells"].to_numpy(), color=["#4C72B0", "#DD8452"]
+        [METHOD_LABELS[m] for m in methods],
+        counts.loc[methods, "n_cells"].to_numpy(),
+        color=[METHOD_COLORS[m] for m in methods],
     )
     axes[0].set_ylabel("Cell count (1mm × 1mm sub-region)")
     axes[0].set_title("Cell count")
 
-    # Transcripts/cell is computed identically for both methods (sum of the
+    # Transcripts/cell is computed identically for all methods (sum of the
     # per-cell gene-count matrix), so this panel is a true apples-to-apples
     # QC comparison -- unlike "cell size", which means different things
     # (nucleus pixel area vs. transcript count) per method.
-    sns.histplot(
-        cellpose_transcripts, bins=40, log_scale=True, ax=axes[1],
-        color="#4C72B0", label="CellPose", alpha=0.5,
-    )
-    sns.histplot(
-        baysor_transcripts, bins=40, log_scale=True, ax=axes[1],
-        color="#DD8452", label="Baysor", alpha=0.5,
-    )
+    for method in methods:
+        sns.histplot(
+            transcripts_by_method[method], bins=40, log_scale=True, ax=axes[1],
+            color=METHOD_COLORS[method], label=METHOD_LABELS[method], alpha=0.4,
+        )
     axes[1].set_xlabel("Transcripts per cell")
     axes[1].set_title("Transcripts/cell (QC)")
     axes[1].legend()
 
-    sns.histplot(cellpose_area_um2, bins=50, ax=axes[2], color="#4C72B0")
+    # Nucleus area is directly comparable between CellPose (pixel area
+    # converted to µm²) and 10x native (already in µm²) -- both are nuclear
+    # segmentation areas, so this checks whether CellPose's nuclei are
+    # similarly sized to the platform's own reference segmentation.
+    sns.histplot(
+        cellpose_area_um2, bins=50, ax=axes[2],
+        color=METHOD_COLORS["cellpose"], label=METHOD_LABELS["cellpose"], alpha=0.4,
+    )
+    sns.histplot(
+        tenx_nucleus_area_um2, bins=50, ax=axes[2],
+        color=METHOD_COLORS["10x_native"], label=METHOD_LABELS["10x_native"], alpha=0.4,
+    )
     axes[2].set_xlabel("Nucleus area (µm²)")
-    axes[2].set_title("CellPose nucleus area (QC)")
+    axes[2].set_title("Nucleus area: CellPose vs. 10x native (QC)")
+    axes[2].legend()
 
-    fig.suptitle("Cell count and QC: CellPose vs. Baysor (1mm × 1mm sub-region)")
-    capture_cp = counts.loc["cellpose", "transcript_capture_rate"]
-    capture_bs = counts.loc["baysor", "transcript_capture_rate"]
+    fig.suptitle("Cell count and QC: CellPose vs. Baysor vs. 10x native (1mm × 1mm sub-region)")
+    capture = counts.loc[methods, "transcript_capture_rate"]
+    capture_str = ", ".join(
+        f"{METHOD_LABELS[m]} {capture[m]:.0%}" for m in methods
+    )
     fig.text(
         0.5, 0.01,
         f"Transcript capture rate (assigned / {TOTAL_TRANSCRIPTS_1MM2:,} total"
-        f" qv≥20 transcripts in region): CellPose {capture_cp:.0%},"
-        f" Baysor {capture_bs:.0%}. CellPose is nuclear-only, so cytoplasmic"
-        " transcripts are not assigned to any cell.",
+        f" qv≥20 transcripts in region): {capture_str}. CellPose is"
+        " nuclear-only, so cytoplasmic transcripts are not assigned to any cell.",
         ha="center", fontsize=11, style="italic",
     )
-    fig.tight_layout(rect=(0, 0.03, 1, 1))
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
     fig.savefig(FIGURES_DIR / "cell_counts_and_sizes.png", dpi=150)
     plt.close(fig)
 
 
 def fig_expression_correlation() -> None:
-    corr = pd.read_csv(TABLES_DIR / "expression_correlation.csv")
+    corr_baysor = pd.read_csv(TABLES_DIR / "expression_correlation.csv")
+    corr_10x = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_10x.csv")
 
-    fig, ax = plt.subplots(figsize=(8, 5.5))
-    sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color="#55A868")
-    ax.axvline(
-        corr["correlation"].median(), color="black", linestyle="--",
-        label=f"median = {corr['correlation'].median():.2f}",
-    )
-    ax.set_xlabel("Pearson correlation (matched cell pair)")
-    ax.set_ylabel("Number of pairs")
-    ax.set_title("Per-cell expression agreement: CellPose vs. Baysor")
-    ax.legend()
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.5), sharey=True)
+    for ax, corr, label, color in [
+        (axes[0], corr_baysor, "CellPose vs. Baysor", METHOD_COLORS["baysor"]),
+        (axes[1], corr_10x, "CellPose vs. 10x native", METHOD_COLORS["10x_native"]),
+    ]:
+        median = corr["correlation"].median()
+        sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=color)
+        ax.axvline(median, color="black", linestyle="--", label=f"median = {median:.2f}")
+        ax.set_xlabel("Pearson correlation (matched cell pair)")
+        ax.set_title(label)
+        ax.legend()
+
+    axes[0].set_ylabel("Number of pairs")
+    fig.suptitle("Per-cell expression agreement vs. CellPose")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "expression_correlation.png", dpi=150)
     plt.close(fig)
 
 
 def fig_disagreement_spatial_map() -> None:
-    disagreement = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
+    disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
+    disagreement_10x = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv")
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    sns.scatterplot(
-        data=disagreement,
-        x="centroid_x",
-        y="centroid_y",
-        hue="disagree",
-        palette={0.0: "#4C72B0", 1.0: "#C44E52"},
-        s=20,
-        alpha=0.7,
-        ax=ax,
-    )
-    ax.set_xlabel("x (µm, ROI coordinates)")
-    ax.set_ylabel("y (µm, ROI coordinates)")
-    ax.set_aspect("equal")
-    ax.invert_yaxis()
-    ax.set_title("Cell-type agreement (blue) vs. disagreement (red)")
-    ax.legend(title="Disagree", labels=["No", "Yes"])
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    for ax, disagreement, label in [
+        (axes[0], disagreement_baysor, "CellPose vs. Baysor"),
+        (axes[1], disagreement_10x, "CellPose vs. 10x native"),
+    ]:
+        sns.scatterplot(
+            data=disagreement,
+            x="centroid_x",
+            y="centroid_y",
+            hue="disagree",
+            palette={0.0: "#4C72B0", 1.0: "#C44E52"},
+            s=20,
+            alpha=0.7,
+            ax=ax,
+        )
+        ax.set_xlabel("x (µm, ROI coordinates)")
+        ax.set_ylabel("y (µm, ROI coordinates)")
+        ax.set_aspect("equal")
+        ax.invert_yaxis()
+        ax.set_title(label)
+        ax.legend(title="Disagree", labels=["No", "Yes"])
+
+    fig.suptitle("Cell-type agreement (blue) vs. disagreement (red)")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "disagreement_spatial_map.png", dpi=150)
     plt.close(fig)
 
 
 def fig_cell_type_confusion() -> None:
-    confusion = pd.read_csv(TABLES_DIR / "cell_type_confusion.csv", index_col=0)
+    confusion_baysor = pd.read_csv(TABLES_DIR / "cell_type_confusion.csv", index_col=0)
+    confusion_10x = pd.read_csv(TABLES_DIR / "cell_type_confusion_cellpose_10x.csv", index_col=0)
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(confusion, annot=False, cmap="viridis", ax=ax)
-    ax.set_xlabel("Baysor Leiden cluster")
-    ax.set_ylabel("CellPose Leiden cluster")
-    ax.set_title("Cell-type cluster correspondence (matched pairs)")
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    sns.heatmap(confusion_baysor, annot=False, cmap="viridis", ax=axes[0])
+    axes[0].set_xlabel("Baysor Leiden cluster")
+    axes[0].set_ylabel("CellPose Leiden cluster")
+    axes[0].set_title("CellPose vs. Baysor")
+
+    sns.heatmap(confusion_10x, annot=False, cmap="viridis", ax=axes[1])
+    axes[1].set_xlabel("10x native Leiden cluster")
+    axes[1].set_ylabel("CellPose Leiden cluster")
+    axes[1].set_title("CellPose vs. 10x native")
+
+    fig.suptitle("Cell-type cluster correspondence (matched pairs)")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "cell_type_confusion.png", dpi=150)
     plt.close(fig)
