@@ -31,7 +31,11 @@ for fname in ${FILES}; do
     continue
   fi
   echo "Downloading ${fname} ..."
-  curl -L --fail -o "${dest}.partial" "${BASE}_${fname}"
+  if command -v curl >/dev/null 2>&1; then
+    curl -L --fail -o "${dest}.partial" "${BASE}_${fname}"
+  else
+    wget -q --user-agent="Mozilla/5.0" -O "${dest}.partial" "${BASE}_${fname}"
+  fi
   mv "${dest}.partial" "${dest}"
 done
 

@@ -1,7 +1,9 @@
-"""Mesmer (DeepCell) segmentation wrapper, run via Docker.
+"""Mesmer (DeepCell) segmentation wrapper, run in a separate conda env.
 
-deepcell-tf has no native Apple Silicon build, so Mesmer runs inside the
-``vanvalenlab/deepcell-applications`` container instead of in-process.
+DeepCell pins TensorFlow 2.8, which conflicts with the rest of the
+``segbench`` stack, so Mesmer runs in its own ``mesmer`` conda env
+(``conda create -n mesmer python=3.10 && conda run -n mesmer pip install
+deepcell``), via ``conda run -n mesmer python scripts/run_mesmer.py``.
 """
 
 from __future__ import annotations
@@ -11,7 +13,8 @@ from pathlib import Path
 
 from segbench.io import PIXEL_SIZE
 
-_SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "run_mesmer.sh"
+_SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "run_mesmer.py"
+_CONDA_ENV = "mesmer"
 
 
 def run_mesmer(
@@ -22,23 +25,18 @@ def run_mesmer(
     image_mpp: float = PIXEL_SIZE,
     membrane_file: str | None = None,
 ) -> Path:
-    """Segment cells with Mesmer via the deepcell-applications Docker image.
+    """Segment cells with Mesmer, run via ``conda run -n mesmer``.
 
     ``nuclear_file``, ``membrane_file``, and ``output_dir`` are paths relative
-    to ``data_dir``, which is bind-mounted into the container. ``compartment``
-    defaults to ``"nuclear"`` since our ``morphology_focus`` image is
-    DAPI-only (no membrane channel).
+    to ``data_dir``. ``compartment`` defaults to ``"nuclear"`` since our
+    ``morphology_focus`` image is DAPI-only (no membrane channel).
 
-    Returns ``data_dir / output_dir``, where the container writes the
-    predicted label mask.
+    Returns ``data_dir / output_dir``, where ``scripts/run_mesmer.py`` writes
+    the predicted label mask (``mask.tif``).
     """
     args = [
-        str(_SCRIPT),
-        str(data_dir),
-        nuclear_file,
-        output_dir,
-        compartment,
-        str(image_mpp),
+        "conda", "run", "-n", _CONDA_ENV, "python", str(_SCRIPT),
+        str(data_dir), nuclear_file, output_dir, compartment, str(image_mpp),
     ]
     if membrane_file is not None:
         args.append(membrane_file)

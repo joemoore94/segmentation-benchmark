@@ -28,5 +28,6 @@ module = [
     "anndata.*",
     "pyvips.*",
     "scipy.*",
+    "deepcell.*",
 ]
 ignore_missing_imports = true

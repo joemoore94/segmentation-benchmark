@@ -108,6 +108,7 @@ ROI's top-left corner is the origin).
 
 ## Segmentation runs
 
+All segmentation runs on this project are on a Linux x86_64 workstation.
 CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 `pixel_size=0.2125`); Baysor segments transcripts directly
 (`transcripts_baysor.csv`/`.parquet`, the qv>=20 non-control-probe subset,
@@ -115,36 +116,61 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 
 ### CellPose
 
-- Nuclear segmentation on `dapi.tif`, MPS-accelerated (`scripts/run_cellpose_roi.py`).
-- Runtime: ~94 min (5625.6s).
-- Result: 23,660 cells -> `masks_cellpose.tif`.
-
-### Mesmer
-
-- Nuclear-only segmentation on `dapi.tif` via the `vanvalenlab/deepcell-applications`
-  Docker image (no membrane channel available, see image-format gotcha #1).
-- Runtime: ~58 min.
-- Result: 21,693 cells -> `mesmer_out/mask.tif`.
+- CellPose 3.1.1.3. CellPose 4.x dropped the lightweight classical U-Net
+  models (`nuclei`, `cyto2`, `cyto3`) in favor of SAM-based foundation models,
+  which are CPU-prohibitive; 3.x's `nuclei` model runs comfortably on CPU.
+- Nuclear segmentation on the full `dapi.tif` (9412x9412px, 2mm x 2mm ROI), CPU
+  only (`scripts/run_cellpose_roi.py`, `model_type="nuclei"`).
+- Runtime: 633.4s (~10.5 min).
+- Result: **20,166 cells** -> `masks_cellpose.tif`, median nucleus area
+  653 px² (~29.5 µm²).
 
 ### Baysor
 
-- Transcript-based segmentation, config in `configs/baysor_config.toml`
+- Julia 1.10 via juliaup (`julia +1.10`, see Environment setup) — Baysor
+  v0.7.1 isn't compatible with the default Julia channel.
+- Baysor's main-EM runtime scales worse than linearly with transcript count
+  (roughly N^1.8), so the full ROI (3,392,051 transcripts) is impractical on
+  CPU. Ran instead on the centered **1mm x 1mm sub-region** of the ROI
+  (770,748 transcripts), config in `configs/baysor_config.toml`
   (`scale=12.5`, `scale_std="25%"`, `n_clusters=4`).
-- **Smoke test** on a 500x500um corner (175,411 transcripts, 5.17% of the ROI's
-  transcripts): completed in ~7m48s, 1,155 cells -> `baysor_test_out/`.
-- **Full-ROI run** (3,392,051 transcripts) was killed after ~75 min, at iteration
-  104/500 of the main EM step (21% progress, ETA still >4 hours). Baysor's main-EM
-  runtime scales worse than linearly with molecule count (roughly N^1.8, based on
-  the smoke-test vs full-ROI iteration timing), so the full 2mm x 2mm ROI is
-  impractical for this method on this hardware.
-- **Plan**: rerun Baysor on a smaller, centered 1mm x 1mm sub-region of the same ROI
-  (~850K transcripts, est. ~35-40 min by the same scaling), and restrict any
-  cross-method comparison involving Baysor to that sub-region.
+- Runtime: ~12 min main run (after a one-time ~8 min Julia precompilation).
+- Result: **4,514 cells**, 11,131 transcripts assigned to noise ->
+  `baysor_sub/segmentation*.{csv,loom,json}`.
+- Gene-name gotcha: `transcripts_baysor*.csv`'s `gene` column is written from
+  a `bytes`-typed `feature_name` column, so values come out as literal
+  `"b'GENENAME'"` strings. Cleaned with a regex (`r"^b'(.*)'$"` -> `r"\1"`)
+  before quantification — without this, CellPose and Baysor shared 0/379 genes.
 
-### Resource notes
+### Mesmer
 
-Running CellPose (MPS), Mesmer (Docker/x86_64 emulation via Rosetta), and Baysor
-(Julia) concurrently on a 16GB M1 caused severe swap thrashing (up to 14.3/15GB
-swap used), stalling CellPose and Baysor at near-0% CPU for extended periods.
-Quitting Docker Desktop after Mesmer finished freed enough memory for both to
-resume normal progress.
+- Not run — blocked externally on deepcell.org, not on anything in this repo.
+  A native `mesmer` conda env (Python 3.10, DeepCell 0.12.10, TensorFlow
+  2.8.4 — no Docker needed on this x86_64 machine) is set up, and
+  `segbench.segmentation.mesmer_run.run_mesmer` / `scripts/run_mesmer.py`
+  call `deepcell.applications.Mesmer()` directly via `conda run -n mesmer`.
+- `Mesmer()` requires a `DEEPCELL_ACCESS_TOKEN` to fetch its pretrained
+  weights (`models/MultiplexSegmentation-9.tar.gz`, md5
+  `a1dfbce2594f927b9112f23a0a1739e0`) from `https://users.deepcell.org/api/getData/`.
+  As of June 2026, `users.deepcell.org`'s account system is broken end to
+  end: signup returns a server error (HTTP 500, tried with two different
+  emails), login fails ("username and password didn't match") even with the
+  documented `email-local-part` username convention, and "forgot password"
+  never sends a reset email. No public mirror of the weights archive (which
+  would let `fetch_data`'s local md5-cache check succeed without a token) was
+  found. The DeepCell.org "PREDICT" cloud page is a token-free alternative
+  but requires browser upload, which was ruled out in favor of staying CLI-only.
+- Plan if/when access is restored: nuclear-only segmentation on `dapi.tif`
+  (no membrane channel, see image-format gotcha #1), on the same 1mm x 1mm
+  sub-region used for Baysor to keep its compute footprint small and its
+  results directly comparable.
+
+### Cross-method comparison scope
+
+Because Baysor only covers the 1mm x 1mm sub-region, `match_cells_by_centroid`
+(max 10 µm) only pairs cells within that sub-region — 2,101 matched pairs out
+of 20,166 CellPose / 4,514 Baysor cells. All matched-pair metrics (expression
+correlation, cell-type agreement, spatial disagreement) are therefore already
+scoped to that 1mm² footprint; only the raw cell-count comparison needed
+explicit density normalization (cells/mm²) to account for the different ROI
+areas. See [`../README.md`](../README.md#results) for results.

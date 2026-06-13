@@ -1,1 +1,1 @@
-"""Per-method segmentation wrappers: CellPose, Mesmer (Docker), Baysor (Julia)."""
+"""Per-method segmentation wrappers: CellPose, Mesmer (separate conda env), Baysor (Julia)."""

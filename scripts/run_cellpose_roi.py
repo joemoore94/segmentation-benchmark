@@ -22,7 +22,7 @@ def main() -> None:
     print(f"DAPI image: {dapi.shape} {dapi.dtype}")
 
     t0 = time.time()
-    masks = run_cellpose(dapi, gpu=True)
+    masks = run_cellpose(dapi, model_type="nuclei", channels=[0, 0], gpu=False)
     print(f"CellPose done in {time.time() - t0:.1f}s, {masks.max()} cells")
 
     out_path = ROI_DIR / "masks_cellpose.tif"

@@ -3,7 +3,7 @@
 #
 # No standalone `baysor` executable is built (we installed the Baysor.jl
 # package via Pkg.add, not PackageCompiler), so the CLI is invoked through
-# `julia -e 'using Baysor; Baysor.command_main()' -- <args>`.
+# `julia +1.10 -e 'using Baysor; Baysor.command_main()' -- <args>`.
 #
 # Usage: run_baysor.sh <transcripts_file> <config_toml> <output_dir> [prior_segmentation_column]
 #
@@ -21,7 +21,7 @@ PRIOR_COLUMN=${4:-}
 mkdir -p "${OUTPUT_DIR}"
 
 if [[ -n "${PRIOR_COLUMN}" ]]; then
-  julia -e 'using Baysor; Baysor.command_main()' -- run -c "${CONFIG}" -o "${OUTPUT_DIR}" "${TRANSCRIPTS}" ":${PRIOR_COLUMN}"
+  julia +1.10 -e 'using Baysor; Baysor.command_main()' -- run -c "${CONFIG}" -o "${OUTPUT_DIR}" "${TRANSCRIPTS}" ":${PRIOR_COLUMN}"
 else
-  julia -e 'using Baysor; Baysor.command_main()' -- run -c "${CONFIG}" -o "${OUTPUT_DIR}" "${TRANSCRIPTS}"
+  julia +1.10 -e 'using Baysor; Baysor.command_main()' -- run -c "${CONFIG}" -o "${OUTPUT_DIR}" "${TRANSCRIPTS}"
 fi

@@ -19,7 +19,9 @@ def test_run_mesmer_nuclear_only_invokes_script_with_expected_args(
 
     mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
-    assert args[1:] == [str(tmp_path), "dapi.tif", "mesmer_out", "nuclear", str(PIXEL_SIZE)]
+    assert args[:5] == ["conda", "run", "-n", "mesmer", "python"]
+    assert args[5] == str(mesmer_run._SCRIPT)
+    assert args[6:] == [str(tmp_path), "dapi.tif", "mesmer_out", "nuclear", str(PIXEL_SIZE)]
     assert out == tmp_path / "mesmer_out"
 
 
@@ -36,7 +38,8 @@ def test_run_mesmer_with_membrane_appends_membrane_file(
     )
 
     args = mock_run.call_args[0][0]
-    assert args[1:] == [
+    assert args[:5] == ["conda", "run", "-n", "mesmer", "python"]
+    assert args[6:] == [
         str(tmp_path),
         "dapi.tif",
         "mesmer_out",
