@@ -28,19 +28,17 @@ single cell, spatial and in situ analysis of FFPE tissue"*, *Nature Communicatio
 - 10x dataset page: [Xenium FFPE Human Breast with Custom Add-on Panel](https://www.10xgenomics.com/datasets/xenium-ffpe-human-breast-with-custom-add-on-panel-1-standard)
 - ~577,000 cells, ~78M transcripts, registered post-Xenium H&E image
 - Matched scRNA-seq + Visium from the same tissue blocks: GEO [GSE243275](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE243275)
-  (this is what Project 2 will use as the label-transfer reference)
 
-The full bundle (morphology image + transcripts) is tens of GB, so segmentation runs
-operate on a cropped ROI (~2-4mm²) selected to contain a mix of tumor, stroma, and
-immune-infiltrated regions. See [`docs/dataset.md`](docs/dataset.md) for download
-details and ROI selection notes (filled in during data acquisition).
+Segmentation runs on a cropped ROI (~2-4mm²), selected for a mix of tumor, stroma,
+and immune-infiltrated regions. See [`docs/dataset.md`](docs/dataset.md) for
+download and ROI-selection details.
 
 ## Methods compared
 
 | Method | Input | Notes |
 |---|---|---|
 | **10x native** | provided | Xenium Ranger's own nucleus/cell boundary segmentation (`cell_feature_matrix.h5ad` + `cells.parquet`), reshaped into `adata_10x.h5ad` by `scripts/build_10x_adata.py`; no new segmentation run needed, included below as the platform's reference |
-| **CellPose** | DAPI (full 2mm x 2mm ROI) | CellPose 3.x classical `nuclei` U-Net model, CPU. CellPose 4.x dropped the lightweight U-Net models in favor of SAM-based foundation models, which are CPU-prohibitive |
+| **CellPose** | DAPI (full 2mm x 2mm ROI) | CellPose 3.x classical `nuclei` U-Net model, CPU (CellPose 4.x's SAM-based models are CPU-prohibitive) |
 | **StarDist** | DAPI (full 2mm x 2mm ROI) | StarDist2D `2D_versatile_fluo` pretrained model (star-convex polygon regression), CPU, run via `scripts/run_stardist_roi.py` in a separate `stardist` conda env; a CPU-friendly, no-account-required alternative to Mesmer |
 | **Mesmer** (DeepCell) | DAPI (ROI crop) | not run, blocked on deepcell.org's account system (signup, login, and password reset all fail as of June 2026); wrapper and conda env are ready, see `docs/dataset.md` |
 | **Baysor** | transcripts (centered 1mm x 1mm sub-region of the ROI) | transcript-density-based segmentation, run via Julia 1.10; the full 2mm x 2mm ROI is CPU-impractical for this method (see `docs/dataset.md`) |
@@ -91,9 +89,7 @@ excludes most of the cytoplasm.
 ([`expression_correlation.png`](results/figures/expression_correlation.png)):
 2,101 mutual-nearest-neighbor pairs (≤10 µm centroid distance) out of 4,459
 CellPose / 4,514 Baysor cells, with median per-pair Pearson correlation =
-**0.74** across shared genes, which is fairly strong given the two methods use
-completely different inputs and capture very different numbers of transcripts
-per cell.
+**0.74** across shared genes.
 
 **Cell-type agreement and spatial structure**
 ([`cell_type_confusion.png`](results/figures/cell_type_confusion.png) and
@@ -140,8 +136,7 @@ out of 20,166 CellPose / 23,629 10x native cells: **94%** of CellPose's cells
 have a corresponding 10x cell, much higher overlap than with Baysor's smaller
 1mm² footprint. Median Pearson correlation = **0.82**, notably higher than the
 0.74 vs. Baysor, consistent with CellPose and 10x native both being
-nuclear-pixel-mask segmentations of the *same* DAPI image, vs. Baysor's
-transcript-density approach on a different input entirely.
+nuclear-pixel-mask segmentations of the *same* DAPI image.
 
 **Cell-type agreement and spatial structure**
 ([`cell_type_confusion.png`](results/figures/cell_type_confusion.png) and
@@ -162,10 +157,8 @@ disagreement.
 ### CellPose vs. StarDist (same input, different algorithm)
 
 StarDist (`2D_versatile_fluo`, star-convex polygon regression) is run on the
-*same* full 2mm x 2mm DAPI image as CellPose, a CPU-friendly, no-account
-alternative to the still-blocked Mesmer (see Status), and the closest
-apples-to-apples comparison in this project: two algorithms on identical
-input.
+*same* full 2mm x 2mm DAPI image as CellPose, the closest apples-to-apples
+comparison in this project: two algorithms on identical input.
 
 | | CellPose (U-Net, DAPI) | StarDist (star-convex, DAPI) |
 |---|---|---|
