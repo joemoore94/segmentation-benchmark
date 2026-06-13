@@ -6,7 +6,24 @@ from unittest.mock import MagicMock
 import pytest
 
 
-def test_run_mesmer_invokes_script_with_expected_args(
+def test_run_mesmer_nuclear_only_invokes_script_with_expected_args(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from segbench.io import PIXEL_SIZE
+    from segbench.segmentation import mesmer_run
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(mesmer_run.subprocess, "run", mock_run)
+
+    out = mesmer_run.run_mesmer(tmp_path, "dapi.tif", "mesmer_out")
+
+    mock_run.assert_called_once()
+    args = mock_run.call_args[0][0]
+    assert args[1:] == [str(tmp_path), "dapi.tif", "mesmer_out", "nuclear", str(PIXEL_SIZE)]
+    assert out == tmp_path / "mesmer_out"
+
+
+def test_run_mesmer_with_membrane_appends_membrane_file(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     from segbench.segmentation import mesmer_run
@@ -14,12 +31,19 @@ def test_run_mesmer_invokes_script_with_expected_args(
     mock_run = MagicMock()
     monkeypatch.setattr(mesmer_run.subprocess, "run", mock_run)
 
-    out = mesmer_run.run_mesmer(tmp_path, "dapi.tif", "membrane.tif", "mesmer_out")
+    mesmer_run.run_mesmer(
+        tmp_path, "dapi.tif", "mesmer_out", compartment="whole-cell", membrane_file="membrane.tif"
+    )
 
-    mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
-    assert args[1:] == [str(tmp_path), "dapi.tif", "membrane.tif", "mesmer_out", "whole-cell"]
-    assert out == tmp_path / "mesmer_out"
+    assert args[1:] == [
+        str(tmp_path),
+        "dapi.tif",
+        "mesmer_out",
+        "whole-cell",
+        "0.2125",
+        "membrane.tif",
+    ]
 
 
 def test_run_baysor_with_prior_column(

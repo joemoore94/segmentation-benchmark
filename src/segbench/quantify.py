@@ -43,9 +43,11 @@ def quantify_cells(
     -------
     AnnData with one observation per labeled cell (``obs_names`` = label ids
     as strings), ``var_names`` = gene names, ``X`` = transcript counts, and
-    ``obs["area"]``, ``obs["centroid_y"]``, ``obs["centroid_x"]`` (in pixel
-    coordinates) from :func:`skimage.measure.regionprops_table`. Cells with no
-    assigned transcripts get all-zero rows.
+    ``obs["area"]`` (in pixel\N{SUPERSCRIPT TWO}) and ``obs["centroid_x"]``/
+    ``obs["centroid_y"]`` converted to the same physical coordinate system as
+    ``transcripts`` (via ``pixel_size``/``origin``), so cells from different
+    methods can be matched by centroid. Cells with no assigned transcripts get
+    all-zero rows.
     """
     col = ((transcripts[x_col].to_numpy() - origin[0]) / pixel_size).astype(np.int64)
     row = ((transcripts[y_col].to_numpy() - origin[1]) / pixel_size).astype(np.int64)
@@ -65,9 +67,53 @@ def quantify_cells(
         regionprops_table(masks, properties=("label", "area", "centroid"))
     ).set_index("label")
     props = props.rename(columns={"centroid-0": "centroid_y", "centroid-1": "centroid_x"})
+    props["centroid_x"] = props["centroid_x"] * pixel_size + origin[0]
+    props["centroid_y"] = props["centroid_y"] * pixel_size + origin[1]
 
     obs = props.reindex(props.index.union(counts.index))
     counts = counts.reindex(obs.index, fill_value=0)
+
+    obs.index = obs.index.astype(str)
+    counts.index = counts.index.astype(str)
+
+    return ad.AnnData(
+        X=counts.to_numpy(dtype=np.float32),
+        obs=obs,
+        var=pd.DataFrame(index=counts.columns.astype(str)),
+    )
+
+
+def quantify_baysor(
+    segmentation: pd.DataFrame,
+    gene_col: str = "gene",
+    cell_col: str = "cell",
+    x_col: str = "x",
+    y_col: str = "y",
+) -> ad.AnnData:
+    """Aggregate Baysor's per-molecule segmentation output into a cell x gene AnnData.
+
+    Unlike :func:`quantify_cells`, Baysor assigns each transcript to a cell
+    directly (no pixel mask): cells are defined by ``segmentation[cell_col]``,
+    and molecules with a missing (NaN) cell id are unassigned/noise and dropped.
+
+    Returns
+    -------
+    AnnData with one observation per Baysor cell id, ``var_names`` = gene
+    names, ``X`` = transcript counts, and ``obs["n_transcripts"]``,
+    ``obs["centroid_x"]``, ``obs["centroid_y"]`` (the mean molecule position
+    per cell, in the same physical units as ``x_col``/``y_col``). Baysor has
+    no pixel mask, so cell "size" is given as ``n_transcripts`` rather than
+    a pixel area.
+    """
+    assigned = segmentation.dropna(subset=[cell_col])
+
+    counts = assigned.groupby([cell_col, gene_col]).size().unstack(fill_value=0)
+
+    obs = assigned.groupby(cell_col)[[x_col, y_col]].mean().rename(
+        columns={x_col: "centroid_x", y_col: "centroid_y"}
+    )
+    obs["n_transcripts"] = assigned.groupby(cell_col).size()
+    obs = obs.reindex(counts.index)
 
     obs.index = obs.index.astype(str)
     counts.index = counts.index.astype(str)

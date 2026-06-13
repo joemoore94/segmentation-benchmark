@@ -15,5 +15,6 @@ exclude_genes = "NegControl*,BLANK*,antisense*"
 [segmentation]
 scale = 12.5
 scale_std = "25%"
-prior_segmentation_confidence = 0.7
 n_clusters = 4
+# prior_segmentation_confidence is only used when a prior_segmentation arg
+# (e.g. a DAPI-based mask or 10x cell_id column) is passed on the CLI.

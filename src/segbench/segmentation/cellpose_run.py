@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -44,4 +46,4 @@ def run_cellpose(
 
     model = models.CellposeModel(gpu=gpu, pretrained_model=model_type)
     masks, _flows, _styles = model.eval(image, diameter=diameter, channels=channels)
-    return masks.astype(np.int32)
+    return cast(NDArray[np.int32], masks.astype(np.int32))
