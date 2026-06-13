@@ -31,7 +31,7 @@ into `data/raw/` (~8.4 GB total; the full `_outs.zip` bundle is ~27 GB and is no
 Note: no standalone alignment-matrix file was found for this sample (only for the
 separate `Rep1` pre-designed-panel sample). However, `he_image.ome.tif` has the same
 `SizeX`/`SizeY` (48441 x 53833) and `PhysicalSizeX/Y` (0.2125 um) as
-`morphology_focus.ome.tif`, so the two appear to already share the same pixel grid —
+`morphology_focus.ome.tif`, so the two appear to already share the same pixel grid;
 no separate registration step was needed to crop matching ROIs from both.
 
 ## Image format gotchas
@@ -39,12 +39,12 @@ no separate registration step was needed to crop matching ROIs from both.
 These cost real debugging time and matter for any code that touches the OME-TIFFs:
 
 1. **`morphology_focus.ome.tif` is single-channel DAPI only** (shape `53833 x 48441`,
-   `uint16`, axes `YX`, OME channel name `"DAPI"`) — *not* multi-channel
+   `uint16`, axes `YX`, OME channel name `"DAPI"`), *not* multi-channel
    DAPI+membrane/boundary as the original plan assumed. CellPose/Mesmer segmentation
    on this dataset is therefore nuclear/DAPI-based only; Mesmer's `--membrane-image`
    flag is omitted (nuclear-only or `--compartment nuclear`).
 2. **`morphology_focus.ome.tif` is JPEG2000-compressed** (TIFF `Compression=34712`,
-   tiled 1024x1024). `pyvips`/libvips' libtiff build can't decode this — it silently
+   tiled 1024x1024). `pyvips`/libvips' libtiff build can't decode this: it silently
    returns an all-zero image (`dapi.avg() == 0`, no error) instead of failing loudly.
    `tifffile` (via `imagecodecs`) decodes it correctly. [`io.py`](../src/segbench/io.py)
    reads it through `tifffile.imread(..., aszarr=True)` + `zarr`, which also allows
@@ -55,13 +55,13 @@ These cost real debugging time and matter for any code that touches the OME-TIFF
    "toilet roll" image (`width x height*3`, 1 band) rather than an RGB image.
    [`io.py`](../src/segbench/io.py) loads each page separately
    (`page=0,1,2`) and `bandjoin`s them into an `(H, W, 3)` array.
-4. **`spatialdata_io.xenium()` doesn't work with this file set** — it requires the
+4. **`spatialdata_io.xenium()` doesn't work with this file set**: it requires the
    Xenium Explorer `*.zarr.zip` bundles (`cells.zarr.zip`, `transcripts.zarr.zip`,
    `cell_feature_matrix.zarr.zip`, `analysis.zarr.zip`), which aren't part of the
    per-file download used here (we have the `.parquet`/`.h5`/`.ome.tif` equivalents
    instead). [`io.py`](../src/segbench/io.py) therefore reads the raw files directly
    rather than going through `spatialdata`/`spatialdata_io`.
-5. **Julia's `Parquet.jl` can't read pandas/pyarrow-written parquet files** — Baysor
+5. **Julia's `Parquet.jl` can't read pandas/pyarrow-written parquet files**: Baysor
    (via `Parquet.jl`) throws inside its Thrift metadata reader on
    `transcripts_baysor.parquet`. CSV is Baysor's most robust input format, so the ROI
    transcript table is also written as `transcripts_baysor.csv` and that's what's
@@ -96,10 +96,10 @@ Selection method (ad hoc analysis script, not checked in):
 
 A first candidate (`x=[200,2200], y=[7400,9400]`, `balance=0.312`) had a higher balance
 score but ~40% of the window fell on empty slide background at the tissue edge
-(visible as a black block in the DAPI crop / blank region in H&E) — the tissue-coverage
+(visible as a black block in the DAPI crop / blank region in H&E); the tissue-coverage
 constraint above was added specifically to rule out windows like this. The chosen ROI's
 H&E shows several rounded tumor (DCIS/invasive) nests surrounded by stroma and immune
-infiltrate — good heterogeneity for segmentation comparison.
+infiltrate, good heterogeneity for segmentation comparison.
 
 Extracted via `segbench.io.extract_roi()` into `data/processed/roi/`:
 `dapi.tif`, `he.tif`, `transcripts.parquet`, `cells.parquet`, `cell_boundaries.parquet`,
@@ -127,7 +127,7 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 
 ### Baysor
 
-- Julia 1.10 via juliaup (`julia +1.10`, see Environment setup) — Baysor
+- Julia 1.10 via juliaup (`julia +1.10`, see Environment setup); Baysor
   v0.7.1 isn't compatible with the default Julia channel.
 - Baysor's main-EM runtime scales worse than linearly with transcript count
   (roughly N^1.8), so the full ROI (3,392,051 transcripts) is impractical on
@@ -140,13 +140,13 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 - Gene-name gotcha: `transcripts_baysor*.csv`'s `gene` column is written from
   a `bytes`-typed `feature_name` column, so values come out as literal
   `"b'GENENAME'"` strings. Cleaned with a regex (`r"^b'(.*)'$"` -> `r"\1"`)
-  before quantification — without this, CellPose and Baysor shared 0/379 genes.
+  before quantification; without this, CellPose and Baysor shared 0/379 genes.
 
 ### Mesmer
 
-- Not run — blocked externally on deepcell.org, not on anything in this repo.
+- Not run, blocked externally on deepcell.org, not on anything in this repo.
   A native `mesmer` conda env (Python 3.10, DeepCell 0.12.10, TensorFlow
-  2.8.4 — no Docker needed on this x86_64 machine) is set up, and
+  2.8.4, no Docker needed on this x86_64 machine) is set up, and
   `segbench.segmentation.mesmer_run.run_mesmer` / `scripts/run_mesmer.py`
   call `deepcell.applications.Mesmer()` directly via `conda run -n mesmer`.
 - `Mesmer()` requires a `DEEPCELL_ACCESS_TOKEN` to fetch its pretrained
@@ -168,7 +168,7 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 ### Cross-method comparison scope
 
 Because Baysor only covers the 1mm x 1mm sub-region, `match_cells_by_centroid`
-(max 10 µm) only pairs cells within that sub-region — 2,101 matched pairs out
+(max 10 µm) only pairs cells within that sub-region: 2,101 matched pairs out
 of 20,166 CellPose / 4,514 Baysor cells. All matched-pair metrics (expression
 correlation, cell-type agreement, spatial disagreement) are therefore already
 scoped to that 1mm² footprint; only the raw cell-count comparison needed
