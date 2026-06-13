@@ -9,6 +9,8 @@ results/figures/*
 results/tables/*
 !results/figures/.gitkeep
 !results/tables/.gitkeep
+# ...except figure PNGs, which the README links to and should render on GitHub
+!results/figures/*.png
 
 # Python
 __pycache__/

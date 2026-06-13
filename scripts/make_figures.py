@@ -17,54 +17,75 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+import numpy as np
+
+from segbench.compare import subset_to_region
 from segbench.io import PIXEL_SIZE
 
 ROI_DIR = Path("data/processed/roi")
 TABLES_DIR = Path("results/tables")
 FIGURES_DIR = Path("results/figures")
 
-# CellPose ran on the full 2mm x 2mm ROI; Baysor ran on the centered 1mm x 1mm
-# sub-region (CPU-tractability). Raw cell counts aren't comparable across the
-# two areas, so we report density (cells/mm^2) instead.
-CELLPOSE_ROI_AREA_MM2 = 2.0 * 2.0
-BAYSOR_ROI_AREA_MM2 = 1.0 * 1.0
+# Baysor only segmented the centered 1mm x 1mm sub-region of the 2mm x 2mm
+# ROI (CPU-tractability, see docs/dataset.md). Subsetting CellPose to the
+# same sub-region (see run_comparison.py) gives a direct, area-matched
+# cell count/size comparison.
+SUB_REGION = ((500.0, 1500.0), (500.0, 1500.0))  # (x_range, y_range), microns
+
+# qv>=20 non-control transcripts in the 1mm x 1mm sub-region (see docs/dataset.md)
+TOTAL_TRANSCRIPTS_1MM2 = 770_748
 
 sns.set_theme(style="whitegrid", context="talk")
 
 
 def fig_cell_counts_and_sizes() -> None:
-    counts = pd.read_csv(TABLES_DIR / "cell_counts.csv", index_col="method")
-    density = pd.Series(
-        {
-            "cellpose": counts.loc["cellpose", "n_cells"] / CELLPOSE_ROI_AREA_MM2,
-            "baysor": counts.loc["baysor", "n_cells"] / BAYSOR_ROI_AREA_MM2,
-        }
-    )
+    counts = pd.read_csv(TABLES_DIR / "cell_counts_1mm2.csv", index_col="method")
 
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
-    cellpose_area_um2 = adata_cellpose.obs["area"] * PIXEL_SIZE**2
-    baysor_n_transcripts = adata_baysor.obs["n_transcripts"]
+    x_range, y_range = SUB_REGION
+    adata_cellpose_sub = subset_to_region(adata_cellpose, x_range, y_range)
+    cellpose_area_um2 = adata_cellpose_sub.obs["area"] * PIXEL_SIZE**2
+    cellpose_transcripts = np.asarray(adata_cellpose_sub.X.sum(axis=1)).ravel()
+    baysor_transcripts = np.asarray(adata_baysor.X.sum(axis=1)).ravel()
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-    axes[0].bar(density.index, density.to_numpy(), color=["#4C72B0", "#DD8452"])
-    axes[0].set_ylabel("Cell density (cells / mm²)")
-    axes[0].set_title("Cell density")
+    axes[0].bar(
+        counts.index, counts["n_cells"].to_numpy(), color=["#4C72B0", "#DD8452"]
+    )
+    axes[0].set_ylabel("Cell count (1mm × 1mm sub-region)")
+    axes[0].set_title("Cell count")
 
-    sns.histplot(cellpose_area_um2, bins=50, ax=axes[1], color="#4C72B0")
-    axes[1].set_xlabel("Nucleus area (µm²)")
-    axes[1].set_title("CellPose: cell size")
+    # Transcripts/cell is computed identically for both methods (sum of the
+    # per-cell gene-count matrix), so this panel is a true apples-to-apples
+    # QC comparison -- unlike "cell size", which means different things
+    # (nucleus pixel area vs. transcript count) per method.
+    sns.histplot(
+        cellpose_transcripts, bins=40, log_scale=True, ax=axes[1],
+        color="#4C72B0", label="CellPose", alpha=0.5,
+    )
+    sns.histplot(
+        baysor_transcripts, bins=40, log_scale=True, ax=axes[1],
+        color="#DD8452", label="Baysor", alpha=0.5,
+    )
+    axes[1].set_xlabel("Transcripts per cell")
+    axes[1].set_title("Transcripts/cell (QC)")
+    axes[1].legend()
 
-    sns.histplot(baysor_n_transcripts, bins=50, ax=axes[2], color="#DD8452")
-    axes[2].set_xlabel("Transcripts per cell")
-    axes[2].set_title("Baysor: cell size")
+    sns.histplot(cellpose_area_um2, bins=50, ax=axes[2], color="#4C72B0")
+    axes[2].set_xlabel("Nucleus area (µm²)")
+    axes[2].set_title("CellPose nucleus area (QC)")
 
-    fig.suptitle("Cell count and size distributions by segmentation method")
+    fig.suptitle("Cell count and QC: CellPose vs. Baysor (1mm × 1mm sub-region)")
+    capture_cp = counts.loc["cellpose", "transcript_capture_rate"]
+    capture_bs = counts.loc["baysor", "transcript_capture_rate"]
     fig.text(
         0.5, 0.01,
-        "Densities are not directly comparable across panels: CellPose ran on the full"
-        " 2mm × 2mm ROI; Baysor ran on the centered 1mm × 1mm sub-region.",
+        f"Transcript capture rate (assigned / {TOTAL_TRANSCRIPTS_1MM2:,} total"
+        f" qv≥20 transcripts in region): CellPose {capture_cp:.0%},"
+        f" Baysor {capture_bs:.0%}. CellPose is nuclear-only, so cytoplasmic"
+        " transcripts are not assigned to any cell.",
         ha="center", fontsize=11, style="italic",
     )
     fig.tight_layout(rect=(0, 0.03, 1, 1))

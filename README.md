@@ -8,9 +8,16 @@ choice of segmentation method meaningfully change downstream cell type calls? Wh
 methods disagree, is that disagreement spatially structured (e.g. concentrated at
 tissue boundaries or specific niches) or essentially random noise?
 
-This is Project 1 of a two-part series bridging imaging-based spatial biology into
-sequencing-based spatial bioinformatics. Project 2 will use this project's output for
-scRNA-seq label-transfer reliability analysis.
+This is Project 1 of a portfolio bridging imaging-based spatial biology into
+sequencing-based spatial bioinformatics and cancer genomics:
+
+- **Project 2** — [label-transfer-benchmark](https://github.com/joemoore94/label-transfer-benchmark):
+  uses this project's segmented/quantified cells to evaluate how reliably
+  scRNA-seq reference cell-type labels transfer onto spatial data.
+- **Project 3** (separate repo, not yet started): a multimodal cancer-progression
+  risk model on bulk RNA-seq + DNA methylation (Barrett's esophagus → adenocarcinoma
+  progression cohorts). Different domain (bulk cancer genomics rather than spatial
+  imaging), but the same patient-level-split / cross-dataset-generalization rigor.
 
 ## Dataset
 
@@ -47,32 +54,44 @@ structured.
 
 Results cover **CellPose vs. Baysor** — Mesmer could not be run (see Status)
 and this two-method comparison is the deliverable for Project 1.
-CellPose ran on the full 2mm x 2mm ROI; Baysor ran on the centered 1mm x 1mm
-sub-region, so raw cell counts aren't directly comparable —
-[`cell_counts_and_sizes.png`](results/figures/cell_counts_and_sizes.png) reports
-density (cells/mm²) instead.
 
-| | CellPose | Baysor |
+Both methods are compared on the **same centered 1mm x 1mm sub-region** of the
+ROI — Baysor's full segmentation footprint, with CellPose's full-ROI result
+subset to the identical bounds — so cell counts and per-cell transcript counts
+below are directly, area-matched comparable (no density normalization needed).
+
+| | CellPose (nuclear, DAPI) | Baysor (transcript density) |
 |---|---|---|
-| Cells | 20,166 (4mm² ROI) | 4,514 (1mm² sub-region) |
-| Density | ~5,040 cells/mm² | ~4,510 cells/mm² |
-| Median size | 653 px² nucleus area (~29.5 µm²) | 50 transcripts/cell |
-| Median transcripts/cell | 49 | 50 |
+| Cells (1mm x 1mm) | 4,459 | 4,514 |
+| Median size | 619 px² nucleus area (~28.0 µm²) | 50 transcripts/cell |
+| Median transcripts/cell | 48 | 50 |
+| Mean transcripts/cell | 59.5 | 168.3 |
+| Transcript capture rate | 34.4% | 98.6% |
 
-Despite very different segmentation strategies (nucleus-pixel masks vs.
-transcript-density clustering), cell density and median transcripts-per-cell
-are remarkably close.
+[`cell_counts_and_sizes.png`](results/figures/cell_counts_and_sizes.png) shows
+all three side by side: near-identical cell *counts*, a very similar *median*
+transcripts/cell, but a starkly different *distribution* (compare the means)
+and overall capture.
+
+**Transcript capture rate** = fraction of all qv≥20 transcripts in the
+sub-region (770,748 total) assigned to *any* cell. CellPose only sees the DAPI
+image and only segments nuclei, so cytoplasmic/extranuclear transcripts — the
+majority for most genes — are never assigned to a cell, capturing barely a
+third of the total. Baysor, working directly on the transcript point cloud,
+captures essentially all of them (98.6%). **This is the key QC takeaway**:
+CellPose and Baysor agree closely on *how many cells* are present and even on
+the *median* transcript count, but CellPose's per-cell expression profiles are
+built from far fewer transcripts on average, because nuclear-only segmentation
+structurally excludes most of the cytoplasm.
 
 **Matching**: 2,101 mutual-nearest-neighbor pairs (≤10 µm centroid distance)
-out of 20,166 CellPose / 4,514 Baysor cells — limited by Baysor's smaller
-footprint, so every matched-pair metric below is implicitly scoped to that
-1mm² sub-region.
+out of 4,459 CellPose / 4,514 Baysor cells in the 1mm x 1mm sub-region.
 
 **Expression agreement**
 ([`expression_correlation.png`](results/figures/expression_correlation.png)):
 median per-pair Pearson correlation = **0.74** across shared genes — fairly
 strong per-cell expression agreement given the two methods use completely
-different inputs.
+different inputs and capture very different numbers of transcripts per cell.
 
 **Cell-type agreement**: independent Leiden clustering on each method (13
 CellPose clusters, 17 Baysor clusters) was Hungarian-aligned onto a shared
@@ -87,6 +106,13 @@ Moran's I = **0.0655** (permutation test, p = 0.001) — statistically
 significant but weak spatial autocorrelation. Cross-method disagreement is
 mostly scattered throughout the tissue rather than concentrated in specific
 regions, with only a slight tendency to cluster.
+
+**Bottom line**: segmentation method choice has a real, measurable effect on
+both per-cell transcript capture (driven by nuclear vs. effectively-whole-cell
+capture) and downstream cell-type calls (47% of matched cells land in
+different clusters depending on method), but the *spatial pattern* of that
+disagreement is close to noise in this tissue — it isn't concentrated at
+tumor/stroma boundaries or any other obvious structure.
 
 ## Repo layout
 

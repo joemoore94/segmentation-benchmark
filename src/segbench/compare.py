@@ -12,6 +12,22 @@ from scipy.spatial import cKDTree
 from sklearn.metrics import adjusted_rand_score
 
 
+def subset_to_region(
+    adata: AnnData, x_range: tuple[float, float], y_range: tuple[float, float]
+) -> AnnData:
+    """Subset ``adata`` to cells whose centroid falls within a rectangular region.
+
+    ``x_range``/``y_range`` are ``(min, max)`` bounds in the same physical
+    units as ``obs["centroid_x"]``/``obs["centroid_y"]`` (microns, ROI-local).
+    Used to compare methods on the exact same physical area when their
+    full segmentation runs covered different-sized ROIs.
+    """
+    x = adata.obs["centroid_x"]
+    y = adata.obs["centroid_y"]
+    mask = x.between(*x_range) & y.between(*y_range)
+    return adata[mask].copy()
+
+
 def cell_count_summary(adatas: dict[str, AnnData]) -> pd.DataFrame:
     """Per-method cell counts and transcripts-per-cell summary statistics.
 
