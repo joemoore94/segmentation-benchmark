@@ -231,12 +231,51 @@ def fig_cell_type_confusion() -> None:
     plt.close(fig)
 
 
+def fig_density_vs_disagreement() -> None:
+    log_density = pd.read_csv(TABLES_DIR / "cellpose_log_density.csv", index_col=0)["log_density"]
+    summary = pd.read_csv(TABLES_DIR / "density_disagreement_summary.csv", index_col="comparison")
+
+    disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
+    disagreement_10x = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv")
+    disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv")
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharex=True, sharey=True)
+    for ax, disagreement, label in [
+        (axes[0], disagreement_baysor, "CellPose vs. Baysor"),
+        (axes[1], disagreement_10x, "CellPose vs. 10x native"),
+        (axes[2], disagreement_stardist, "CellPose vs. StarDist"),
+    ]:
+        disagreement = disagreement.copy()
+        disagreement["log_density"] = disagreement["id_a"].map(log_density)
+
+        sns.kdeplot(
+            data=disagreement, x="log_density", hue="disagree",
+            palette={0.0: "#4C72B0", 1.0: "#C44E52"}, common_norm=False,
+            fill=True, alpha=0.3, ax=ax,
+        )
+        medians = disagreement.groupby("disagree")["log_density"].median()
+        ax.axvline(medians[0.0], color="#4C72B0", linestyle="--")
+        ax.axvline(medians[1.0], color="#C44E52", linestyle="--")
+
+        p = summary.loc[label, "p_value"]
+        ax.set_title(f"{label}\n(Mann-Whitney p = {p:.1e})")
+        ax.set_xlabel("CellPose phenotypic log-density (Mellon)")
+        ax.legend(title="Disagree", labels=["Yes", "No"])
+
+    axes[0].set_ylabel("Density")
+    fig.suptitle("CellPose phenotypic density (Mellon) vs. cell-type call disagreement")
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "density_vs_disagreement.png", dpi=150)
+    plt.close(fig)
+
+
 def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     fig_cell_counts_and_sizes()
     fig_expression_correlation()
     fig_disagreement_spatial_map()
     fig_cell_type_confusion()
+    fig_density_vs_disagreement()
     print(f"wrote figures to {FIGURES_DIR}")
 
 

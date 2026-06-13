@@ -54,11 +54,10 @@ structured.
 ## Results
 
 Results cover **CellPose vs. Baysor vs. 10x native vs. StarDist** (Mesmer
-could not be run — see Status). This section covers CellPose vs. Baysor;
-[10x native](#cellpose-vs-10x-native-platform-reference) and
-[StarDist](#cellpose-vs-stardist-same-input-different-algorithm) follow as
-further reference points, with a [final summary](#summary-across-method-pairs)
-tying all three together.
+could not be run — see Status), with each method compared against CellPose in
+turn below and a final summary tying all three comparisons together.
+
+### CellPose vs. Baysor (transcript-density segmentation)
 
 CellPose and Baysor are compared on the **same centered 1mm x 1mm sub-region**
 of the ROI — Baysor's full footprint, with CellPose's full-ROI result subset to
@@ -88,34 +87,29 @@ and even median transcript count, but CellPose's per-cell profiles are built
 from far fewer transcripts, since nuclear-only segmentation structurally
 excludes most of the cytoplasm.
 
-**Matching**: 2,101 mutual-nearest-neighbor pairs (≤10 µm centroid distance)
-out of 4,459 CellPose / 4,514 Baysor cells in the 1mm x 1mm sub-region.
-
-**Expression agreement**
+**Matching and expression agreement**
 ([`expression_correlation.png`](results/figures/expression_correlation.png)):
-median per-pair Pearson correlation = **0.74** across shared genes — fairly
-strong given the two methods use completely different inputs and capture very
-different numbers of transcripts per cell.
+2,101 mutual-nearest-neighbor pairs (≤10 µm centroid distance) out of 4,459
+CellPose / 4,514 Baysor cells, with median per-pair Pearson correlation =
+**0.74** across shared genes — fairly strong given the two methods use
+completely different inputs and capture very different numbers of transcripts
+per cell.
 
-**Cell-type agreement**: independent Leiden clustering (13 CellPose, 17
-Baysor clusters) was Hungarian-aligned onto a shared vocabulary before
-comparison
-([`cell_type_confusion.png`](results/figures/cell_type_confusion.png), left
-panel). ARI = **0.445**; **46.7%** of matched pairs landed in different
-clusters.
-
-**Spatial structure of disagreement**
-([`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
-left panel): Moran's I = **0.066** (permutation test, p = 0.001) — significant
-but weak. Cross-method disagreement is mostly scattered throughout the tissue
-rather than concentrated in specific regions.
+**Cell-type agreement and spatial structure**
+([`cell_type_confusion.png`](results/figures/cell_type_confusion.png) and
+[`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
+left panels): independent Leiden clustering (13 CellPose, 17 Baysor clusters),
+Hungarian-aligned onto a shared vocabulary, gives ARI = **0.445** with
+**46.7%** of matched pairs landing in different clusters. Moran's I = **0.066**
+(permutation test, p = 0.001) — significant but weak; disagreement is mostly
+scattered rather than concentrated in specific regions.
 
 **Bottom line**: method choice substantially affects per-cell transcript
 capture and cell-type calls (47% of matched cells land in different clusters),
 but the disagreement is spatially close to noise — not concentrated at
 tissue boundaries.
 
-## CellPose vs. 10x native (platform reference)
+### CellPose vs. 10x native (platform reference)
 
 10x's own (Xenium Ranger) segmentation is already part of the downloaded
 dataset — `scripts/build_10x_adata.py` reshapes `cell_feature_matrix.h5ad` and
@@ -139,38 +133,33 @@ same size as 10x's own. The much higher transcripts/cell and capture rate for
 µm², roughly 5x the nucleus), which extends into the cytoplasm that CellPose's
 nuclear-only masks exclude.
 
-**Matching**: 18,966 mutual-nearest-neighbor pairs (≤10 µm centroid distance)
+**Matching and expression agreement**
+([`expression_correlation.png`](results/figures/expression_correlation.png),
+middle panel): 18,966 mutual-nearest-neighbor pairs (≤10 µm centroid distance)
 out of 20,166 CellPose / 23,629 10x native cells — **94%** of CellPose's cells
 have a corresponding 10x cell, much higher overlap than with Baysor's smaller
-1mm² footprint.
-
-**Expression agreement**
-([`expression_correlation.png`](results/figures/expression_correlation.png),
-middle panel): median Pearson correlation = **0.82**, notably higher than the
+1mm² footprint. Median Pearson correlation = **0.82**, notably higher than the
 0.74 vs. Baysor — consistent with CellPose and 10x native both being
 nuclear-pixel-mask segmentations of the *same* DAPI image, vs. Baysor's
 transcript-density approach on a different input entirely.
 
-**Cell-type agreement**
-([`cell_type_confusion.png`](results/figures/cell_type_confusion.png), middle
-panel): ARI = **0.547** (vs. 0.445 for Baysor); **30.8%** of matched pairs
-land in different clusters (vs. 46.7% for Baysor) — CellPose tracks the
+**Cell-type agreement and spatial structure**
+([`cell_type_confusion.png`](results/figures/cell_type_confusion.png) and
+[`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
+middle panels): ARI = **0.547** (vs. 0.445 for Baysor), with **30.8%** of
+matched pairs landing in different clusters (vs. 46.7%) — CellPose tracks the
 platform's reference segmentation more closely than it tracks Baysor's.
-
-**Spatial structure of disagreement**
-([`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
-middle panel): Moran's I = **0.176** (p = 0.001) — meaningfully higher than
-the CellPose-vs-Baysor comparison (0.066). Disagreement here is more spatially
-clustered, plausibly reflecting tissue regions (e.g. dense tumor nests) where
-nuclear segmentation is intrinsically harder and CellPose's calls drift from
-the platform reference.
+Moran's I = **0.176** (p = 0.001), meaningfully higher than CellPose-vs-Baysor
+(0.066): disagreement here is more spatially clustered, plausibly reflecting
+tissue regions (e.g. dense tumor nests) where nuclear segmentation is
+intrinsically harder and CellPose's calls drift from the platform reference.
 
 **Takeaway**: CellPose reproduces 10x's nucleus size and cell-type calls
 reasonably well (ARI 0.55), but for analyses that depend on whole-cell
 expression, nuclear-only segmentation is a bigger limitation than algorithm
 disagreement.
 
-## CellPose vs. StarDist (same input, different algorithm)
+### CellPose vs. StarDist (same input, different algorithm)
 
 StarDist (`2D_versatile_fluo`, star-convex polygon regression) is run on the
 *same* full 2mm x 2mm DAPI image as CellPose — a CPU-friendly, no-account
@@ -191,38 +180,33 @@ median nucleus area both sit close to CellPose's, consistent with both methods
 segmenting the same nuclei with a modest difference in how aggressively each
 splits touching ones.
 
-**Matching**: 19,460 mutual-nearest-neighbor pairs (≤10 µm centroid distance)
+**Matching and expression agreement**
+([`expression_correlation.png`](results/figures/expression_correlation.png),
+right panel): 19,460 mutual-nearest-neighbor pairs (≤10 µm centroid distance)
 out of 20,166 CellPose / 24,745 StarDist cells — **96.5%** of CellPose's cells
 have a corresponding StarDist cell, the highest overlap of any pair here.
+Median Pearson correlation = **0.96** — by far the highest of the three
+comparisons (0.74 vs. Baysor, 0.82 vs. 10x native), mostly reflecting how
+similarly the two algorithms trace nucleus boundaries on the same DAPI image,
+not a difference in *what* each captures.
 
-**Expression agreement**
-([`expression_correlation.png`](results/figures/expression_correlation.png),
-right panel): median Pearson correlation = **0.96** — by far the highest of
-the three comparisons (0.74 vs. Baysor, 0.82 vs. 10x native). With both
-methods drawing nuclear masks on the same DAPI image, this mostly reflects how
-similarly the two algorithms trace nucleus boundaries, not a difference in
-*what* each captures.
-
-**Cell-type agreement**
-([`cell_type_confusion.png`](results/figures/cell_type_confusion.png), right
-panel): independent Leiden clustering gave 12 StarDist clusters (vs. 13 for
-CellPose), Hungarian-aligned as before. ARI = **0.764** — again the highest of
-the three — with only **13.8%** of matched pairs in different clusters (vs.
-30.8% for 10x native, 46.7% for Baysor).
-
-**Spatial structure of disagreement**
-([`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
-right panel): Moran's I = **0.066** (p = 0.001) — the same magnitude as
-CellPose vs. Baysor and notably *lower* than CellPose vs. 10x native (0.176),
-despite StarDist disagreeing far less often overall (13.8% vs. 30.8%/46.7%).
-The little disagreement that exists is about as spatially unstructured as the
-much larger CellPose/Baysor disagreement.
+**Cell-type agreement and spatial structure**
+([`cell_type_confusion.png`](results/figures/cell_type_confusion.png) and
+[`disagreement_spatial_map.png`](results/figures/disagreement_spatial_map.png),
+right panels): independent Leiden clustering gave 12 StarDist clusters (vs. 13
+for CellPose), Hungarian-aligned as before, giving ARI = **0.764** — again the
+highest of the three — with only **13.8%** of matched pairs in different
+clusters (vs. 30.8% for 10x native, 46.7% for Baysor). Moran's I = **0.066**
+(p = 0.001) — the same magnitude as CellPose vs. Baysor and notably *lower*
+than CellPose vs. 10x native (0.176), despite StarDist disagreeing far less
+often overall. The little disagreement that exists is about as spatially
+unstructured as the much larger CellPose/Baysor disagreement.
 
 **Takeaway**: two algorithms on the same image agree closely (ARI 0.76,
 expression correlation 0.96) — algorithm choice is a minor source of
 disagreement compared to differences in segmentation modality or input.
 
-## Summary across method pairs
+### Summary across method pairs
 
 All three CellPose-anchored comparisons side by side:
 
@@ -249,6 +233,39 @@ spatially concentrated of the three (10x native). Segmentation method choice
 clearly affects cell-type calls, but whether that effect is spatially
 "interesting" vs. just noise depends on *which* methods are compared, not
 simply on how much they disagree.
+
+### Phenotypic density vs. segmentation disagreement (Mellon)
+
+A different question from *how much* the methods disagree is *where in
+phenotypic space* disagreement happens. Using
+[Mellon](https://github.com/settylab/mellon) (Otto et al. 2024, *Nature
+Methods*), each CellPose cell gets a per-cell log-density estimate in PCA
+space — a measure of how typical vs. phenotypically rare/transitional its
+expression profile is. The hypothesis: cell-type disagreement should
+concentrate on rare, ambiguous cells near cluster boundaries rather than on
+well-defined, high-density cell types.
+
+[`density_vs_disagreement.png`](results/figures/density_vs_disagreement.png)
+compares the log-density distribution of agreeing vs. disagreeing cells for
+each pair (Mann-Whitney U, two-sided):
+
+| Comparison | n agree / disagree | Median log-density (agree / disagree) | p-value |
+|---|---|---|---|
+| CellPose vs. Baysor | 1,120 / 981 | -15.0 / -16.9 | 2.9e-14 |
+| CellPose vs. 10x native | 13,121 / 5,845 | -13.3 / -13.5 | 3.5e-11 |
+| CellPose vs. StarDist | 16,780 / 2,680 | -13.4 / -13.3 | 6.2e-09 |
+
+**Bottom line**: the hypothesis holds clearly for CellPose vs. Baysor —
+disagreeing cells sit nearly two log-units lower in density, by far the
+largest gap of any comparison, consistent with disagreement concentrating on
+phenotypically ambiguous cells when the two methods use fundamentally
+different inputs (nuclear image vs. transcript point cloud). For CellPose vs.
+10x native and CellPose vs. StarDist the p-values are also significant —
+unsurprising with sample sizes in the tens of thousands — but the median gaps
+are tiny (≤0.3 log-units), and the StarDist comparison runs in the *opposite*
+direction (disagreeing cells slightly *denser*, not sparser). Density-driven
+disagreement looks like a real effect specific to cross-modality comparisons,
+not a general property of segmentation disagreement.
 
 ## Repo layout
 
@@ -344,3 +361,8 @@ See [`scripts/run_baysor.sh`](scripts/run_baysor.sh) for the invocation.
 - [x] Stretch: incorporate StarDist as a fourth segmentation method
       (CellPose vs. StarDist: 19,460 matched pairs, ARI = 0.764 — closest
       agreement of any pair in this project)
+- [x] Stretch: Mellon phenotypic-density analysis of disagreement (CellPose
+      vs. Baysor: disagreeing cells ~2 log-units lower density, p = 2.9e-14;
+      CellPose vs. 10x native / StarDist: significant but negligible effect)
+- [ ] Future: Kompot differential-expression analysis between high- and
+      low-density cell groups (installed, not yet run)
