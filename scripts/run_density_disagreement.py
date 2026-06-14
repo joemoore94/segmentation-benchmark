@@ -35,6 +35,7 @@ COMPARISONS = {
     "CellPose vs. Baysor": "disagreement_table.csv",
     "CellPose vs. 10x native": "disagreement_table_cellpose_10x.csv",
     "CellPose vs. StarDist": "disagreement_table_cellpose_stardist.csv",
+    "CellPose vs. Baysor (prior)": "disagreement_table_cellpose_baysor_prior.csv",
 }
 
 

@@ -37,12 +37,14 @@ METHOD_COLORS = {
     "baysor": "#DD8452",
     "10x_native": "#55A868",
     "stardist": "#8172B2",
+    "baysor_prior": "#937860",
 }
 METHOD_LABELS = {
     "cellpose": "CellPose",
     "baysor": "Baysor",
     "10x_native": "10x native",
     "stardist": "StarDist",
+    "baysor_prior": "Baysor (prior)",
 }
 
 
@@ -54,6 +56,7 @@ def fig_cell_counts_and_sizes() -> None:
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
+    adata_baysor_prior = ad.read_h5ad(ROI_DIR / "adata_baysor_prior.h5ad")
 
     cellpose_area_um2 = adata_cellpose.obs["area"] * PIXEL_SIZE**2
     tenx_nucleus_area_um2 = adata_10x.obs["nucleus_area_um2"]
@@ -62,11 +65,13 @@ def fig_cell_counts_and_sizes() -> None:
     baysor_transcripts = np.asarray(adata_baysor.X.sum(axis=1)).ravel()
     tenx_transcripts = np.asarray(adata_10x.X.sum(axis=1)).ravel()
     stardist_transcripts = np.asarray(adata_stardist.X.sum(axis=1)).ravel()
+    baysor_prior_transcripts = np.asarray(adata_baysor_prior.X.sum(axis=1)).ravel()
     transcripts_by_method = {
         "cellpose": cellpose_transcripts,
         "baysor": baysor_transcripts,
         "10x_native": tenx_transcripts,
         "stardist": stardist_transcripts,
+        "baysor_prior": baysor_prior_transcripts,
     }
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
@@ -78,6 +83,9 @@ def fig_cell_counts_and_sizes() -> None:
     )
     axes[0].set_ylabel("Cell count (full 2mm × 2mm ROI)")
     axes[0].set_title("Cell count")
+    axes[0].tick_params(axis="x", rotation=30)
+    for label in axes[0].get_xticklabels():
+        label.set_horizontalalignment("right")
 
     # Transcripts/cell is computed identically for all methods (sum of the
     # per-cell gene-count matrix), so this panel is a true apples-to-apples
@@ -136,12 +144,14 @@ def fig_expression_correlation() -> None:
     corr_baysor = pd.read_csv(TABLES_DIR / "expression_correlation.csv")
     corr_10x = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_10x.csv")
     corr_stardist = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_stardist.csv")
+    corr_baysor_prior = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_baysor_prior.csv")
 
-    fig, axes = plt.subplots(1, 3, figsize=(20, 5.5), sharey=True)
+    fig, axes = plt.subplots(1, 4, figsize=(26, 5.5), sharey=True)
     for ax, corr, label, color in [
         (axes[0], corr_baysor, "CellPose vs. Baysor", METHOD_COLORS["baysor"]),
         (axes[1], corr_10x, "CellPose vs. 10x native", METHOD_COLORS["10x_native"]),
         (axes[2], corr_stardist, "CellPose vs. StarDist", METHOD_COLORS["stardist"]),
+        (axes[3], corr_baysor_prior, "CellPose vs. Baysor (prior)", METHOD_COLORS["baysor_prior"]),
     ]:
         median = corr["correlation"].median()
         sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=color)
@@ -161,12 +171,14 @@ def fig_disagreement_spatial_map() -> None:
     disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
     disagreement_10x = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv")
     disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv")
+    disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_baysor_prior.csv")
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axes = plt.subplots(1, 4, figsize=(24, 6))
     for ax, disagreement, label in [
         (axes[0], disagreement_baysor, "CellPose vs. Baysor"),
         (axes[1], disagreement_10x, "CellPose vs. 10x native"),
         (axes[2], disagreement_stardist, "CellPose vs. StarDist"),
+        (axes[3], disagreement_baysor_prior, "CellPose vs. Baysor (prior)"),
     ]:
         sns.scatterplot(
             data=disagreement,
@@ -202,8 +214,11 @@ def fig_cell_type_confusion() -> None:
     confusion_stardist = pd.read_csv(
         TABLES_DIR / "cell_type_confusion_cellpose_stardist.csv", index_col=0
     )
+    confusion_baysor_prior = pd.read_csv(
+        TABLES_DIR / "cell_type_confusion_cellpose_baysor_prior.csv", index_col=0
+    )
 
-    fig, axes = plt.subplots(1, 3, figsize=(22, 6))
+    fig, axes = plt.subplots(1, 4, figsize=(26, 6))
 
     sns.heatmap(confusion_baysor, annot=False, cmap="viridis", ax=axes[0])
     axes[0].set_xlabel("Baysor Leiden cluster")
@@ -220,6 +235,11 @@ def fig_cell_type_confusion() -> None:
     axes[2].set_ylabel("CellPose Leiden cluster")
     axes[2].set_title("CellPose vs. StarDist")
 
+    sns.heatmap(confusion_baysor_prior, annot=False, cmap="viridis", ax=axes[3])
+    axes[3].set_xlabel("Baysor (prior) Leiden cluster")
+    axes[3].set_ylabel("CellPose Leiden cluster")
+    axes[3].set_title("CellPose vs. Baysor (prior)")
+
     fig.suptitle("Cell-type cluster correspondence (matched pairs)")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "cell_type_confusion.png", dpi=150)
@@ -233,12 +253,14 @@ def fig_density_vs_disagreement() -> None:
     disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
     disagreement_10x = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv")
     disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv")
+    disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_baysor_prior.csv")
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharex=True, sharey=True)
+    fig, axes = plt.subplots(1, 4, figsize=(24, 5), sharex=True, sharey=True)
     for ax, disagreement, label in [
         (axes[0], disagreement_baysor, "CellPose vs. Baysor"),
         (axes[1], disagreement_10x, "CellPose vs. 10x native"),
         (axes[2], disagreement_stardist, "CellPose vs. StarDist"),
+        (axes[3], disagreement_baysor_prior, "CellPose vs. Baysor (prior)"),
     ]:
         disagreement = disagreement.copy()
         disagreement["log_density"] = disagreement["id_a"].map(log_density)
@@ -265,10 +287,10 @@ def fig_density_vs_disagreement() -> None:
 
 
 def fig_pca_umap() -> None:
-    methods = ["cellpose", "baysor", "10x_native", "stardist"]
+    methods = ["cellpose", "baysor", "10x_native", "stardist", "baysor_prior"]
     embeddings = {m: pd.read_csv(TABLES_DIR / f"embedding_{m}.csv", index_col=0) for m in methods}
 
-    fig, axes = plt.subplots(2, 4, figsize=(22, 10))
+    fig, axes = plt.subplots(2, 5, figsize=(27, 10))
     for col, method in enumerate(methods):
         emb = embeddings[method]
         n_clusters = emb["leiden"].nunique()

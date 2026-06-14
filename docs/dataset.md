@@ -156,6 +156,30 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
   in `build_baysor_adata.py`; without this, CellPose and Baysor shared 0/379
   genes.
 
+### Baysor (CellPose-prior hybrid)
+
+- Same transcript-density EM as above, but seeded with CellPose's nucleus
+  masks as a `--prior-segmentation` (Baysor's `:column_name` syntax).
+  `scripts/add_cellpose_prior.py` looks up each transcript's
+  `(x_location, y_location)` in `masks_cellpose.tif` (converting um -> pixel
+  via `PIXEL_SIZE=0.2125`) and writes a `cellpose_prior` column (0 =
+  background, matching Baysor's `unassigned_prior_label="0"` default);
+  1,202,133 / 3,392,051 transcripts (35.4%) fall within a CellPose nucleus.
+- `configs/baysor_prior_config.toml` adds `prior_segmentation_confidence =
+  0.2` (Baysor's default, range [0,1]) on top of the same `scale=12.5,
+  scale_std="25%", n_clusters=4` config as the non-prior run. Because `scale`
+  is set explicitly, Baysor does not auto-estimate scale from the prior's
+  nucleus sizes (`estimate_scale_from_centers` only fires when `scale<=0`),
+  so the prior nudges the transcript-density EM toward CellPose's nuclei
+  without rescaling the whole model toward nuclear dimensions.
+- Same 4-tile (2x2, 50um padding) tiling/merge scheme as the non-prior run
+  (`scripts/tile_baysor_prior_transcripts.py`,
+  `scripts/build_baysor_prior_adata.py`), with `:cellpose_prior` passed as
+  the 4th arg to `scripts/run_baysor.sh`.
+- Runtime: comparable to the non-prior run, ~13-18 min main run per tile.
+- Result: **19,061 cells**, 3,346,292 / 3,392,051 transcripts assigned
+  (98.7% capture rate) -> merged into `adata_baysor_prior.h5ad`.
+
 ### Mesmer
 
 - Not run, blocked externally on deepcell.org, not on anything in this repo.
@@ -181,11 +205,12 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 
 ### Cross-method comparison scope
 
-All four methods (CellPose, Baysor, 10x native, StarDist) now cover the same
-full 2mm x 2mm ROI, so cell counts, size distributions, and transcript
-capture rates are directly comparable without density normalization.
-`match_cells_by_centroid` (max 10 µm) pairs 8,947 CellPose/Baysor cells,
-18,966 CellPose/10x native cells, and 19,460 CellPose/StarDist cells; all
+All five methods (CellPose, Baysor, 10x native, StarDist, and the
+CellPose-prior Baysor hybrid) now cover the same full 2mm x 2mm ROI, so cell
+counts, size distributions, and transcript capture rates are directly
+comparable without density normalization. `match_cells_by_centroid` (max
+10 µm) pairs 8,947 CellPose/Baysor cells, 18,966 CellPose/10x native cells,
+19,460 CellPose/StarDist cells, and 9,572 CellPose/Baysor(prior) cells; all
 matched-pair metrics (expression correlation, cell-type agreement, spatial
 disagreement) are computed over these full-ROI matched sets. See
 [`../README.md`](../README.md#results) for results.

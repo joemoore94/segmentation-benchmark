@@ -1,0 +1,28 @@
+# Baysor configuration for the CellPose-prior hybrid run.
+#
+# Identical to baysor_config.toml, plus prior_segmentation_confidence: the
+# CLI is invoked with `:cellpose_prior` (see run_baysor.sh / add_cellpose_prior.py),
+# a per-transcript column holding the CellPose nuclear-segmentation label
+# (0 = no prior). Baysor seeds cells from this nuclear prior and expands them
+# using transcript density; prior_segmentation_confidence=0.2 (Baysor's
+# default) lets the transcript-density model override the prior where the two
+# disagree, rather than rigidly enforcing CellPose's nuclear boundaries.
+#
+# `scale`/`scale_std` are kept (not auto-estimated from the prior) because
+# `scale > 0` here, which Baysor's CLI treats as "use this scale" regardless
+# of `estimate-scale-from-centers`.
+
+[data]
+x = "x_location"
+y = "y_location"
+z = "z_location"
+gene = "feature_name"
+min_molecules_per_gene = 1
+min_molecules_per_cell = 3
+exclude_genes = "NegControl*,BLANK*,antisense*"
+
+[segmentation]
+scale = 12.5
+scale_std = "25%"
+n_clusters = 4
+prior_segmentation_confidence = 0.2

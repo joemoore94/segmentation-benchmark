@@ -47,11 +47,13 @@ def main() -> None:
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
+    adata_baysor_prior = ad.read_h5ad(ROI_DIR / "adata_baysor_prior.h5ad")
     adatas = {
         "cellpose": adata_cellpose,
         "baysor": adata_baysor,
         "10x_native": adata_10x,
         "stardist": adata_stardist,
+        "baysor_prior": adata_baysor_prior,
     }
 
     counts = cell_count_summary(adatas)
@@ -187,6 +189,47 @@ def main() -> None:
         json.dump(spatial_stardist, f, indent=2)
     print("\n=== CellPose vs StarDist spatial structure of disagreement ===")
     print(spatial_stardist)
+
+    # CellPose vs. Baysor-prior -- the CellPose-nucleus-seeded Baysor hybrid
+    # (configs/baysor_prior_config.toml, ":cellpose_prior" prior-segmentation
+    # column), run the same way as the comparisons above.
+    matches_baysor_prior = match_cells_by_centroid(
+        adata_cellpose, adata_baysor_prior, max_dist=MAX_MATCH_DIST
+    )
+    matches_baysor_prior.to_csv(TABLES_DIR / "matches_cellpose_baysor_prior.csv", index=False)
+    print(f"\n=== CellPose vs Baysor (prior) matched pairs (max_dist={MAX_MATCH_DIST}um) ===")
+    print(f"{len(matches_baysor_prior)} matched pairs out of {adata_cellpose.n_obs} cellpose / "
+          f"{adata_baysor_prior.n_obs} baysor_prior cells")
+
+    corr_baysor_prior = expression_correlation(adata_cellpose, adata_baysor_prior, matches_baysor_prior)
+    corr_baysor_prior.to_csv(TABLES_DIR / "expression_correlation_cellpose_baysor_prior.csv", index=False)
+    print("\n=== CellPose vs Baysor (prior) expression correlation (matched pairs) ===")
+    print(corr_baysor_prior["correlation"].describe())
+
+    print("\n=== Clustering cell types (Baysor prior) ===")
+    labels_baysor_prior = cluster_cell_types(adata_baysor_prior, seed=0)
+    print(f"baysor_prior: {labels_baysor_prior.nunique()} clusters")
+    cluster_embedding(adata_baysor_prior, seed=0).to_csv(TABLES_DIR / "embedding_baysor_prior.csv")
+
+    agreement_baysor_prior = cell_type_agreement(labels_cellpose, labels_baysor_prior, matches_baysor_prior)
+    agreement_baysor_prior["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_cellpose_baysor_prior.csv")
+    print("\n=== CellPose vs Baysor (prior) cell type agreement ===")
+    print(f"ARI = {agreement_baysor_prior['ari']:.4f}, n_matched = {agreement_baysor_prior['n_matched']}")
+    print(agreement_baysor_prior["confusion"])
+
+    labels_baysor_prior_aligned = match_cluster_labels(
+        labels_cellpose, labels_baysor_prior, matches_baysor_prior
+    )
+    disagreement_baysor_prior = disagreement_table(
+        matches_baysor_prior, labels_cellpose, labels_baysor_prior_aligned, adata_cellpose
+    )
+    disagreement_baysor_prior.to_csv(TABLES_DIR / "disagreement_table_cellpose_baysor_prior.csv", index=False)
+
+    spatial_baysor_prior = disagreement_spatial_structure(disagreement_baysor_prior, n_perm=9999, seed=0)
+    with open(TABLES_DIR / "disagreement_spatial_cellpose_baysor_prior.json", "w") as f:
+        json.dump(spatial_baysor_prior, f, indent=2)
+    print("\n=== CellPose vs Baysor (prior) spatial structure of disagreement ===")
+    print(spatial_baysor_prior)
 
 
 if __name__ == "__main__":
