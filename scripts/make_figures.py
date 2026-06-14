@@ -13,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import anndata as ad
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -176,13 +177,18 @@ def fig_disagreement_spatial_map() -> None:
             s=20,
             alpha=0.7,
             ax=ax,
+            legend=False,
         )
         ax.set_xlabel("x (µm, ROI coordinates)")
         ax.set_ylabel("y (µm, ROI coordinates)")
         ax.set_aspect("equal")
         ax.invert_yaxis()
         ax.set_title(label)
-        ax.legend(title="Disagree", labels=["No", "Yes"])
+        handles = [
+            mpatches.Patch(color="#4C72B0", label="No"),
+            mpatches.Patch(color="#C44E52", label="Yes"),
+        ]
+        ax.legend(handles=handles, title="Disagree")
 
     fig.suptitle("Cell-type agreement (blue) vs. disagreement (red)")
     fig.tight_layout()

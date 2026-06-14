@@ -9,15 +9,10 @@ methods disagree, is that disagreement spatially structured (e.g. concentrated a
 tissue boundaries or specific niches) or essentially random noise?
 
 This is Project 1 of a portfolio bridging imaging-based spatial biology into
-sequencing-based spatial bioinformatics and cancer genomics:
-
-- **Project 2** ([label-transfer-benchmark](https://github.com/joemoore94/label-transfer-benchmark)):
-  uses this project's segmented/quantified cells to evaluate how reliably
-  scRNA-seq reference cell-type labels transfer onto spatial data.
-- **Project 3** (separate repo, not yet started): a multimodal cancer-progression
-  risk model on bulk RNA-seq + DNA methylation (Barrett's esophagus → adenocarcinoma
-  progression cohorts). Different domain (bulk cancer genomics rather than spatial
-  imaging), but the same patient-level-split / cross-dataset-generalization rigor.
+sequencing-based spatial bioinformatics. Project 2
+([label-transfer-benchmark](https://github.com/joemoore94/label-transfer-benchmark))
+uses this project's segmented/quantified cells to evaluate how reliably
+scRNA-seq reference cell-type labels transfer onto spatial data.
 
 ## Dataset
 
