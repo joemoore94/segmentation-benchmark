@@ -70,6 +70,8 @@ in turn, followed by a summary tying all three comparisons together.
 | Median size | ~29.5 µm² nucleus | 53 transcripts/cell | ~28.1 µm² nucleus | ~27.2 µm² nucleus |
 | Transcript capture rate | 35.4% | 98.6% | 99.0% | 40.8% |
 
+![Cell counts, transcripts/cell, and nucleus area by method](results/figures/cell_counts_and_sizes.png)
+
 [`cell_counts_and_sizes.png`](results/figures/cell_counts_and_sizes.png) shows
 all four side by side. **Transcript capture rate** = fraction of all qv≥20
 transcripts in the ROI (3,392,051 total) assigned to *any* cell. CellPose and
@@ -89,6 +91,8 @@ modality (CellPose vs. StarDist differ by <6pp in capture rate; Baysor vs.
 
 ### Per-method clustering structure (PCA / UMAP)
 
+![PCA and UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
+
 [`pca_umap_clusters.png`](results/figures/pca_umap_clusters.png) shows each
 method's independent Leiden clustering in PCA (top row) and UMAP (bottom row)
 space, the standard scRNA-seq QC view for how distinct each method's cell
@@ -104,11 +108,17 @@ differences resolve into additional clusters.
 Both methods now cover the full 2mm x 2mm ROI (20,166 CellPose / 18,321 Baysor
 cells, see table above).
 
+![Per-cell-pair expression correlation vs. CellPose, for each comparison](results/figures/expression_correlation.png)
+
 **Matching and expression agreement**
 ([`expression_correlation.png`](results/figures/expression_correlation.png)):
 8,947 mutual-nearest-neighbor pairs (≤10 µm centroid distance) out of 20,166
 CellPose / 18,321 Baysor cells, with median per-pair Pearson correlation =
 **0.73** across shared genes.
+
+![Cell-type cluster correspondence (matched pairs)](results/figures/cell_type_confusion.png)
+
+![Cell-type agreement (blue) vs. disagreement (red), mapped spatially](results/figures/disagreement_spatial_map.png)
 
 **Cell-type agreement and spatial structure**
 ([`cell_type_confusion.png`](results/figures/cell_type_confusion.png) and
@@ -245,6 +255,8 @@ concentrate on rare, ambiguous cells near cluster boundaries rather than on
 well-defined, high-density cell types. Only CellPose cells with a matched
 partner in the other method have a `disagree` label, so the unmatched
 remainder of each CellPose cell are excluded from this analysis.
+
+![CellPose phenotypic density (Mellon) vs. cell-type call disagreement](results/figures/density_vs_disagreement.png)
 
 [`density_vs_disagreement.png`](results/figures/density_vs_disagreement.png)
 compares the log-density distribution of agreeing vs. disagreeing cells for
