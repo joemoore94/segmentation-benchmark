@@ -19,21 +19,14 @@ import seaborn as sns
 
 import numpy as np
 
-from segbench.compare import subset_to_region
 from segbench.io import PIXEL_SIZE
 
 ROI_DIR = Path("data/processed/roi")
 TABLES_DIR = Path("results/tables")
 FIGURES_DIR = Path("results/figures")
 
-# Baysor only segmented the centered 1mm x 1mm sub-region of the 2mm x 2mm
-# ROI (CPU-tractability, see docs/dataset.md). Subsetting CellPose to the
-# same sub-region (see run_comparison.py) gives a direct, area-matched
-# cell count/size comparison.
-SUB_REGION = ((500.0, 1500.0), (500.0, 1500.0))  # (x_range, y_range), microns
-
-# qv>=20 non-control transcripts in the 1mm x 1mm sub-region (see docs/dataset.md)
-TOTAL_TRANSCRIPTS_1MM2 = 770_748
+# qv>=20 non-control transcripts in the full 2mm x 2mm ROI (see docs/dataset.md)
+TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
 
 sns.set_theme(style="whitegrid", context="talk")
 
@@ -53,25 +46,21 @@ METHOD_LABELS = {
 
 
 def fig_cell_counts_and_sizes() -> None:
-    counts = pd.read_csv(TABLES_DIR / "cell_counts_1mm2.csv", index_col="method")
+    counts = pd.read_csv(TABLES_DIR / "cell_counts.csv", index_col="method")
     methods = list(counts.index)
 
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
-    x_range, y_range = SUB_REGION
-    adata_cellpose_sub = subset_to_region(adata_cellpose, x_range, y_range)
-    adata_10x_sub = subset_to_region(adata_10x, x_range, y_range)
-    adata_stardist_sub = subset_to_region(adata_stardist, x_range, y_range)
 
-    cellpose_area_um2 = adata_cellpose_sub.obs["area"] * PIXEL_SIZE**2
-    tenx_nucleus_area_um2 = adata_10x_sub.obs["nucleus_area_um2"]
-    stardist_area_um2 = adata_stardist_sub.obs["area"] * PIXEL_SIZE**2
-    cellpose_transcripts = np.asarray(adata_cellpose_sub.X.sum(axis=1)).ravel()
+    cellpose_area_um2 = adata_cellpose.obs["area"] * PIXEL_SIZE**2
+    tenx_nucleus_area_um2 = adata_10x.obs["nucleus_area_um2"]
+    stardist_area_um2 = adata_stardist.obs["area"] * PIXEL_SIZE**2
+    cellpose_transcripts = np.asarray(adata_cellpose.X.sum(axis=1)).ravel()
     baysor_transcripts = np.asarray(adata_baysor.X.sum(axis=1)).ravel()
-    tenx_transcripts = np.asarray(adata_10x_sub.X.sum(axis=1)).ravel()
-    stardist_transcripts = np.asarray(adata_stardist_sub.X.sum(axis=1)).ravel()
+    tenx_transcripts = np.asarray(adata_10x.X.sum(axis=1)).ravel()
+    stardist_transcripts = np.asarray(adata_stardist.X.sum(axis=1)).ravel()
     transcripts_by_method = {
         "cellpose": cellpose_transcripts,
         "baysor": baysor_transcripts,
@@ -86,7 +75,7 @@ def fig_cell_counts_and_sizes() -> None:
         counts.loc[methods, "n_cells"].to_numpy(),
         color=[METHOD_COLORS[m] for m in methods],
     )
-    axes[0].set_ylabel("Cell count (1mm × 1mm sub-region)")
+    axes[0].set_ylabel("Cell count (full 2mm × 2mm ROI)")
     axes[0].set_title("Cell count")
 
     # Transcripts/cell is computed identically for all methods (sum of the
@@ -124,7 +113,7 @@ def fig_cell_counts_and_sizes() -> None:
     axes[2].legend()
 
     fig.suptitle(
-        "Cell count and QC: CellPose vs. Baysor vs. 10x native vs. StarDist (1mm × 1mm sub-region)"
+        "Cell count and QC: CellPose vs. Baysor vs. 10x native vs. StarDist (full 2mm × 2mm ROI)"
     )
     capture = counts.loc[methods, "transcript_capture_rate"]
     capture_str = ", ".join(
@@ -132,8 +121,8 @@ def fig_cell_counts_and_sizes() -> None:
     )
     fig.text(
         0.5, 0.01,
-        f"Transcript capture rate (assigned / {TOTAL_TRANSCRIPTS_1MM2:,} total"
-        f" qv≥20 transcripts in region): {capture_str}. CellPose and StarDist are"
+        f"Transcript capture rate (assigned / {TOTAL_TRANSCRIPTS_FULL_ROI:,} total"
+        f" qv≥20 transcripts in ROI): {capture_str}. CellPose and StarDist are"
         " nuclear-only, so cytoplasmic transcripts are not assigned to any cell.",
         ha="center", fontsize=11, style="italic",
     )
@@ -269,6 +258,35 @@ def fig_density_vs_disagreement() -> None:
     plt.close(fig)
 
 
+def fig_pca_umap() -> None:
+    methods = ["cellpose", "baysor", "10x_native", "stardist"]
+    embeddings = {m: pd.read_csv(TABLES_DIR / f"embedding_{m}.csv", index_col=0) for m in methods}
+
+    fig, axes = plt.subplots(2, 4, figsize=(22, 10))
+    for col, method in enumerate(methods):
+        emb = embeddings[method]
+        n_clusters = emb["leiden"].nunique()
+        palette = sns.color_palette("tab20", n_clusters)
+
+        sns.scatterplot(
+            data=emb, x="PC1", y="PC2", hue="leiden", palette=palette,
+            s=8, alpha=0.6, ax=axes[0, col], legend=False,
+        )
+        axes[0, col].set_title(f"{METHOD_LABELS[method]}: PCA")
+
+        sns.scatterplot(
+            data=emb, x="UMAP1", y="UMAP2", hue="leiden", palette=palette,
+            s=8, alpha=0.6, ax=axes[1, col], legend=False,
+        )
+        axes[1, col].set_title(f"{METHOD_LABELS[method]}: UMAP")
+        axes[1, col].set_xlabel(f"UMAP1 ({n_clusters} Leiden clusters)")
+
+    fig.suptitle("Per-method Leiden clustering: PCA and UMAP embeddings")
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "pca_umap_clusters.png", dpi=150)
+    plt.close(fig)
+
+
 def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     fig_cell_counts_and_sizes()
@@ -276,6 +294,7 @@ def main() -> None:
     fig_disagreement_spatial_map()
     fig_cell_type_confusion()
     fig_density_vs_disagreement()
+    fig_pca_umap()
     print(f"wrote figures to {FIGURES_DIR}")
 
 

@@ -9,6 +9,7 @@ from segbench.compare import (
     cell_count_summary,
     cell_type_agreement,
     cluster_cell_types,
+    cluster_embedding,
     expression_correlation,
     match_cells_by_centroid,
     match_cluster_labels,
@@ -130,6 +131,26 @@ def test_cluster_cell_types_separates_distinct_groups() -> None:
 
     assert list(labels.index) == list(adata.obs_names)
     assert labels.nunique() >= 2
+
+
+def test_cluster_embedding_has_pca_and_umap_columns() -> None:
+    rng = np.random.default_rng(0)
+    n_per_group = 15
+    group_a = rng.poisson(lam=[20, 20, 1, 1], size=(n_per_group, 4)).astype(np.float32)
+    group_b = rng.poisson(lam=[1, 1, 20, 20], size=(n_per_group, 4)).astype(np.float32)
+    x = np.vstack([group_a, group_b])
+
+    adata = AnnData(
+        X=x,
+        obs=pd.DataFrame(index=[f"cell{i}" for i in range(2 * n_per_group)]),
+        var=pd.DataFrame(index=["g1", "g2", "g3", "g4"]),
+    )
+
+    embedding = cluster_embedding(adata, n_neighbors=10, seed=0)
+
+    assert list(embedding.index) == list(adata.obs_names)
+    assert list(embedding.columns) == ["PC1", "PC2", "UMAP1", "UMAP2", "leiden"]
+    assert embedding["leiden"].nunique() >= 2
 
 
 def test_cell_type_agreement_ari_and_confusion() -> None:

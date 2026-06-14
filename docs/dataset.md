@@ -130,17 +130,31 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 - Julia 1.10 via juliaup (`julia +1.10`, see Environment setup); Baysor
   v0.7.1 isn't compatible with the default Julia channel.
 - Baysor's main-EM runtime scales worse than linearly with transcript count
-  (roughly N^1.8), so the full ROI (3,392,051 transcripts) is impractical on
-  CPU. Ran instead on the centered **1mm x 1mm sub-region** of the ROI
-  (770,748 transcripts), config in `configs/baysor_config.toml`
-  (`scale=12.5`, `scale_std="25%"`, `n_clusters=4`).
-- Runtime: ~12 min main run (after a one-time ~8 min Julia precompilation).
-- Result: **4,514 cells**, 11,131 transcripts assigned to noise ->
-  `baysor_sub/segmentation*.{csv,loom,json}`.
+  (roughly N^1.8), so the full ROI (3,392,051 transcripts) is run as **4
+  overlapping ~1mm x 1mm tiles** rather than one job.
+  `scripts/tile_baysor_transcripts.py` splits the ROI into a 2x2 grid of
+  quadrants, each padded by 50um on its interior edges so Baysor sees full
+  local context near tile boundaries. Config in `configs/baysor_config.toml`
+  (`scale=12.5`, `scale_std="25%"`, `n_clusters=4`) is unchanged per tile --
+  the scale parameters are physical and area-independent.
+- Runtime: ~12-16 min main run per tile, ~60 min total for all 4 (after a
+  one-time ~8 min Julia precompilation on the first run).
+- `scripts/build_baysor_adata.py` merges the 4 tiles' `segmentation.csv`
+  outputs into `adata_baysor.h5ad`: for each tile, keeps only cells whose
+  centroid (mean molecule position) falls in that tile's non-padded "core"
+  region. The 4 cores exactly partition the ROI, so every cell is counted
+  once while still having its full set of assigned molecules (including any
+  in the tile's padding). Transcripts assigned to a kept cell by two tiles'
+  overlapping runs are deduplicated by `transcript_id` (4,711 of ~3.73M
+  tile-molecule rows).
+- Result: **18,321 cells**, 3,344,675 / 3,392,051 transcripts assigned
+  (98.6% capture rate) -> `baysor_tiles/<tile>/segmentation*.{csv,loom,json}`,
+  merged into `adata_baysor.h5ad`.
 - Gene-name gotcha: `transcripts_baysor*.csv`'s `gene` column is written from
   a `bytes`-typed `feature_name` column, so values come out as literal
   `"b'GENENAME'"` strings. Cleaned with a regex (`r"^b'(.*)'$"` -> `r"\1"`)
-  before quantification; without this, CellPose and Baysor shared 0/379 genes.
+  in `build_baysor_adata.py`; without this, CellPose and Baysor shared 0/379
+  genes.
 
 ### Mesmer
 
@@ -167,10 +181,11 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 
 ### Cross-method comparison scope
 
-Because Baysor only covers the 1mm x 1mm sub-region, `match_cells_by_centroid`
-(max 10 µm) only pairs cells within that sub-region: 2,101 matched pairs out
-of 20,166 CellPose / 4,514 Baysor cells. All matched-pair metrics (expression
-correlation, cell-type agreement, spatial disagreement) are therefore already
-scoped to that 1mm² footprint; only the raw cell-count comparison needed
-explicit density normalization (cells/mm²) to account for the different ROI
-areas. See [`../README.md`](../README.md#results) for results.
+All four methods (CellPose, Baysor, 10x native, StarDist) now cover the same
+full 2mm x 2mm ROI, so cell counts, size distributions, and transcript
+capture rates are directly comparable without density normalization.
+`match_cells_by_centroid` (max 10 µm) pairs 8,947 CellPose/Baysor cells,
+18,966 CellPose/10x native cells, and 19,460 CellPose/StarDist cells; all
+matched-pair metrics (expression correlation, cell-type agreement, spatial
+disagreement) are computed over these full-ROI matched sets. See
+[`../README.md`](../README.md#results) for results.

@@ -148,6 +148,26 @@ def expression_correlation(
     return out
 
 
+def _cluster_pipeline(
+    adata: AnnData,
+    n_pcs: int,
+    n_neighbors: int,
+    resolution: float,
+    seed: int,
+    compute_umap: bool,
+) -> AnnData:
+    a = adata.copy()
+    sc.pp.normalize_total(a)
+    sc.pp.log1p(a)
+    n_comps = min(n_pcs, a.n_vars - 1, a.n_obs - 1)
+    sc.pp.pca(a, n_comps=n_comps, random_state=seed)
+    sc.pp.neighbors(a, n_neighbors=n_neighbors, random_state=seed)
+    sc.tl.leiden(a, resolution=resolution, random_state=seed, flavor="igraph")
+    if compute_umap:
+        sc.tl.umap(a, random_state=seed)
+    return a
+
+
 def cluster_cell_types(
     adata: AnnData,
     n_pcs: int = 30,
@@ -160,14 +180,36 @@ def cluster_cell_types(
     Returns a ``pd.Series`` of Leiden cluster labels indexed by
     ``adata.obs_names``. Operates on a copy; ``adata`` itself is unmodified.
     """
-    a = adata.copy()
-    sc.pp.normalize_total(a)
-    sc.pp.log1p(a)
-    n_comps = min(n_pcs, a.n_vars - 1, a.n_obs - 1)
-    sc.pp.pca(a, n_comps=n_comps, random_state=seed)
-    sc.pp.neighbors(a, n_neighbors=n_neighbors, random_state=seed)
-    sc.tl.leiden(a, resolution=resolution, random_state=seed, flavor="igraph")
+    a = _cluster_pipeline(adata, n_pcs, n_neighbors, resolution, seed, compute_umap=False)
     return a.obs["leiden"].copy()
+
+
+def cluster_embedding(
+    adata: AnnData,
+    n_pcs: int = 30,
+    n_neighbors: int = 15,
+    resolution: float = 1.0,
+    seed: int = 0,
+) -> pd.DataFrame:
+    """Same pipeline as :func:`cluster_cell_types`, plus a 2D UMAP embedding.
+
+    Returns a ``pd.DataFrame`` indexed by ``adata.obs_names`` with columns
+    ``PC1``/``PC2`` (first two PCA components), ``UMAP1``/``UMAP2``, and
+    ``leiden`` (cluster label) -- for visualizing how distinct each method's
+    Leiden clusters are in PCA/UMAP space. Operates on a copy; ``adata``
+    itself is unmodified.
+    """
+    a = _cluster_pipeline(adata, n_pcs, n_neighbors, resolution, seed, compute_umap=True)
+    return pd.DataFrame(
+        {
+            "PC1": a.obsm["X_pca"][:, 0],
+            "PC2": a.obsm["X_pca"][:, 1],
+            "UMAP1": a.obsm["X_umap"][:, 0],
+            "UMAP2": a.obsm["X_umap"][:, 1],
+            "leiden": a.obs["leiden"].to_numpy(),
+        },
+        index=a.obs_names,
+    )
 
 
 def cell_type_agreement(
