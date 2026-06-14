@@ -38,10 +38,10 @@ download and ROI-selection details.
 | Method | Input | Notes |
 |---|---|---|
 | **10x native** | provided | Xenium Ranger's own nucleus/cell boundary segmentation (`cell_feature_matrix.h5ad` + `cells.parquet`), reshaped into `adata_10x.h5ad` by `scripts/build_10x_adata.py`; no new segmentation run needed, included below as the platform's reference |
-| **CellPose** | DAPI (full 2mm x 2mm ROI) | CellPose 3.x classical `nuclei` U-Net model, CPU (CellPose 4.x's SAM-based models are CPU-prohibitive) |
-| **StarDist** | DAPI (full 2mm x 2mm ROI) | StarDist2D `2D_versatile_fluo` pretrained model (star-convex polygon regression), CPU, run via `scripts/run_stardist_roi.py` in a separate `stardist` conda env; a CPU-friendly, no-account-required alternative to Mesmer |
+| **CellPose** | DAPI (full 2mm x 2mm ROI) | CellPose 3.x classical `nuclei` U-Net model, CPU |
+| **StarDist** | DAPI (full 2mm x 2mm ROI) | StarDist2D `2D_versatile_fluo` pretrained model (star-convex polygon regression), CPU, run via `scripts/run_stardist_roi.py` in a separate `stardist` conda env |
 | **Mesmer** (DeepCell) | DAPI (ROI crop) | not run, blocked on deepcell.org's account system (signup, login, and password reset all fail as of June 2026); wrapper and conda env are ready, see `docs/dataset.md` |
-| **Baysor** | transcripts (centered 1mm x 1mm sub-region of the ROI) | transcript-density-based segmentation, run via Julia 1.10; the full 2mm x 2mm ROI is CPU-impractical for this method (see `docs/dataset.md`) |
+| **Baysor** | transcripts (centered 1mm x 1mm sub-region of the ROI) | transcript-density-based segmentation, run via Julia 1.10 |
 
 For each method: per-cell transcript aggregation → AnnData (cells × genes) → compare
 cell counts/density, size distributions, per-cell transcript counts, expression
