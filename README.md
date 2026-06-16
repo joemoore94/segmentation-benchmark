@@ -11,7 +11,7 @@
 | CellPose vs. Baysor | 0.415 | 48.8% | 0.034 |
 | CellPose vs. Baysor (CellPose prior) | 0.407 | 49.7% | 0.051 |
 
-Algorithm choice within a modality (CellPose vs. StarDist, same DAPI image) matters far less than segmentation modality. Disagreement against the 10x reference is the most spatially structured (Moran's I 0.176); Baysor vs. CellPose disagreement is higher but nearly spatially uniform. Cross-modality disagreement preferentially hits phenotypically rare cells: CellPose-Baysor disagreeing pairs sit ~2 log-units lower in Mellon density (p = 2.3e-76); same-modality comparisons show no comparable effect.
+Algorithm choice within a modality (CellPose vs. StarDist, same DAPI image) matters far less than segmentation modality. Disagreement against the 10x reference is the most spatially structured (Moran's I 0.176); Baysor vs. CellPose disagreement is higher but nearly spatially uniform. Adding a CellPose-nucleus prior to Baysor increases matched pairs by 7% but leaves ARI unchanged (0.407 vs. 0.415), pointing to segmentation philosophy — transcript-density neighborhoods vs. nuclear pixel masks — rather than nucleus detection as the source of disagreement. Cross-modality disagreement preferentially hits phenotypically rare cells: CellPose-Baysor disagreeing pairs sit ~2 log-units lower in Mellon density (p = 2.3e-76); same-modality comparisons show no comparable effect.
 
 This is Project 1 of a portfolio bridging imaging-based spatial biology into sequencing-based bioinformatics. Project 2 ([label-transfer-benchmark](https://github.com/joemoore94/label-transfer-benchmark)) uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability.
 
