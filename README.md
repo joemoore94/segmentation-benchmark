@@ -32,7 +32,7 @@ Segmentation runs on a ~2mm x 2mm ROI with a mix of tumor, stroma, and immune-in
 | **Baysor** | transcripts (2mm x 2mm, 4 tiles) | transcript-density EM, Julia 1.10 |
 | **Baysor (CellPose prior)** | transcripts + CellPose nuclei (4 tiles) | Baysor with `--prior-segmentation` from CellPose masks, `prior_segmentation_confidence=0.2` |
 
-Per-cell transcript aggregation → AnnData → cell counts, transcript capture, expression correlation, Leiden clustering, and spatial structure of disagreement (Moran's I, Mellon density).
+Per-cell transcript aggregation → AnnData → cell counts, transcript capture, expression correlation, Leiden clustering, and spatial structure of disagreement (Moran's I, Mellon density). Independent Leiden runs assign arbitrary cluster IDs, so cluster labels are aligned across methods using the Hungarian algorithm (linear sum assignment on the confusion matrix) before computing disagreement rate and ARI.
 
 ## Results
 
