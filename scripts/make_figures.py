@@ -91,14 +91,29 @@ def fig_cell_counts_and_sizes() -> None:
     # per-cell gene-count matrix), so this panel is a true apples-to-apples
     # QC comparison -- unlike "cell size", which means different things
     # (nucleus pixel area vs. transcript count) per method.
-    for method in methods:
-        sns.histplot(
-            transcripts_by_method[method], bins=40, log_scale=True, ax=axes[1],
-            color=METHOD_COLORS[method], label=METHOD_LABELS[method], alpha=0.4,
-        )
-    axes[1].set_xlabel("Transcripts per cell")
-    axes[1].set_title("Transcripts/cell (QC)")
-    axes[1].legend()
+    tx_long = pd.concat(
+        [pd.DataFrame({"method": m, "log10_tx": np.log10(transcripts_by_method[m] + 1)})
+         for m in methods],
+        ignore_index=True,
+    )
+    sns.violinplot(
+        data=tx_long, x="method", y="log10_tx",
+        hue="method",
+        palette={m: METHOD_COLORS[m] for m in methods},
+        order=methods,
+        cut=0,
+        inner="box",
+        legend=False,
+        ax=axes[1],
+    )
+    axes[1].set_xticks(range(len(methods)))
+    axes[1].set_xticklabels([METHOD_LABELS[m] for m in methods], rotation=30, ha="right")
+    axes[1].set_xlabel("")
+    tick_vals = [1, 10, 100, 1000]
+    axes[1].set_yticks([np.log10(v) for v in tick_vals])
+    axes[1].set_yticklabels([str(v) for v in tick_vals])
+    axes[1].set_ylabel("Transcripts per cell")
+    axes[1].set_title("Transcripts/cell distribution")
 
     # Nucleus area is directly comparable across CellPose and StarDist (pixel
     # area converted to µm²) and 10x native (already in µm²) -- all three are
