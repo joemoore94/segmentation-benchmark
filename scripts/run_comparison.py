@@ -1,10 +1,9 @@
-"""Cross-method comparison of CellPose, Baysor, 10x native, and StarDist on the ROI.
+"""Cross-method comparison anchored to 10x native (Xenium Ranger) segmentation.
 
-Loads the per-method AnnData (CellPose/StarDist from ``quantify_masks.py``,
-Baysor from ``build_baysor_adata.py``, 10x native from ``build_10x_adata.py``),
-all covering the full 2mm x 2mm ROI, then runs the comparison and
-spatial-structure metrics from ``segbench.compare`` / ``segbench.spatial`` and
-writes summary tables to ``results/tables/``.
+10x native is the platform's own reference segmentation, making it the most
+defensible anchor for benchmarking other methods: the question becomes "how
+closely does method X reproduce the platform's own cell calls?" rather than
+implicitly treating CellPose as ground truth.
 
 Usage::
 
@@ -33,136 +32,105 @@ from segbench.spatial import disagreement_spatial_structure, disagreement_table
 ROI_DIR = Path("data/processed/roi")
 TABLES_DIR = Path("results/tables")
 
-MAX_MATCH_DIST = 10.0  # microns
-
-# qv>=20 non-control transcripts in the full 2mm x 2mm ROI (see
-# docs/dataset.md) -- denominator for transcript capture rate.
+MAX_MATCH_DIST = 10.0
 TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
 
 
 def main() -> None:
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
 
+    adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
-    adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
     adata_baysor_prior = ad.read_h5ad(ROI_DIR / "adata_baysor_prior.h5ad")
     adatas = {
+        "10x_native": adata_10x,
         "cellpose": adata_cellpose,
         "baysor": adata_baysor,
-        "10x_native": adata_10x,
         "stardist": adata_stardist,
         "baysor_prior": adata_baysor_prior,
     }
 
     counts = cell_count_summary(adatas)
-    counts["transcript_capture_rate"] = (
-        counts["total_transcripts"] / TOTAL_TRANSCRIPTS_FULL_ROI
-    )
+    counts["transcript_capture_rate"] = counts["total_transcripts"] / TOTAL_TRANSCRIPTS_FULL_ROI
     counts.to_csv(TABLES_DIR / "cell_counts.csv")
-    print("=== Cell counts + QC (full 2mm x 2mm ROI, all methods) ===")
+    print("=== Cell counts + QC (full 2mm x 2mm ROI) ===")
     print(counts)
 
     sizes = size_summary(adatas)
     sizes.to_csv(TABLES_DIR / "size_summary.csv")
-    print("\n=== Size summary (full ROI per method) ===")
+    print("\n=== Size summary ===")
     print(sizes)
 
-    matches = match_cells_by_centroid(adata_cellpose, adata_baysor, max_dist=MAX_MATCH_DIST)
-    matches.to_csv(TABLES_DIR / "matches_cellpose_baysor.csv", index=False)
-    print(f"\n=== Matched pairs (max_dist={MAX_MATCH_DIST}um) ===")
-    print(f"{len(matches)} matched pairs out of {adata_cellpose.n_obs} cellpose / "
-          f"{adata_baysor.n_obs} baysor cells")
+    print("\n=== Clustering cell types (10x native, anchor) ===")
+    labels_10x = cluster_cell_types(adata_10x, seed=0)
+    print(f"10x_native: {labels_10x.nunique()} clusters")
+    cluster_embedding(adata_10x, seed=0).to_csv(TABLES_DIR / "embedding_10x_native.csv")
 
-    corr = expression_correlation(adata_cellpose, adata_baysor, matches)
-    corr.to_csv(TABLES_DIR / "expression_correlation.csv", index=False)
-    print("\n=== Expression correlation (matched pairs) ===")
-    print(corr["correlation"].describe())
+    # 10x native vs. CellPose
+    matches_cellpose = match_cells_by_centroid(adata_10x, adata_cellpose, max_dist=MAX_MATCH_DIST)
+    matches_cellpose.to_csv(TABLES_DIR / "matches_10x_cellpose.csv", index=False)
+    print(f"\n=== 10x native vs. CellPose ({len(matches_cellpose)} pairs) ===")
+
+    corr_cellpose = expression_correlation(adata_10x, adata_cellpose, matches_cellpose)
+    corr_cellpose.to_csv(TABLES_DIR / "expression_correlation_10x_cellpose.csv", index=False)
+    print(corr_cellpose["correlation"].describe())
 
     print("\n=== Clustering cell types (CellPose) ===")
     labels_cellpose = cluster_cell_types(adata_cellpose, seed=0)
     print(f"cellpose: {labels_cellpose.nunique()} clusters")
     cluster_embedding(adata_cellpose, seed=0).to_csv(TABLES_DIR / "embedding_cellpose.csv")
 
+    agreement_cellpose = cell_type_agreement(labels_10x, labels_cellpose, matches_cellpose)
+    agreement_cellpose["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_cellpose.csv")
+    print(f"ARI = {agreement_cellpose['ari']:.4f}, n_matched = {agreement_cellpose['n_matched']}")
+
+    labels_cellpose_aligned = match_cluster_labels(labels_10x, labels_cellpose, matches_cellpose)
+    disagreement_cellpose = disagreement_table(
+        matches_cellpose, labels_10x, labels_cellpose_aligned, adata_10x
+    )
+    disagreement_cellpose.to_csv(TABLES_DIR / "disagreement_table_10x_cellpose.csv", index=False)
+    spatial_cellpose = disagreement_spatial_structure(disagreement_cellpose, n_perm=9999, seed=0)
+    with open(TABLES_DIR / "disagreement_spatial_10x_cellpose.json", "w") as f:
+        json.dump(spatial_cellpose, f, indent=2)
+    print(spatial_cellpose)
+
+    # 10x native vs. Baysor
+    matches_baysor = match_cells_by_centroid(adata_10x, adata_baysor, max_dist=MAX_MATCH_DIST)
+    matches_baysor.to_csv(TABLES_DIR / "matches_10x_baysor.csv", index=False)
+    print(f"\n=== 10x native vs. Baysor ({len(matches_baysor)} pairs) ===")
+
+    corr_baysor = expression_correlation(adata_10x, adata_baysor, matches_baysor)
+    corr_baysor.to_csv(TABLES_DIR / "expression_correlation_10x_baysor.csv", index=False)
+    print(corr_baysor["correlation"].describe())
+
     print("\n=== Clustering cell types (Baysor) ===")
     labels_baysor = cluster_cell_types(adata_baysor, seed=0)
     print(f"baysor: {labels_baysor.nunique()} clusters")
     cluster_embedding(adata_baysor, seed=0).to_csv(TABLES_DIR / "embedding_baysor.csv")
 
-    agreement = cell_type_agreement(labels_cellpose, labels_baysor, matches)
-    agreement["confusion"].to_csv(TABLES_DIR / "cell_type_confusion.csv")
-    print("\n=== Cell type agreement ===")
-    print(f"ARI = {agreement['ari']:.4f}, n_matched = {agreement['n_matched']}")
-    print(agreement["confusion"])
+    agreement_baysor = cell_type_agreement(labels_10x, labels_baysor, matches_baysor)
+    agreement_baysor["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_baysor.csv")
+    print(f"ARI = {agreement_baysor['ari']:.4f}, n_matched = {agreement_baysor['n_matched']}")
 
-    # Independent per-method Leiden runs assign arbitrary cluster ids, so
-    # remap baysor's clusters onto cellpose's vocabulary before comparing
-    # labels directly (ARI above is permutation-invariant and unaffected).
-    labels_baysor_aligned = match_cluster_labels(labels_cellpose, labels_baysor, matches)
-    disagreement = disagreement_table(
-        matches, labels_cellpose, labels_baysor_aligned, adata_cellpose
+    labels_baysor_aligned = match_cluster_labels(labels_10x, labels_baysor, matches_baysor)
+    disagreement_baysor = disagreement_table(
+        matches_baysor, labels_10x, labels_baysor_aligned, adata_10x
     )
-    disagreement.to_csv(TABLES_DIR / "disagreement_table.csv", index=False)
+    disagreement_baysor.to_csv(TABLES_DIR / "disagreement_table_10x_baysor.csv", index=False)
+    spatial_baysor = disagreement_spatial_structure(disagreement_baysor, n_perm=9999, seed=0)
+    with open(TABLES_DIR / "disagreement_spatial_10x_baysor.json", "w") as f:
+        json.dump(spatial_baysor, f, indent=2)
+    print(spatial_baysor)
 
-    spatial = disagreement_spatial_structure(disagreement, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial.json", "w") as f:
-        json.dump(spatial, f, indent=2)
-    print("\n=== Spatial structure of disagreement ===")
-    print(spatial)
+    # 10x native vs. StarDist
+    matches_stardist = match_cells_by_centroid(adata_10x, adata_stardist, max_dist=MAX_MATCH_DIST)
+    matches_stardist.to_csv(TABLES_DIR / "matches_10x_stardist.csv", index=False)
+    print(f"\n=== 10x native vs. StarDist ({len(matches_stardist)} pairs) ===")
 
-    # CellPose vs. 10x's own (Xenium Ranger) segmentation -- both cover the
-    # full 2mm x 2mm ROI, so this is the "does our segmentation reproduce the
-    # platform's reference segmentation" comparison, run the same way as
-    # CellPose vs. Baysor above.
-    matches_10x = match_cells_by_centroid(adata_cellpose, adata_10x, max_dist=MAX_MATCH_DIST)
-    matches_10x.to_csv(TABLES_DIR / "matches_cellpose_10x.csv", index=False)
-    print(f"\n=== CellPose vs 10x_native matched pairs (max_dist={MAX_MATCH_DIST}um) ===")
-    print(f"{len(matches_10x)} matched pairs out of {adata_cellpose.n_obs} cellpose / "
-          f"{adata_10x.n_obs} 10x_native cells")
-
-    corr_10x = expression_correlation(adata_cellpose, adata_10x, matches_10x)
-    corr_10x.to_csv(TABLES_DIR / "expression_correlation_cellpose_10x.csv", index=False)
-    print("\n=== CellPose vs 10x_native expression correlation (matched pairs) ===")
-    print(corr_10x["correlation"].describe())
-
-    print("\n=== Clustering cell types (10x_native) ===")
-    labels_10x = cluster_cell_types(adata_10x, seed=0)
-    print(f"10x_native: {labels_10x.nunique()} clusters")
-    cluster_embedding(adata_10x, seed=0).to_csv(TABLES_DIR / "embedding_10x_native.csv")
-
-    agreement_10x = cell_type_agreement(labels_cellpose, labels_10x, matches_10x)
-    agreement_10x["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_cellpose_10x.csv")
-    print("\n=== CellPose vs 10x_native cell type agreement ===")
-    print(f"ARI = {agreement_10x['ari']:.4f}, n_matched = {agreement_10x['n_matched']}")
-    print(agreement_10x["confusion"])
-
-    labels_10x_aligned = match_cluster_labels(labels_cellpose, labels_10x, matches_10x)
-    disagreement_10x = disagreement_table(
-        matches_10x, labels_cellpose, labels_10x_aligned, adata_cellpose
-    )
-    disagreement_10x.to_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv", index=False)
-
-    spatial_10x = disagreement_spatial_structure(disagreement_10x, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_cellpose_10x.json", "w") as f:
-        json.dump(spatial_10x, f, indent=2)
-    print("\n=== CellPose vs 10x_native spatial structure of disagreement ===")
-    print(spatial_10x)
-
-    # CellPose vs. StarDist -- both are nuclear segmentations of the same
-    # DAPI image (full 2mm x 2mm ROI), run the same way as the comparisons
-    # above.
-    matches_stardist = match_cells_by_centroid(
-        adata_cellpose, adata_stardist, max_dist=MAX_MATCH_DIST
-    )
-    matches_stardist.to_csv(TABLES_DIR / "matches_cellpose_stardist.csv", index=False)
-    print(f"\n=== CellPose vs StarDist matched pairs (max_dist={MAX_MATCH_DIST}um) ===")
-    print(f"{len(matches_stardist)} matched pairs out of {adata_cellpose.n_obs} cellpose / "
-          f"{adata_stardist.n_obs} stardist cells")
-
-    corr_stardist = expression_correlation(adata_cellpose, adata_stardist, matches_stardist)
-    corr_stardist.to_csv(TABLES_DIR / "expression_correlation_cellpose_stardist.csv", index=False)
-    print("\n=== CellPose vs StarDist expression correlation (matched pairs) ===")
+    corr_stardist = expression_correlation(adata_10x, adata_stardist, matches_stardist)
+    corr_stardist.to_csv(TABLES_DIR / "expression_correlation_10x_stardist.csv", index=False)
     print(corr_stardist["correlation"].describe())
 
     print("\n=== Clustering cell types (StarDist) ===")
@@ -170,40 +138,29 @@ def main() -> None:
     print(f"stardist: {labels_stardist.nunique()} clusters")
     cluster_embedding(adata_stardist, seed=0).to_csv(TABLES_DIR / "embedding_stardist.csv")
 
-    agreement_stardist = cell_type_agreement(labels_cellpose, labels_stardist, matches_stardist)
-    agreement_stardist["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_cellpose_stardist.csv")
-    print("\n=== CellPose vs StarDist cell type agreement ===")
+    agreement_stardist = cell_type_agreement(labels_10x, labels_stardist, matches_stardist)
+    agreement_stardist["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_stardist.csv")
     print(f"ARI = {agreement_stardist['ari']:.4f}, n_matched = {agreement_stardist['n_matched']}")
-    print(agreement_stardist["confusion"])
 
-    labels_stardist_aligned = match_cluster_labels(
-        labels_cellpose, labels_stardist, matches_stardist
-    )
+    labels_stardist_aligned = match_cluster_labels(labels_10x, labels_stardist, matches_stardist)
     disagreement_stardist = disagreement_table(
-        matches_stardist, labels_cellpose, labels_stardist_aligned, adata_cellpose
+        matches_stardist, labels_10x, labels_stardist_aligned, adata_10x
     )
-    disagreement_stardist.to_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv", index=False)
-
+    disagreement_stardist.to_csv(TABLES_DIR / "disagreement_table_10x_stardist.csv", index=False)
     spatial_stardist = disagreement_spatial_structure(disagreement_stardist, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_cellpose_stardist.json", "w") as f:
+    with open(TABLES_DIR / "disagreement_spatial_10x_stardist.json", "w") as f:
         json.dump(spatial_stardist, f, indent=2)
-    print("\n=== CellPose vs StarDist spatial structure of disagreement ===")
     print(spatial_stardist)
 
-    # CellPose vs. Baysor-prior -- the CellPose-nucleus-seeded Baysor hybrid
-    # (configs/baysor_prior_config.toml, ":cellpose_prior" prior-segmentation
-    # column), run the same way as the comparisons above.
+    # 10x native vs. Baysor (CellPose prior)
     matches_baysor_prior = match_cells_by_centroid(
-        adata_cellpose, adata_baysor_prior, max_dist=MAX_MATCH_DIST
+        adata_10x, adata_baysor_prior, max_dist=MAX_MATCH_DIST
     )
-    matches_baysor_prior.to_csv(TABLES_DIR / "matches_cellpose_baysor_prior.csv", index=False)
-    print(f"\n=== CellPose vs Baysor (prior) matched pairs (max_dist={MAX_MATCH_DIST}um) ===")
-    print(f"{len(matches_baysor_prior)} matched pairs out of {adata_cellpose.n_obs} cellpose / "
-          f"{adata_baysor_prior.n_obs} baysor_prior cells")
+    matches_baysor_prior.to_csv(TABLES_DIR / "matches_10x_baysor_prior.csv", index=False)
+    print(f"\n=== 10x native vs. Baysor (prior) ({len(matches_baysor_prior)} pairs) ===")
 
-    corr_baysor_prior = expression_correlation(adata_cellpose, adata_baysor_prior, matches_baysor_prior)
-    corr_baysor_prior.to_csv(TABLES_DIR / "expression_correlation_cellpose_baysor_prior.csv", index=False)
-    print("\n=== CellPose vs Baysor (prior) expression correlation (matched pairs) ===")
+    corr_baysor_prior = expression_correlation(adata_10x, adata_baysor_prior, matches_baysor_prior)
+    corr_baysor_prior.to_csv(TABLES_DIR / "expression_correlation_10x_baysor_prior.csv", index=False)
     print(corr_baysor_prior["correlation"].describe())
 
     print("\n=== Clustering cell types (Baysor prior) ===")
@@ -211,24 +168,26 @@ def main() -> None:
     print(f"baysor_prior: {labels_baysor_prior.nunique()} clusters")
     cluster_embedding(adata_baysor_prior, seed=0).to_csv(TABLES_DIR / "embedding_baysor_prior.csv")
 
-    agreement_baysor_prior = cell_type_agreement(labels_cellpose, labels_baysor_prior, matches_baysor_prior)
-    agreement_baysor_prior["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_cellpose_baysor_prior.csv")
-    print("\n=== CellPose vs Baysor (prior) cell type agreement ===")
+    agreement_baysor_prior = cell_type_agreement(labels_10x, labels_baysor_prior, matches_baysor_prior)
+    agreement_baysor_prior["confusion"].to_csv(
+        TABLES_DIR / "cell_type_confusion_10x_baysor_prior.csv"
+    )
     print(f"ARI = {agreement_baysor_prior['ari']:.4f}, n_matched = {agreement_baysor_prior['n_matched']}")
-    print(agreement_baysor_prior["confusion"])
 
     labels_baysor_prior_aligned = match_cluster_labels(
-        labels_cellpose, labels_baysor_prior, matches_baysor_prior
+        labels_10x, labels_baysor_prior, matches_baysor_prior
     )
     disagreement_baysor_prior = disagreement_table(
-        matches_baysor_prior, labels_cellpose, labels_baysor_prior_aligned, adata_cellpose
+        matches_baysor_prior, labels_10x, labels_baysor_prior_aligned, adata_10x
     )
-    disagreement_baysor_prior.to_csv(TABLES_DIR / "disagreement_table_cellpose_baysor_prior.csv", index=False)
-
-    spatial_baysor_prior = disagreement_spatial_structure(disagreement_baysor_prior, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_cellpose_baysor_prior.json", "w") as f:
+    disagreement_baysor_prior.to_csv(
+        TABLES_DIR / "disagreement_table_10x_baysor_prior.csv", index=False
+    )
+    spatial_baysor_prior = disagreement_spatial_structure(
+        disagreement_baysor_prior, n_perm=9999, seed=0
+    )
+    with open(TABLES_DIR / "disagreement_spatial_10x_baysor_prior.json", "w") as f:
         json.dump(spatial_baysor_prior, f, indent=2)
-    print("\n=== CellPose vs Baysor (prior) spatial structure of disagreement ===")
     print(spatial_baysor_prior)
 
 

@@ -156,17 +156,17 @@ def fig_cell_counts_and_sizes() -> None:
 
 
 def fig_expression_correlation() -> None:
-    corr_baysor = pd.read_csv(TABLES_DIR / "expression_correlation.csv")
-    corr_10x = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_10x.csv")
-    corr_stardist = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_stardist.csv")
-    corr_baysor_prior = pd.read_csv(TABLES_DIR / "expression_correlation_cellpose_baysor_prior.csv")
+    corr_cellpose = pd.read_csv(TABLES_DIR / "expression_correlation_10x_cellpose.csv")
+    corr_baysor = pd.read_csv(TABLES_DIR / "expression_correlation_10x_baysor.csv")
+    corr_stardist = pd.read_csv(TABLES_DIR / "expression_correlation_10x_stardist.csv")
+    corr_baysor_prior = pd.read_csv(TABLES_DIR / "expression_correlation_10x_baysor_prior.csv")
 
     fig, axes = plt.subplots(1, 4, figsize=(26, 5.5), sharey=True)
     for ax, corr, label, color in [
-        (axes[0], corr_baysor, "CellPose vs. Baysor", METHOD_COLORS["baysor"]),
-        (axes[1], corr_10x, "CellPose vs. 10x native", METHOD_COLORS["10x_native"]),
-        (axes[2], corr_stardist, "CellPose vs. StarDist", METHOD_COLORS["stardist"]),
-        (axes[3], corr_baysor_prior, "CellPose vs. Baysor (prior)", METHOD_COLORS["baysor_prior"]),
+        (axes[0], corr_cellpose, "10x native vs. CellPose", METHOD_COLORS["cellpose"]),
+        (axes[1], corr_baysor, "10x native vs. Baysor", METHOD_COLORS["baysor"]),
+        (axes[2], corr_stardist, "10x native vs. StarDist", METHOD_COLORS["stardist"]),
+        (axes[3], corr_baysor_prior, "10x native vs. Baysor (prior)", METHOD_COLORS["baysor_prior"]),
     ]:
         median = corr["correlation"].median()
         sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=color)
@@ -176,24 +176,24 @@ def fig_expression_correlation() -> None:
         ax.legend()
 
     axes[0].set_ylabel("Number of pairs")
-    fig.suptitle("Per-cell expression agreement vs. CellPose")
+    fig.suptitle("Per-cell expression agreement vs. 10x native")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "expression_correlation.png", dpi=150)
     plt.close(fig)
 
 
 def fig_disagreement_spatial_map() -> None:
-    disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
-    disagreement_10x = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv")
-    disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv")
-    disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_baysor_prior.csv")
+    disagreement_cellpose = pd.read_csv(TABLES_DIR / "disagreement_table_10x_cellpose.csv")
+    disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor.csv")
+    disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_10x_stardist.csv")
+    disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor_prior.csv")
 
     fig, axes = plt.subplots(1, 4, figsize=(24, 6))
     for ax, disagreement, label in [
-        (axes[0], disagreement_baysor, "CellPose vs. Baysor"),
-        (axes[1], disagreement_10x, "CellPose vs. 10x native"),
-        (axes[2], disagreement_stardist, "CellPose vs. StarDist"),
-        (axes[3], disagreement_baysor_prior, "CellPose vs. Baysor (prior)"),
+        (axes[0], disagreement_cellpose, "10x native vs. CellPose"),
+        (axes[1], disagreement_baysor, "10x native vs. Baysor"),
+        (axes[2], disagreement_stardist, "10x native vs. StarDist"),
+        (axes[3], disagreement_baysor_prior, "10x native vs. Baysor (prior)"),
     ]:
         sns.scatterplot(
             data=disagreement,
@@ -224,58 +224,58 @@ def fig_disagreement_spatial_map() -> None:
 
 
 def fig_cell_type_confusion() -> None:
-    confusion_baysor = pd.read_csv(TABLES_DIR / "cell_type_confusion.csv", index_col=0)
-    confusion_10x = pd.read_csv(TABLES_DIR / "cell_type_confusion_cellpose_10x.csv", index_col=0)
+    confusion_cellpose = pd.read_csv(TABLES_DIR / "cell_type_confusion_10x_cellpose.csv", index_col=0)
+    confusion_baysor = pd.read_csv(TABLES_DIR / "cell_type_confusion_10x_baysor.csv", index_col=0)
     confusion_stardist = pd.read_csv(
-        TABLES_DIR / "cell_type_confusion_cellpose_stardist.csv", index_col=0
+        TABLES_DIR / "cell_type_confusion_10x_stardist.csv", index_col=0
     )
     confusion_baysor_prior = pd.read_csv(
-        TABLES_DIR / "cell_type_confusion_cellpose_baysor_prior.csv", index_col=0
+        TABLES_DIR / "cell_type_confusion_10x_baysor_prior.csv", index_col=0
     )
 
     fig, axes = plt.subplots(1, 4, figsize=(26, 6))
 
-    sns.heatmap(confusion_baysor, annot=False, cmap="viridis", ax=axes[0])
-    axes[0].set_xlabel("Baysor Leiden cluster")
-    axes[0].set_ylabel("CellPose Leiden cluster")
-    axes[0].set_title("CellPose vs. Baysor")
+    sns.heatmap(confusion_cellpose, annot=False, cmap="viridis", ax=axes[0])
+    axes[0].set_xlabel("CellPose Leiden cluster")
+    axes[0].set_ylabel("10x native Leiden cluster")
+    axes[0].set_title("10x native vs. CellPose")
 
-    sns.heatmap(confusion_10x, annot=False, cmap="viridis", ax=axes[1])
-    axes[1].set_xlabel("10x native Leiden cluster")
-    axes[1].set_ylabel("CellPose Leiden cluster")
-    axes[1].set_title("CellPose vs. 10x native")
+    sns.heatmap(confusion_baysor, annot=False, cmap="viridis", ax=axes[1])
+    axes[1].set_xlabel("Baysor Leiden cluster")
+    axes[1].set_ylabel("10x native Leiden cluster")
+    axes[1].set_title("10x native vs. Baysor")
 
     sns.heatmap(confusion_stardist, annot=False, cmap="viridis", ax=axes[2])
     axes[2].set_xlabel("StarDist Leiden cluster")
-    axes[2].set_ylabel("CellPose Leiden cluster")
-    axes[2].set_title("CellPose vs. StarDist")
+    axes[2].set_ylabel("10x native Leiden cluster")
+    axes[2].set_title("10x native vs. StarDist")
 
     sns.heatmap(confusion_baysor_prior, annot=False, cmap="viridis", ax=axes[3])
     axes[3].set_xlabel("Baysor (prior) Leiden cluster")
-    axes[3].set_ylabel("CellPose Leiden cluster")
-    axes[3].set_title("CellPose vs. Baysor (prior)")
+    axes[3].set_ylabel("10x native Leiden cluster")
+    axes[3].set_title("10x native vs. Baysor (prior)")
 
-    fig.suptitle("Cell-type cluster correspondence (matched pairs)")
+    fig.suptitle("Cell-type cluster correspondence (matched pairs, Hungarian-aligned labels)")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "cell_type_confusion.png", dpi=150)
     plt.close(fig)
 
 
 def fig_density_vs_disagreement() -> None:
-    log_density = pd.read_csv(TABLES_DIR / "cellpose_log_density.csv", index_col=0)["log_density"]
+    log_density = pd.read_csv(TABLES_DIR / "10x_log_density.csv", index_col=0)["log_density"]
     summary = pd.read_csv(TABLES_DIR / "density_disagreement_summary.csv", index_col="comparison")
 
-    disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table.csv")
-    disagreement_10x = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_10x.csv")
-    disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_stardist.csv")
-    disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_cellpose_baysor_prior.csv")
+    disagreement_cellpose = pd.read_csv(TABLES_DIR / "disagreement_table_10x_cellpose.csv")
+    disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor.csv")
+    disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_10x_stardist.csv")
+    disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor_prior.csv")
 
     fig, axes = plt.subplots(1, 4, figsize=(24, 5), sharex=True, sharey=True)
     for ax, disagreement, label in [
-        (axes[0], disagreement_baysor, "CellPose vs. Baysor"),
-        (axes[1], disagreement_10x, "CellPose vs. 10x native"),
-        (axes[2], disagreement_stardist, "CellPose vs. StarDist"),
-        (axes[3], disagreement_baysor_prior, "CellPose vs. Baysor (prior)"),
+        (axes[0], disagreement_cellpose, "10x native vs. CellPose"),
+        (axes[1], disagreement_baysor, "10x native vs. Baysor"),
+        (axes[2], disagreement_stardist, "10x native vs. StarDist"),
+        (axes[3], disagreement_baysor_prior, "10x native vs. Baysor (prior)"),
     ]:
         disagreement = disagreement.copy()
         disagreement["log_density"] = disagreement["id_a"].map(log_density)
@@ -291,11 +291,11 @@ def fig_density_vs_disagreement() -> None:
 
         p = summary.loc[label, "p_value"]
         ax.set_title(f"{label}\n(Mann-Whitney p = {p:.1e})")
-        ax.set_xlabel("CellPose phenotypic log-density (Mellon)")
+        ax.set_xlabel("10x native phenotypic log-density (Mellon)")
         ax.legend(title="Disagree", labels=["Yes", "No"])
 
     axes[0].set_ylabel("Density")
-    fig.suptitle("CellPose phenotypic density (Mellon) vs. cell-type call disagreement")
+    fig.suptitle("10x native phenotypic density (Mellon) vs. cell-type call disagreement")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "density_vs_disagreement.png", dpi=150)
     plt.close(fig)
@@ -330,6 +330,74 @@ def fig_pca_umap() -> None:
     plt.close(fig)
 
 
+def fig_local_morans_map() -> None:
+    files = {
+        "10x native vs. CellPose": "local_morans_10x_cellpose.csv",
+        "10x native vs. Baysor": "local_morans_10x_baysor.csv",
+        "10x native vs. StarDist": "local_morans_10x_stardist.csv",
+        "10x native vs. Baysor (prior)": "local_morans_10x_baysor_prior.csv",
+    }
+    LISA_COLORS = {"HH": "#C44E52", "LL": "#4C72B0", "HL": "#DD8452", "LH": "#CCB974"}
+
+    fig, axes = plt.subplots(1, 4, figsize=(24, 6))
+    for ax, (label, fname) in zip(axes, files.items()):
+        df = pd.read_csv(TABLES_DIR / fname)
+        for cluster, color in LISA_COLORS.items():
+            sub = df[df["lisa_cluster"] == cluster]
+            ax.scatter(sub["centroid_x"], sub["centroid_y"], c=color, s=6, alpha=0.6, label=cluster)
+        ax.set_title(label)
+        ax.set_xlabel("x (µm)")
+        ax.set_ylabel("y (µm)")
+        ax.set_aspect("equal")
+        ax.invert_yaxis()
+        ax.legend(title="LISA", markerscale=2, fontsize=8)
+
+    fig.suptitle(
+        "Local Moran's I clusters: HH = disagreement hotspot, LL = agreement coldspot"
+    )
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "local_morans_map.png", dpi=150)
+    plt.close(fig)
+
+
+def fig_de_volcano() -> None:
+    files = {
+        "10x native vs. CellPose": "de_disagree_10x_cellpose.csv",
+        "10x native vs. Baysor": "de_disagree_10x_baysor.csv",
+        "10x native vs. StarDist": "de_disagree_10x_stardist.csv",
+        "10x native vs. Baysor (prior)": "de_disagree_10x_baysor_prior.csv",
+    }
+
+    fig, axes = plt.subplots(1, 4, figsize=(26, 6), sharey=True)
+    for ax, (label, fname) in zip(axes, files.items()):
+        df = pd.read_csv(TABLES_DIR / fname)
+        sig = df["pvals_adj"] < 0.05
+        ax.scatter(
+            df.loc[~sig, "logfoldchanges"], -np.log10(df.loc[~sig, "pvals_adj"] + 1e-300),
+            c="#AAAAAA", s=8, alpha=0.5, label="n.s.",
+        )
+        ax.scatter(
+            df.loc[sig, "logfoldchanges"], -np.log10(df.loc[sig, "pvals_adj"] + 1e-300),
+            c="#C44E52", s=10, alpha=0.7, label="adj. p < 0.05",
+        )
+        for _, row in df[sig].nlargest(5, "scores").iterrows():
+            ax.annotate(
+                row["names"],
+                xy=(row["logfoldchanges"], -np.log10(row["pvals_adj"] + 1e-300)),
+                fontsize=7, ha="left",
+            )
+        ax.axvline(0, color="black", linewidth=0.5)
+        ax.set_xlabel("log fold change (disagree vs. agree)")
+        ax.set_title(label)
+        ax.legend(fontsize=8)
+
+    axes[0].set_ylabel("-log10(adj. p)")
+    fig.suptitle("DE: disagree vs. agree cells (Wilcoxon, 10x native cells)")
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "de_volcano.png", dpi=150)
+    plt.close(fig)
+
+
 def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     fig_cell_counts_and_sizes()
@@ -338,6 +406,16 @@ def main() -> None:
     fig_cell_type_confusion()
     fig_density_vs_disagreement()
     fig_pca_umap()
+    if all((TABLES_DIR / f).exists() for f in [
+        "local_morans_10x_cellpose.csv", "local_morans_10x_baysor.csv",
+        "local_morans_10x_stardist.csv", "local_morans_10x_baysor_prior.csv",
+    ]):
+        fig_local_morans_map()
+    if all((TABLES_DIR / f).exists() for f in [
+        "de_disagree_10x_cellpose.csv", "de_disagree_10x_baysor.csv",
+        "de_disagree_10x_stardist.csv", "de_disagree_10x_baysor_prior.csv",
+    ]):
+        fig_de_volcano()
     print(f"wrote figures to {FIGURES_DIR}")
 
 

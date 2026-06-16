@@ -4,14 +4,14 @@
 
 ## Key findings
 
-| Comparison | ARI | Disagreement rate | Moran's I |
-|---|---|---|---|
-| CellPose vs. StarDist | 0.764 | 13.8% | 0.066 |
-| CellPose vs. 10x native | 0.547 | 30.8% | 0.176 |
-| CellPose vs. Baysor | 0.415 | 48.8% | 0.034 |
-| CellPose vs. Baysor (CellPose prior) | 0.407 | 49.7% | 0.051 |
+| Comparison | Matched pairs | Median corr | ARI | Disagreement rate | Moran's I |
+|---|---|---|---|---|---|
+| 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 |
+| 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 |
+| 10x native vs. Baysor (prior) | 11,454 | 0.798 | 0.318 | 51.9% | 0.036 |
+| 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
 
-Algorithm choice within a modality (CellPose vs. StarDist, same DAPI image) matters far less than segmentation modality. Disagreement against the 10x reference is the most spatially structured (Moran's I 0.176); Baysor vs. CellPose disagreement is higher but nearly spatially uniform. Adding a CellPose-nucleus prior to Baysor increases matched pairs by 7% but leaves ARI unchanged (0.407 vs. 0.415), pointing to segmentation philosophy — transcript-density neighborhoods vs. nuclear pixel masks — rather than nucleus detection as the source of disagreement. Cross-modality disagreement preferentially hits phenotypically rare cells: CellPose-Baysor disagreeing pairs sit ~2 log-units lower in Mellon density (p = 2.3e-76); same-modality comparisons show no comparable effect.
+Nuclear methods (CellPose, StarDist) agree well with 10x native: ARI ~0.55, ~31-34% disagreement, Moran's I 0.178-0.215. Transcript-density methods (both Baysor runs) score markedly worse: ARI ~0.31, ~52% disagreement, Moran's I 0.033-0.036. Segmentation modality (nuclear pixel mask vs. transcript-density neighborhoods) dominates over algorithm choice within a modality. The higher Moran's I for nuclear methods means their disagreement with the 10x platform reference is spatially structured — concentrated in tissue regions where nuclear detection is harder — while Baysor disagreement is near-random across the tissue. Adding a CellPose-nucleus prior to Baysor increases matched pairs by ~5% and ARI marginally (0.305 → 0.318), confirming that nucleus detection is not the bottleneck. Cross-modality disagreement preferentially hits phenotypically rare cells (Mellon density analysis); same-modality comparisons show no comparable effect.
 
 This is Project 1 of a portfolio bridging imaging-based spatial biology into sequencing-based bioinformatics. Project 2 ([label-transfer-benchmark](https://github.com/joemoore94/label-transfer-benchmark)) uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability.
 
@@ -54,34 +54,55 @@ Nuclear-only methods (CellPose, StarDist) capture 35-41% of transcripts because 
 
 All five methods produce well-separated UMAP clusters (12-24 Leiden clusters). Baysor variants produce more clusters (21-24) than nuclear methods (12-15), consistent with their higher per-cell transcript counts resolving finer expression differences.
 
-### Pairwise comparisons (all vs. CellPose)
+### Pairwise comparisons (all vs. 10x native)
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 ![Cell-type cluster correspondence](results/figures/cell_type_confusion.png)
 ![Disagreement mapped spatially](results/figures/disagreement_spatial_map.png)
 
-**CellPose vs. StarDist** (same DAPI input, different algorithm): 19,460 matched pairs, median expression correlation 0.96, ARI 0.764, 13.8% disagreement. The two algorithms trace the same nuclei closely.
+All four comparisons use 10x native (Xenium Ranger's own segmentation) as the reference anchor.
 
-**CellPose vs. 10x native** (nuclear vs. whole-cell): 18,966 matched pairs, correlation 0.82, ARI 0.547, 30.8% disagreement. Disagreement is the most spatially structured of any comparison (Moran's I 0.176), concentrated in specific tissue regions where nucleus segmentation is harder.
+**10x native vs. CellPose** (whole-cell vs. nuclear): 18,966 matched pairs, median expression correlation 0.822, ARI 0.547, 30.8% disagreement, Moran's I 0.178.
 
-**CellPose vs. Baysor** (nuclear vs. transcript-density): 8,947 matched pairs, correlation 0.73, ARI 0.415, 48.8% disagreement, Moran's I 0.034. Cell counts are similar (20,166 vs. 18,321) but nearly half of matched cells land in different clusters, and that disagreement is spatially uniform.
+**10x native vs. StarDist** (whole-cell vs. nuclear): 21,429 matched pairs, correlation 0.826, ARI 0.545, 33.5% disagreement, Moran's I 0.215. The slightly higher Moran's I vs. CellPose indicates StarDist's disagreement with 10x native is even more spatially concentrated.
 
-**CellPose vs. Baysor (prior)**: 9,572 matched pairs, correlation 0.74, ARI 0.407, 49.7% disagreement, Moran's I 0.051. The CellPose-nucleus prior produces 7% more matched pairs than the non-prior run but leaves cell-type agreement essentially unchanged.
+**10x native vs. Baysor**: 10,953 matched pairs, correlation 0.786, ARI 0.305, 51.7% disagreement, Moran's I 0.033. More than half of matched cells land in different clusters, and the pattern is near-random spatially.
+
+**10x native vs. Baysor (prior)**: 11,454 matched pairs, correlation 0.798, ARI 0.318, 51.9% disagreement, Moran's I 0.036. The CellPose-nucleus prior adds ~5% more matched pairs and marginally improves ARI (0.305 → 0.318) but leaves the fundamental disagreement pattern unchanged.
 
 ### Phenotypic density vs. disagreement (Mellon)
 
-![CellPose phenotypic density vs. disagreement](results/figures/density_vs_disagreement.png)
+![10x native phenotypic density vs. disagreement](results/figures/density_vs_disagreement.png)
 
-Each CellPose cell gets a Mellon log-density estimate in PCA space; disagreeing vs. agreeing cells are compared via Mann-Whitney U:
+Each 10x-native cell gets a Mellon log-density estimate in PCA space; disagreeing vs. agreeing cells compared by Mann-Whitney U:
 
 | Comparison | n agree / disagree | Median log-density (agree / disagree) | p |
 |---|---|---|---|
-| CellPose vs. Baysor | 4,585 / 4,362 | -15.00 / -17.01 | 2.3e-76 |
-| CellPose vs. Baysor (prior) | 4,812 / 4,760 | -14.77 / -17.03 | 4.4e-91 |
-| CellPose vs. 10x native | 13,121 / 5,845 | -13.28 / -13.54 | 3.5e-11 |
-| CellPose vs. StarDist | 16,780 / 2,680 | -13.39 / -13.27 | 6.1e-09 |
+| 10x native vs. CellPose | 13,121 / 5,845 | -21.31 / -20.78 | 2.9e-28 |
+| 10x native vs. StarDist | 14,254 / 7,175 | -21.87 / -20.63 | 1.1e-90 |
+| 10x native vs. Baysor | 5,286 / 5,667 | -22.76 / -22.75 | 0.756 (n.s.) |
+| 10x native vs. Baysor (prior) | 5,510 / 5,944 | -22.99 / -22.70 | 0.120 (n.s.) |
 
-Cross-modality disagreement (both Baysor runs) concentrates on phenotypically rare cells (~2 log-unit gap); same-modality or same-input disagreement (10x native, StarDist) shows negligible density differences despite large sample sizes.
+The density effect reverses relative to the CellPose-anchored analysis. Cells that 10x native and nuclear methods (CellPose, StarDist) *disagree* on sit in *higher*-density phenotypic regions than agreeing cells. Cells that 10x native and Baysor disagree on show no density separation. Differential expression (Wilcoxon, below) explains why: 10x native vs. nuclear disagreement concentrates on luminal breast epithelial cells (top DE genes: SERPINA3, MUC1, PGR, GATA3, FASN), whose high cytoplasmic expression is captured by whole-cell segmentation but missed by nuclear-only methods. 10x native vs. Baysor disagreement concentrates on macrophages (CD14, MRC1, CD163, C1QC), which are large and morphologically irregular cells that transcript-density and whole-cell methods partition differently; T cells (TRAC, CD3E) are robustly identified by all methods.
+
+### Local Moran's I (LISA)
+
+![LISA hotspot/coldspot maps per comparison](results/figures/local_morans_map.png)
+
+HH clusters (local disagreement hotspots) and LL clusters (local agreement coldspots) per comparison:
+
+| Comparison | HH hotspots | LL coldspots |
+|---|---|---|
+| 10x native vs. CellPose | 21.7% | 30.3% |
+| 10x native vs. StarDist | 18.6% | 15.0% |
+| 10x native vs. Baysor | 21.4% | 17.5% |
+| 10x native vs. Baysor (prior) | 22.1% | 17.6% |
+
+CellPose vs. 10x native has the most agreement coldspots (30.3% LL) — dense regions of tissue where both methods reliably agree — consistent with the global Moran's I finding that this comparison's disagreement is the most spatially concentrated.
+
+### Differential expression: agree vs. disagree cells
+
+![Volcano plots: DE genes in disagree vs. agree groups](results/figures/de_volcano.png)
 
 ## Repo layout
 
@@ -144,10 +165,11 @@ See [`scripts/run_baysor.sh`](scripts/run_baysor.sh) for the invocation.
 - [x] Project scaffold + environments
 - [x] Data acquisition (`scripts/download_data.sh`)
 - [x] Segmentation: CellPose, Baysor, StarDist, 10x native
-- [x] Quantification + cross-method comparison
-- [x] Spatial disagreement analysis (Moran's I)
-- [x] Mellon phenotypic-density analysis
+- [x] Quantification + cross-method comparison (10x native anchor)
+- [x] Spatial disagreement analysis (global Moran's I)
 - [x] PCA/UMAP per-method clustering
 - [x] Baysor (CellPose prior) hybrid
+- [x] Mellon phenotypic-density analysis (10x native anchor)
+- [x] Local Moran's I (LISA) — disagreement hotspot/coldspot maps
+- [x] DE: agree vs. disagree cells (Wilcoxon rank-sum)
 - [ ] Mesmer: blocked on deepcell.org account system
-- [ ] Future: local Moran's I (pockets of disagreement vs. global average); Kompot DE on agree/disagree cell groups

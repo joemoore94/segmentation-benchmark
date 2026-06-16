@@ -114,6 +114,58 @@ def disagreement_table(
     return out.reset_index(drop=True)
 
 
+def local_morans_i(
+    coords: NDArray[np.floating],
+    values: NDArray[np.floating],
+    k: int = 6,
+) -> NDArray[np.floating]:
+    """Per-cell local Moran's I (Anselin 1995 LISA statistic).
+
+    Returns an array of length ``n`` where each element is the local spatial
+    autocorrelation of ``values[i]`` with its k-nearest neighbors. Positive
+    values indicate a cell is surrounded by neighbors with similar values
+    (HH or LL cluster); negative values indicate a spatial outlier (HL or LH).
+    The statistic is standardized (z-score of the attribute times the weighted
+    sum of neighbor z-scores) so it is comparable across cells.
+    """
+    w = _knn_weight_matrix(coords, k=k)
+    z = values - values.mean()
+    std = z.std()
+    if std == 0:
+        return np.zeros(len(values))
+    z_std = z / std
+    wz = np.asarray(w @ z_std).ravel()
+    return z_std * wz
+
+
+def local_morans_i_cluster(
+    coords: NDArray[np.floating],
+    values: NDArray[np.floating],
+    k: int = 6,
+) -> NDArray[np.str_]:
+    """LISA cluster label (HH / LL / HL / LH / NS) per cell.
+
+    Based on the sign of the local I statistic and the attribute value.
+    A simple threshold of 0 is used (no significance test); label NS (not
+    significant) is not assigned here — all cells receive one of the four
+    quadrant labels so downstream filters can apply their own threshold.
+    """
+    z = values - values.mean()
+    li = local_morans_i(coords, values, k=k)
+
+    labels = np.where(
+        (z > 0) & (li > 0), "HH",
+        np.where(
+            (z < 0) & (li < 0), "LL",
+            np.where(
+                (z > 0) & (li < 0), "HL",
+                "LH",
+            ),
+        ),
+    )
+    return labels
+
+
 def disagreement_spatial_structure(
     disagreement: pd.DataFrame, k: int = 6, n_perm: int = 999, seed: int = 0
 ) -> dict[str, object]:
