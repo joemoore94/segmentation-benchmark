@@ -1,0 +1,19 @@
+# Baysor prior config with prior_segmentation_confidence=0.5.
+# Identical to baysor_prior_config.toml except the confidence is raised from
+# 0.2 (nearly ignores the prior) to 0.5 (moderate trust in CellPose nuclei).
+# Reuses the same transcript tiles (baysor_prior_tiles/) and prior column.
+
+[data]
+x = "x_location"
+y = "y_location"
+z = "z_location"
+gene = "feature_name"
+min_molecules_per_gene = 1
+min_molecules_per_cell = 3
+exclude_genes = "NegControl*,BLANK*,antisense*"
+
+[segmentation]
+scale = 12.5
+scale_std = "25%"
+n_clusters = 4
+prior_segmentation_confidence = 0.5

@@ -1,0 +1,19 @@
+# Baysor prior config with prior_segmentation_confidence=0.8.
+# Near-rigid trust in CellPose nuclear boundaries; Baysor still adjusts cell
+# membership by transcript density but deviates from the prior only in strong
+# conflict. Effectively tests the upper bound of what Baysor+prior can achieve.
+
+[data]
+x = "x_location"
+y = "y_location"
+z = "z_location"
+gene = "feature_name"
+min_molecules_per_gene = 1
+min_molecules_per_cell = 3
+exclude_genes = "NegControl*,BLANK*,antisense*"
+
+[segmentation]
+scale = 12.5
+scale_std = "25%"
+n_clusters = 4
+prior_segmentation_confidence = 0.8
