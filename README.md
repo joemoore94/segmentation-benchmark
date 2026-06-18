@@ -41,6 +41,12 @@ Per-cell transcript aggregation → AnnData → cell counts, transcript capture,
 
 ## Results
 
+### How agreement is measured
+
+![Agreement/disagreement explainer](results/figures/agreement_explainer.png)
+
+Each comparison matches 10x-native cells to comparison-method cells by nearest centroid (panels A and B show the same 500 µm × 500 µm patch). Each method independently runs Leiden clustering; since the cluster IDs are arbitrary integers with no shared meaning, the Hungarian algorithm finds the one-to-one relabelling of the comparison method's clusters that maximises overlap with 10x native. After that alignment, a matched cell pair **agrees** if both methods assign the same (now unified) cluster label and **disagrees** if they differ (panel C). Panel D shows the full label-matching scatter for all 18,966 pairs: points on the diagonal are agreements, points off it are disagreements.
+
 ### Cell counts and transcript capture
 
 | | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (M) | Baysor | 10x native |
