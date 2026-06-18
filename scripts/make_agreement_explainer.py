@@ -146,7 +146,8 @@ def main() -> None:
     )
 
     # ------------------------------------------------------------------ figure
-    fig, axes = plt.subplots(1, 4, figsize=(24, 6))
+    fig, axes = plt.subplots(2, 2, figsize=(16, 14))
+    axes = axes.flatten()
 
     def set_patch_axes(ax, title):
         ax.set_xlim(*PATCH_X)
@@ -238,7 +239,7 @@ def main() -> None:
     axes[3].tick_params(labelbottom=False, labelleft=False)
 
     fig.suptitle(
-        "How agreement/disagreement is determined  (10x native vs. CellPose, 500 µm × 500 µm patch + all pairs)",
+        "How agreement/disagreement is determined\n(10x native vs. CellPose, 500 µm × 500 µm patch + all pairs)",
         fontsize=12, fontweight="bold",
     )
     fig.tight_layout()
