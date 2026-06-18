@@ -29,7 +29,7 @@ Segmentation runs on a ~2mm x 2mm ROI with a mix of tumor, stroma, and immune-in
 | **CellPose** | DAPI (2mm x 2mm ROI) | CellPose 3.x `nuclei` model, CPU |
 | **StarDist** | DAPI (2mm x 2mm ROI) | `2D_versatile_fluo` model, separate `stardist` conda env |
 | **Voronoi** | CellPose nuclear centroids | Nearest-centroid transcript assignment via scipy cKDTree; 100% capture, no additional model |
-| **Mesmer** (DeepCell) | DAPI | not run; deepcell.org account system non-functional as of June 2026; env and wrapper ready |
+| **Mesmer** (DeepCell) | DAPI | run via Docker (`vanvalenlab/deepcell-applications`); image bundles model weights, no access token needed |
 | **Baysor** | transcripts (2mm x 2mm, 4 tiles) | transcript-density EM, Julia 1.10 |
 
 Per-cell transcript aggregation → AnnData → cell counts, transcript capture, expression correlation, Leiden clustering, and spatial structure of disagreement (Moran's I, Mellon density). Independent Leiden runs assign arbitrary cluster IDs, so cluster labels are aligned across methods using the Hungarian algorithm (linear sum assignment on the confusion matrix) before computing disagreement rate and ARI.
@@ -145,11 +145,14 @@ conda run -n stardist pip install stardist tensorflow-cpu
 ### 3. Mesmer (DeepCell)
 
 ```bash
-conda create -n mesmer python=3.10
-conda run -n mesmer pip install deepcell
+sudo apt-get install -y docker.io
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+newgrp docker
+docker pull vanvalenlab/deepcell-applications:latest
 ```
 
-Requires a `DEEPCELL_ACCESS_TOKEN` from [users.deepcell.org](https://users.deepcell.org); as of June 2026 that site's account system is non-functional.
+The `vanvalenlab/deepcell-applications` image bundles pretrained model weights and does not require a `DEEPCELL_ACCESS_TOKEN`. See [`scripts/run_mesmer.sh`](scripts/run_mesmer.sh) for the invocation.
 
 ### 4. Julia + Baysor
 
