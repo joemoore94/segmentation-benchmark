@@ -55,7 +55,7 @@ Nuclear-only methods (CellPose, StarDist, Mesmer) capture 35-52% of transcripts;
 
 ### Clustering structure
 
-![PCA and UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
+![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
 
 All methods produce well-separated UMAP clusters. Leiden resolution yields: CellPose 13, StarDist 12, Mesmer 15, Voronoi (CP) 14, Voronoi (M) 14, Baysor 21, 10x native 15. Baysor's higher cluster count is consistent with its richer per-cell transcript counts resolving finer expression differences; both Mesmer and 10x native converge on 15 clusters.
 

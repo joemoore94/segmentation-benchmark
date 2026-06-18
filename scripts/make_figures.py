@@ -277,28 +277,29 @@ def fig_pca_umap() -> None:
     methods = [m for m in MAIN_METHODS if m != "10x_native"] + ["10x_native"]
     embeddings = {m: pd.read_csv(TABLES_DIR / f"embedding_{m}.csv", index_col=0) for m in methods}
 
-    fig, axes = plt.subplots(2, len(methods), figsize=(42, 10))
-    for col, method in enumerate(methods):
+    ncols = 4
+    nrows = 2
+    fig, axes = plt.subplots(nrows, ncols, figsize=(24, 12))
+    axes_flat = axes.flatten()
+
+    for idx, method in enumerate(methods):
+        ax = axes_flat[idx]
         emb = embeddings[method]
         n_clusters = emb["leiden"].nunique()
         palette = sns.color_palette("tab20", n_clusters)
-
-        sns.scatterplot(
-            data=emb, x="PC1", y="PC2", hue="leiden", palette=palette,
-            s=10, alpha=0.6, ax=axes[0, col], legend=False,
-        )
-        axes[0, col].set_title(f"{METHOD_LABELS[method]}\n({n_clusters} clusters)")
-        axes[0, col].set_xlabel("PC1")
-
         sns.scatterplot(
             data=emb, x="UMAP1", y="UMAP2", hue="leiden", palette=palette,
-            s=10, alpha=0.6, ax=axes[1, col], legend=False,
+            s=12, alpha=0.6, ax=ax, legend=False,
         )
-        axes[1, col].set_xlabel("UMAP1")
+        ax.set_title(f"{METHOD_LABELS[method]} ({n_clusters} clusters)")
+        ax.set_xlabel("UMAP1")
+        ax.set_ylabel("UMAP2")
 
-    axes[0, 0].set_ylabel("PC2")
-    axes[1, 0].set_ylabel("UMAP2")
-    fig.suptitle("Per-method Leiden clustering: PCA (top) and UMAP (bottom)")
+    # hide the unused 8th panel
+    for ax in axes_flat[len(methods):]:
+        ax.set_visible(False)
+
+    fig.suptitle("Per-method Leiden clustering (UMAP)")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "pca_umap_clusters.png", dpi=150)
     plt.close(fig)
