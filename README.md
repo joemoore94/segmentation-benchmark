@@ -17,7 +17,7 @@ Three method families emerge. Nuclear methods (CellPose, StarDist, Mesmer) score
 
 **Voronoi (Mesmer) is the best non-reference method at ARI 0.686.** The gain over CellPose nuclear decomposes cleanly: adding cytoplasmic coverage (CellPose nuclear → Voronoi CP) contributes +0.083 ARI; improving nuclear centroid quality (Voronoi CP → Voronoi M) contributes an additional +0.056 ARI. Voronoi (Mesmer)'s residual disagreement retains a weak luminal-epithelial signal (density p=3.2e-12) versus nuclear Mesmer's strong one (p=3.8e-79), confirming that cytoplasmic coverage is the dominant driver.
 
-This is Project 1 of a portfolio bridging imaging-based spatial biology into sequencing-based bioinformatics. Project 2 ([label-transfer-benchmark](https://github.com/joemoore94/label-transfer-benchmark)) uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability.
+<!-- Project 2 (label-transfer-benchmark): uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability. Add link once repo is public. -->
 
 ## Dataset
 
