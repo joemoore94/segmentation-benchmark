@@ -9,10 +9,11 @@
 | 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 |
 | 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 |
 | 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 |
-| 10x native vs. Voronoi | 18,966 | 0.932 | 0.630 | 21.9% | 0.076 |
+| 10x native vs. Voronoi (CellPose) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 |
+| 10x native vs. Voronoi (Mesmer) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
 
-Three method families emerge. Nuclear methods (CellPose, StarDist, Mesmer): ARI ~0.55, ~28-34% disagreement, Moran's I 0.09-0.22 — spatially structured disagreement driven by luminal breast epithelial cells whose cytoplasmic expression is missed by nuclear-only masks. Voronoi (CellPose nuclei, nearest-centroid transcript assignment): ARI 0.630, 21.9% disagreement, Moran's I 0.076, median expression correlation 0.932 — the best-performing non-reference method; its residual disagreement shows no phenotypic density effect (p=0.19), meaning remaining errors are purely geometric. Baysor: ARI 0.305, 51.7% disagreement, Moran's I 0.033 — near-random spatial disagreement. Mesmer's transcript capture (51.8%) is notably higher than CellPose (35.4%) or StarDist (40.8%), suggesting its nuclear masks are calibrated larger, which closes part of the cytoplasmic-transcript gap and explains its slightly higher ARI. The Voronoi result nonetheless demonstrates that the remaining nuclear-method gap (ARI ~0.55 → 0.63) is explained by cytoplasmic transcripts that no fixed-radius nuclear mask fully captures.
+Three method families emerge. Nuclear methods (CellPose, StarDist, Mesmer): ARI ~0.55, ~28-34% disagreement — spatially structured disagreement driven by luminal breast epithelial cells whose cytoplasmic expression is missed by nuclear-only masks. Voronoi variants (nearest-centroid transcript assignment from CellPose or Mesmer nuclei): ARI 0.630-0.686, 18-22% disagreement, with 100% transcript capture. Baysor: ARI 0.305, 51.7% disagreement, near-random spatial structure. **Voronoi (Mesmer) is the best non-reference method** at ARI 0.686. The experiment cleanly decomposes two sources of improvement over CellPose nuclear: adding cytoplasmic coverage (CellPose nuclear → CellPose Voronoi) contributes +0.083 ARI; better nuclear centroid quality (CellPose Voronoi → Mesmer Voronoi) contributes +0.056 ARI. Voronoi (Mesmer)'s residual disagreement is still weakly concentrated in luminal epithelial regions (density p=3.2e-12) but the effect is much smaller than nuclear Mesmer (p=3.8e-79), confirming that cytoplasmic coverage dominates over detector choice.
 
 This is Project 1 of a portfolio bridging imaging-based spatial biology into sequencing-based bioinformatics. Project 2 ([label-transfer-benchmark](https://github.com/joemoore94/label-transfer-benchmark)) uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability.
 
@@ -29,8 +30,9 @@ Segmentation runs on a ~2mm x 2mm ROI with a mix of tumor, stroma, and immune-in
 | **10x native** | provided | Xenium Ranger's own segmentation, reshaped by `scripts/build_10x_adata.py` |
 | **CellPose** | DAPI (2mm x 2mm ROI) | CellPose 3.x `nuclei` model, CPU |
 | **StarDist** | DAPI (2mm x 2mm ROI) | `2D_versatile_fluo` model, separate `stardist` conda env |
-| **Voronoi** | CellPose nuclear centroids | Nearest-centroid transcript assignment via scipy cKDTree; 100% capture, no additional model |
+| **Voronoi (CellPose)** | CellPose nuclear centroids | Nearest-centroid transcript assignment via scipy cKDTree; 100% capture, no additional model |
 | **Mesmer** (DeepCell) | DAPI | run via Docker (`vanvalenlab/deepcell-applications`); image bundles model weights, no access token needed |
+| **Voronoi (Mesmer)** | Mesmer nuclear centroids | Same nearest-centroid assignment using Mesmer centroids; isolates nuclear detector quality from cytoplasmic coverage effect |
 | **Baysor** | transcripts (2mm x 2mm, 4 tiles) | transcript-density EM, Julia 1.10 |
 
 Per-cell transcript aggregation → AnnData → cell counts, transcript capture, expression correlation, Leiden clustering, and spatial structure of disagreement (Moran's I, Mellon density). Independent Leiden runs assign arbitrary cluster IDs, so cluster labels are aligned across methods using the Hungarian algorithm (linear sum assignment on the confusion matrix) before computing disagreement rate and ARI.
@@ -39,15 +41,15 @@ Per-cell transcript aggregation → AnnData → cell counts, transcript capture,
 
 ### Cell counts and transcript capture
 
-| | CellPose | StarDist | Mesmer | Voronoi | Baysor | 10x native |
-|---|---|---|---|---|---|---|
-| Cells | 20,166 | 24,745 | 21,697 | 20,166 | 18,321 | 23,629 |
-| Median transcripts/cell | 49 | 45 | 81 | 168 | 53 | 124 |
-| Transcript capture | 35.4% | 40.8% | 51.8% | 100.0% | 98.6% | 99.0% |
+| | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (M) | Baysor | 10x native |
+|---|---|---|---|---|---|---|---|
+| Cells | 20,166 | 24,745 | 21,697 | 20,166 | 21,697 | 18,321 | 23,629 |
+| Median transcripts/cell | 49 | 45 | 81 | 168 | 142 | 53 | 124 |
+| Transcript capture | 35.4% | 40.8% | 51.8% | 100.0% | 100.0% | 98.6% | 99.0% |
 
 ![Cell counts, transcripts/cell, and nucleus area by method](results/figures/cell_counts_and_sizes.png)
 
-Nuclear-only methods (CellPose, StarDist, Mesmer) capture 35-52% of transcripts; Mesmer's nuclear masks are calibrated larger than CellPose or StarDist, yielding higher capture without leaving nuclear-only mode. Whole-cell and transcript-based methods (Voronoi, Baysor, 10x native) capture ~99%.
+Nuclear-only methods (CellPose, StarDist, Mesmer) capture 35-52% of transcripts; Mesmer's nuclear masks are calibrated larger than CellPose or StarDist, yielding higher capture without leaving nuclear-only mode. Voronoi variants and transcript-based methods (Voronoi (CP), Voronoi (M), Baysor, 10x native) capture ~99-100%.
 
 ### Clustering structure
 
@@ -69,7 +71,9 @@ All comparisons use 10x native (Xenium Ranger's own segmentation) as the referen
 
 **10x native vs. Mesmer** (whole-cell vs. nuclear, DeepCell): 20,595 matched pairs, correlation 0.879, ARI 0.557, 27.9% disagreement, Moran's I 0.090. Mesmer outperforms CellPose and StarDist on every metric despite running in nuclear-only mode, largely because its larger nuclear masks capture ~52% of transcripts vs. 35-41% for the other nuclear methods. Its disagreement is spatially structured (Moran's I 0.090) with the same luminal-epithelial fingerprint (MYBPC1, SERPINA3, CLIC6, PGR, GATA3), and it has the highest fraction of agreement coldspots (32.5% LL) of any method.
 
-**10x native vs. Voronoi** (whole-cell vs. nearest-centroid expansion from CellPose nuclei): 18,966 matched pairs, correlation 0.932, ARI 0.630, 21.9% disagreement, Moran's I 0.076. Voronoi assigns all transcripts to the nearest CellPose nuclear centroid, capturing the full cytoplasmic signal with no additional model. The substantially higher ARI and correlation relative to nuclear CellPose (same 20,166 cells, same centroids) directly quantifies the contribution of cytoplasmic transcripts to cell-type identity.
+**10x native vs. Voronoi (CellPose)** (whole-cell vs. nearest-centroid assignment from CellPose nuclei): 18,966 matched pairs, correlation 0.932, ARI 0.630, 21.9% disagreement, Moran's I 0.076. Voronoi assigns all transcripts to the nearest CellPose nuclear centroid, capturing the full cytoplasmic signal with no additional model. The substantially higher ARI and correlation relative to nuclear CellPose (same 20,166 cells, same centroids) directly quantifies the contribution of cytoplasmic transcripts to cell-type identity.
+
+**10x native vs. Voronoi (Mesmer)** (whole-cell vs. nearest-centroid assignment from Mesmer nuclei): 20,595 matched pairs, correlation 0.964, ARI 0.686, 18.8% disagreement, Moran's I 0.161. Swapping Mesmer's higher-quality nuclear centroids into the same Voronoi framework improves ARI by 0.056 over Voronoi (CellPose), isolating the contribution of nuclear detector quality from cytoplasmic coverage. Residual disagreement is still weakly concentrated in luminal epithelial regions (density p=3.2e-12, DE top genes: MUC1, SERPINA3, CLIC6, PGR, MYBPC1) but the effect is much smaller than nuclear Mesmer (p=3.8e-79), confirming that cytoplasmic coverage dominates.
 
 **10x native vs. Baysor**: 10,953 matched pairs, correlation 0.786, ARI 0.305, 51.7% disagreement, Moran's I 0.033. More than half of matched cells land in different clusters, and the pattern is near-random spatially.
 
@@ -84,10 +88,11 @@ Each 10x-native cell gets a Mellon log-density estimate in PCA space; disagreein
 | 10x native vs. CellPose | 13,121 / 5,845 | -21.31 / -20.78 | 2.9e-28 |
 | 10x native vs. StarDist | 14,254 / 7,175 | -21.87 / -20.63 | 1.1e-90 |
 | 10x native vs. Mesmer | 14,850 / 5,745 | -21.73 / -20.14 | 3.8e-79 |
-| 10x native vs. Voronoi | 14,805 / 4,161 | -21.05 / -21.35 | 0.191 (n.s.) |
+| 10x native vs. Voronoi (CellPose) | 14,805 / 4,161 | -21.05 / -21.35 | 0.191 (n.s.) |
+| 10x native vs. Voronoi (Mesmer) | 16,720 / 3,875 | -21.38 / -20.68 | 3.2e-12 |
 | 10x native vs. Baysor | 5,286 / 5,667 | -22.76 / -22.75 | 0.756 (n.s.) |
 
-Nuclear methods (CellPose, StarDist, Mesmer) disagree with 10x native on cells in *higher*-density phenotypic regions (p ≪ 0.001), driven by luminal breast epithelial cells (DE top genes: MYBPC1, SERPINA3, CLIC6, PGR, GATA3, MUC1) whose cytoplasmic expression is captured by whole-cell segmentation but missed by nuclear-only masks. Mesmer's effect size is the largest (median density gap 1.59 log units vs. 0.53 for CellPose), consistent with its larger nuclear masks creating more ambiguity at cell boundaries in dense epithelial regions. Voronoi's disagreement is density-neutral (p=0.19) — its remaining error is geometric, not cell-state-driven. Baysor shows no density effect; its disagreement concentrates on macrophages (CD14, MRC1, CD163). T cells (TRAC, CD3E) are robustly identified by all methods.
+Nuclear methods (CellPose, StarDist, Mesmer) disagree with 10x native on cells in *higher*-density phenotypic regions (p ≪ 0.001), driven by luminal breast epithelial cells (DE top genes: MYBPC1, SERPINA3, CLIC6, PGR, GATA3, MUC1) whose cytoplasmic expression is captured by whole-cell segmentation but missed by nuclear-only masks. Mesmer's effect size is the largest (median density gap 1.59 log units vs. 0.53 for CellPose), consistent with its larger nuclear masks creating more ambiguity at cell boundaries in dense epithelial regions. Voronoi (CellPose)'s disagreement is density-neutral (p=0.19) — its remaining error is geometric, not cell-state-driven. Voronoi (Mesmer) shows a weak but significant residual density effect (p=3.2e-12), still driven by luminal epithelial cells but much attenuated compared to nuclear Mesmer; the same luminal-epithelial marker signature (MUC1, SERPINA3, CLIC6) appears in its DE results. Baysor shows no density effect; its disagreement concentrates on macrophages (CD14, MRC1, CD163). T cells (TRAC, CD3E) are robustly identified by all methods.
 
 ### Local Moran's I (LISA)
 
@@ -100,10 +105,11 @@ HH clusters (local disagreement hotspots) and LL clusters (local agreement colds
 | 10x native vs. CellPose | 21.7% | 30.3% |
 | 10x native vs. StarDist | 18.6% | 15.0% |
 | 10x native vs. Mesmer | 17.1% | 32.5% |
-| 10x native vs. Voronoi | 11.1% | 27.2% |
+| 10x native vs. Voronoi (CellPose) | 11.1% | 27.2% |
+| 10x native vs. Voronoi (Mesmer) | 9.5% | 20.4% |
 | 10x native vs. Baysor | 21.4% | 17.5% |
 
-Mesmer has the most agreement coldspots of any method (32.5% LL) — large contiguous tissue regions where Mesmer and 10x native call identical cell types — consistent with its overall lower disagreement rate and spatially coherent nuclear detection. Voronoi has the fewest HH hotspots (11.1%), reflecting that its remaining disagreement is diffuse boundary error rather than concentrated failure zones. Baysor's near-equal HH/LH split confirms the near-random spatial structure of transcript-density disagreement.
+Mesmer has the most agreement coldspots of any method (32.5% LL) — large contiguous tissue regions where Mesmer and 10x native call identical cell types — consistent with its overall lower disagreement rate and spatially coherent nuclear detection. Voronoi (Mesmer) has the fewest HH hotspots of any method (9.5%), reflecting that its remaining disagreement is diffuse boundary error rather than concentrated failure zones. Baysor's near-equal HH/LH split confirms the near-random spatial structure of transcript-density disagreement.
 
 ### Differential expression: agree vs. disagree cells
 
@@ -131,7 +137,7 @@ segmentation-benchmark/
 
 ## Environment setup
 
-This project uses four toolchains: a main conda env for CellPose + Scanpy/Squidpy/SpatialData, a separate env for StarDist (TensorFlow-based), a separate env for Mesmer (incompatible TensorFlow pin), and Julia for Baysor.
+This project uses three toolchains: a main conda env for CellPose + Scanpy/Squidpy/SpatialData, a separate env for StarDist (TensorFlow-based), and Julia for Baysor. Mesmer runs via Docker (no separate conda env required).
 
 ### 1. Main env (CellPose + Scanpy stack)
 

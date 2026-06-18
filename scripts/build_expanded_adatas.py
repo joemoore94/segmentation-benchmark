@@ -101,6 +101,15 @@ def main() -> None:
     capture = n_tx / 3_392_051
     print(f"  {adata_vor.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
 
+    print("\n=== Voronoi (Mesmer centroids) ===")
+    adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
+    adata_vor_mesmer = build_voronoi(adata_mesmer, transcripts)
+    out = ROI_DIR / "adata_voronoi_mesmer.h5ad"
+    adata_vor_mesmer.write_h5ad(out)
+    n_tx = int(adata_vor_mesmer.X.sum())
+    capture = n_tx / 3_392_051
+    print(f"  {adata_vor_mesmer.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
+
 
 if __name__ == "__main__":
     main()
