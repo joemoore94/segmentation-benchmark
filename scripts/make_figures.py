@@ -39,6 +39,7 @@ METHOD_COLORS = {
     "stardist": "#8172B2",
     "baysor_prior": "#937860",
     "voronoi": "#17BECF",
+    "mesmer": "#D62728",
 }
 METHOD_LABELS = {
     "cellpose": "CellPose",
@@ -47,6 +48,7 @@ METHOD_LABELS = {
     "stardist": "StarDist",
     "baysor_prior": "Baysor (prior)",
     "voronoi": "Voronoi",
+    "mesmer": "Mesmer",
 }
 
 
@@ -60,16 +62,19 @@ def fig_cell_counts_and_sizes() -> None:
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
     adata_baysor_prior = ad.read_h5ad(ROI_DIR / "adata_baysor_prior.h5ad")
     adata_voronoi = ad.read_h5ad(ROI_DIR / "adata_voronoi.h5ad")
+    adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
 
     cellpose_area_um2 = adata_cellpose.obs["area"] * PIXEL_SIZE**2
     tenx_nucleus_area_um2 = adata_10x.obs["nucleus_area_um2"]
     stardist_area_um2 = adata_stardist.obs["area"] * PIXEL_SIZE**2
+    mesmer_area_um2 = adata_mesmer.obs["area"] * PIXEL_SIZE**2
     cellpose_transcripts = np.asarray(adata_cellpose.X.sum(axis=1)).ravel()
     baysor_transcripts = np.asarray(adata_baysor.X.sum(axis=1)).ravel()
     tenx_transcripts = np.asarray(adata_10x.X.sum(axis=1)).ravel()
     stardist_transcripts = np.asarray(adata_stardist.X.sum(axis=1)).ravel()
     baysor_prior_transcripts = np.asarray(adata_baysor_prior.X.sum(axis=1)).ravel()
     voronoi_transcripts = np.asarray(adata_voronoi.X.sum(axis=1)).ravel()
+    mesmer_transcripts = np.asarray(adata_mesmer.X.sum(axis=1)).ravel()
     transcripts_by_method = {
         "cellpose": cellpose_transcripts,
         "baysor": baysor_transcripts,
@@ -77,6 +82,7 @@ def fig_cell_counts_and_sizes() -> None:
         "stardist": stardist_transcripts,
         "baysor_prior": baysor_prior_transcripts,
         "voronoi": voronoi_transcripts,
+        "mesmer": mesmer_transcripts,
     }
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
@@ -134,11 +140,15 @@ def fig_cell_counts_and_sizes() -> None:
         color=METHOD_COLORS["stardist"], label=METHOD_LABELS["stardist"], alpha=0.4,
     )
     sns.histplot(
+        mesmer_area_um2, bins=50, ax=axes[2],
+        color=METHOD_COLORS["mesmer"], label=METHOD_LABELS["mesmer"], alpha=0.4,
+    )
+    sns.histplot(
         tenx_nucleus_area_um2, bins=50, ax=axes[2],
         color=METHOD_COLORS["10x_native"], label=METHOD_LABELS["10x_native"], alpha=0.4,
     )
     axes[2].set_xlabel("Nucleus area (µm²)")
-    axes[2].set_title("Nucleus area: CellPose vs. StarDist vs. 10x native (QC)")
+    axes[2].set_title("Nucleus area: CellPose vs. StarDist vs. Mesmer vs. 10x native (QC)")
     axes[2].legend()
 
     fig.suptitle(
@@ -163,17 +173,19 @@ def fig_cell_counts_and_sizes() -> None:
 def fig_expression_correlation() -> None:
     corr_cellpose = pd.read_csv(TABLES_DIR / "expression_correlation_10x_cellpose.csv")
     corr_stardist = pd.read_csv(TABLES_DIR / "expression_correlation_10x_stardist.csv")
+    corr_mesmer = pd.read_csv(TABLES_DIR / "expression_correlation_10x_mesmer.csv")
     corr_voronoi = pd.read_csv(TABLES_DIR / "expression_correlation_10x_voronoi.csv")
     corr_baysor = pd.read_csv(TABLES_DIR / "expression_correlation_10x_baysor.csv")
     corr_baysor_prior = pd.read_csv(TABLES_DIR / "expression_correlation_10x_baysor_prior.csv")
 
-    fig, axes = plt.subplots(1, 5, figsize=(32, 5.5), sharey=True)
+    fig, axes = plt.subplots(1, 6, figsize=(38, 5.5), sharey=True)
     for ax, corr, label, color in [
         (axes[0], corr_cellpose, "10x native vs. CellPose", METHOD_COLORS["cellpose"]),
         (axes[1], corr_stardist, "10x native vs. StarDist", METHOD_COLORS["stardist"]),
-        (axes[2], corr_voronoi, "10x native vs. Voronoi", METHOD_COLORS["voronoi"]),
-        (axes[3], corr_baysor, "10x native vs. Baysor", METHOD_COLORS["baysor"]),
-        (axes[4], corr_baysor_prior, "10x native vs. Baysor (prior)", METHOD_COLORS["baysor_prior"]),
+        (axes[2], corr_mesmer, "10x native vs. Mesmer", METHOD_COLORS["mesmer"]),
+        (axes[3], corr_voronoi, "10x native vs. Voronoi", METHOD_COLORS["voronoi"]),
+        (axes[4], corr_baysor, "10x native vs. Baysor", METHOD_COLORS["baysor"]),
+        (axes[5], corr_baysor_prior, "10x native vs. Baysor (prior)", METHOD_COLORS["baysor_prior"]),
     ]:
         median = corr["correlation"].median()
         sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=color)
@@ -192,17 +204,19 @@ def fig_expression_correlation() -> None:
 def fig_disagreement_spatial_map() -> None:
     disagreement_cellpose = pd.read_csv(TABLES_DIR / "disagreement_table_10x_cellpose.csv")
     disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_10x_stardist.csv")
+    disagreement_mesmer = pd.read_csv(TABLES_DIR / "disagreement_table_10x_mesmer.csv")
     disagreement_voronoi = pd.read_csv(TABLES_DIR / "disagreement_table_10x_voronoi.csv")
     disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor.csv")
     disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor_prior.csv")
 
-    fig, axes = plt.subplots(1, 5, figsize=(30, 6))
+    fig, axes = plt.subplots(1, 6, figsize=(36, 6))
     for ax, disagreement, label in [
         (axes[0], disagreement_cellpose, "10x native vs. CellPose"),
         (axes[1], disagreement_stardist, "10x native vs. StarDist"),
-        (axes[2], disagreement_voronoi, "10x native vs. Voronoi"),
-        (axes[3], disagreement_baysor, "10x native vs. Baysor"),
-        (axes[4], disagreement_baysor_prior, "10x native vs. Baysor (prior)"),
+        (axes[2], disagreement_mesmer, "10x native vs. Mesmer"),
+        (axes[3], disagreement_voronoi, "10x native vs. Voronoi"),
+        (axes[4], disagreement_baysor, "10x native vs. Baysor"),
+        (axes[5], disagreement_baysor_prior, "10x native vs. Baysor (prior)"),
     ]:
         sns.scatterplot(
             data=disagreement,
@@ -235,13 +249,14 @@ def fig_disagreement_spatial_map() -> None:
 def fig_cell_type_confusion() -> None:
     confusion_cellpose = pd.read_csv(TABLES_DIR / "cell_type_confusion_10x_cellpose.csv", index_col=0)
     confusion_stardist = pd.read_csv(TABLES_DIR / "cell_type_confusion_10x_stardist.csv", index_col=0)
+    confusion_mesmer = pd.read_csv(TABLES_DIR / "cell_type_confusion_10x_mesmer.csv", index_col=0)
     confusion_voronoi = pd.read_csv(TABLES_DIR / "cell_type_confusion_10x_voronoi.csv", index_col=0)
     confusion_baysor = pd.read_csv(TABLES_DIR / "cell_type_confusion_10x_baysor.csv", index_col=0)
     confusion_baysor_prior = pd.read_csv(
         TABLES_DIR / "cell_type_confusion_10x_baysor_prior.csv", index_col=0
     )
 
-    fig, axes = plt.subplots(1, 5, figsize=(32, 6))
+    fig, axes = plt.subplots(1, 6, figsize=(38, 6))
 
     sns.heatmap(confusion_cellpose, annot=False, cmap="viridis", ax=axes[0])
     axes[0].set_xlabel("CellPose Leiden cluster")
@@ -253,20 +268,25 @@ def fig_cell_type_confusion() -> None:
     axes[1].set_ylabel("10x native Leiden cluster")
     axes[1].set_title("10x native vs. StarDist")
 
-    sns.heatmap(confusion_voronoi, annot=False, cmap="viridis", ax=axes[2])
-    axes[2].set_xlabel("Voronoi Leiden cluster")
+    sns.heatmap(confusion_mesmer, annot=False, cmap="viridis", ax=axes[2])
+    axes[2].set_xlabel("Mesmer Leiden cluster")
     axes[2].set_ylabel("10x native Leiden cluster")
-    axes[2].set_title("10x native vs. Voronoi")
+    axes[2].set_title("10x native vs. Mesmer")
 
-    sns.heatmap(confusion_baysor, annot=False, cmap="viridis", ax=axes[3])
-    axes[3].set_xlabel("Baysor Leiden cluster")
+    sns.heatmap(confusion_voronoi, annot=False, cmap="viridis", ax=axes[3])
+    axes[3].set_xlabel("Voronoi Leiden cluster")
     axes[3].set_ylabel("10x native Leiden cluster")
-    axes[3].set_title("10x native vs. Baysor")
+    axes[3].set_title("10x native vs. Voronoi")
 
-    sns.heatmap(confusion_baysor_prior, annot=False, cmap="viridis", ax=axes[4])
-    axes[4].set_xlabel("Baysor (prior) Leiden cluster")
+    sns.heatmap(confusion_baysor, annot=False, cmap="viridis", ax=axes[4])
+    axes[4].set_xlabel("Baysor Leiden cluster")
     axes[4].set_ylabel("10x native Leiden cluster")
-    axes[4].set_title("10x native vs. Baysor (prior)")
+    axes[4].set_title("10x native vs. Baysor")
+
+    sns.heatmap(confusion_baysor_prior, annot=False, cmap="viridis", ax=axes[5])
+    axes[5].set_xlabel("Baysor (prior) Leiden cluster")
+    axes[5].set_ylabel("10x native Leiden cluster")
+    axes[5].set_title("10x native vs. Baysor (prior)")
 
     fig.suptitle("Cell-type cluster correspondence (matched pairs, Hungarian-aligned labels)")
     fig.tight_layout()
@@ -280,17 +300,19 @@ def fig_density_vs_disagreement() -> None:
 
     disagreement_cellpose = pd.read_csv(TABLES_DIR / "disagreement_table_10x_cellpose.csv")
     disagreement_stardist = pd.read_csv(TABLES_DIR / "disagreement_table_10x_stardist.csv")
+    disagreement_mesmer = pd.read_csv(TABLES_DIR / "disagreement_table_10x_mesmer.csv")
     disagreement_voronoi = pd.read_csv(TABLES_DIR / "disagreement_table_10x_voronoi.csv")
     disagreement_baysor = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor.csv")
     disagreement_baysor_prior = pd.read_csv(TABLES_DIR / "disagreement_table_10x_baysor_prior.csv")
 
-    fig, axes = plt.subplots(1, 5, figsize=(30, 5), sharex=True, sharey=True)
+    fig, axes = plt.subplots(1, 6, figsize=(36, 5), sharex=True, sharey=True)
     for ax, disagreement, label in [
         (axes[0], disagreement_cellpose, "10x native vs. CellPose"),
         (axes[1], disagreement_stardist, "10x native vs. StarDist"),
-        (axes[2], disagreement_voronoi, "10x native vs. Voronoi"),
-        (axes[3], disagreement_baysor, "10x native vs. Baysor"),
-        (axes[4], disagreement_baysor_prior, "10x native vs. Baysor (prior)"),
+        (axes[2], disagreement_mesmer, "10x native vs. Mesmer"),
+        (axes[3], disagreement_voronoi, "10x native vs. Voronoi"),
+        (axes[4], disagreement_baysor, "10x native vs. Baysor"),
+        (axes[5], disagreement_baysor_prior, "10x native vs. Baysor (prior)"),
     ]:
         disagreement = disagreement.copy()
         disagreement["log_density"] = disagreement["id_a"].map(log_density)
@@ -317,10 +339,10 @@ def fig_density_vs_disagreement() -> None:
 
 
 def fig_pca_umap() -> None:
-    methods = ["cellpose", "stardist", "voronoi", "baysor", "baysor_prior", "10x_native"]
+    methods = ["cellpose", "stardist", "mesmer", "voronoi", "baysor", "baysor_prior", "10x_native"]
     embeddings = {m: pd.read_csv(TABLES_DIR / f"embedding_{m}.csv", index_col=0) for m in methods}
 
-    fig, axes = plt.subplots(2, 6, figsize=(32, 10))
+    fig, axes = plt.subplots(2, 7, figsize=(40, 10))
     for col, method in enumerate(methods):
         emb = embeddings[method]
         n_clusters = emb["leiden"].nunique()
@@ -349,13 +371,14 @@ def fig_local_morans_map() -> None:
     files = {
         "10x native vs. CellPose": "local_morans_10x_cellpose.csv",
         "10x native vs. StarDist": "local_morans_10x_stardist.csv",
+        "10x native vs. Mesmer": "local_morans_10x_mesmer.csv",
         "10x native vs. Voronoi": "local_morans_10x_voronoi.csv",
         "10x native vs. Baysor": "local_morans_10x_baysor.csv",
         "10x native vs. Baysor (prior)": "local_morans_10x_baysor_prior.csv",
     }
     LISA_COLORS = {"HH": "#C44E52", "LL": "#4C72B0", "HL": "#DD8452", "LH": "#CCB974"}
 
-    fig, axes = plt.subplots(1, 5, figsize=(30, 6))
+    fig, axes = plt.subplots(1, 6, figsize=(36, 6))
     for ax, (label, fname) in zip(axes, files.items()):
         df = pd.read_csv(TABLES_DIR / fname)
         for cluster, color in LISA_COLORS.items():
@@ -380,12 +403,13 @@ def fig_de_volcano() -> None:
     files = {
         "10x native vs. CellPose": "de_disagree_10x_cellpose.csv",
         "10x native vs. StarDist": "de_disagree_10x_stardist.csv",
+        "10x native vs. Mesmer": "de_disagree_10x_mesmer.csv",
         "10x native vs. Voronoi": "de_disagree_10x_voronoi.csv",
         "10x native vs. Baysor": "de_disagree_10x_baysor.csv",
         "10x native vs. Baysor (prior)": "de_disagree_10x_baysor_prior.csv",
     }
 
-    fig, axes = plt.subplots(1, 5, figsize=(32, 6), sharey=True)
+    fig, axes = plt.subplots(1, 6, figsize=(38, 6), sharey=True)
     for ax, (label, fname) in zip(axes, files.items()):
         df = pd.read_csv(TABLES_DIR / fname)
         sig = df["pvals_adj"] < 0.05
@@ -425,14 +449,14 @@ def main() -> None:
     fig_pca_umap()
     if all((TABLES_DIR / f).exists() for f in [
         "local_morans_10x_cellpose.csv", "local_morans_10x_stardist.csv",
-        "local_morans_10x_voronoi.csv", "local_morans_10x_baysor.csv",
-        "local_morans_10x_baysor_prior.csv",
+        "local_morans_10x_mesmer.csv", "local_morans_10x_voronoi.csv",
+        "local_morans_10x_baysor.csv", "local_morans_10x_baysor_prior.csv",
     ]):
         fig_local_morans_map()
     if all((TABLES_DIR / f).exists() for f in [
         "de_disagree_10x_cellpose.csv", "de_disagree_10x_stardist.csv",
-        "de_disagree_10x_voronoi.csv", "de_disagree_10x_baysor.csv",
-        "de_disagree_10x_baysor_prior.csv",
+        "de_disagree_10x_mesmer.csv", "de_disagree_10x_voronoi.csv",
+        "de_disagree_10x_baysor.csv", "de_disagree_10x_baysor_prior.csv",
     ]):
         fig_de_volcano()
     print(f"wrote figures to {FIGURES_DIR}")

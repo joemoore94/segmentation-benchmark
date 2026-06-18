@@ -24,6 +24,7 @@ TABLES_DIR = Path("results/tables")
 COMPARISONS = {
     "10x native vs. CellPose": "disagreement_table_10x_cellpose.csv",
     "10x native vs. StarDist": "disagreement_table_10x_stardist.csv",
+    "10x native vs. Mesmer": "disagreement_table_10x_mesmer.csv",
     "10x native vs. Voronoi": "disagreement_table_10x_voronoi.csv",
     "10x native vs. Baysor": "disagreement_table_10x_baysor.csv",
     "10x native vs. Baysor (prior)": "disagreement_table_10x_baysor_prior.csv",

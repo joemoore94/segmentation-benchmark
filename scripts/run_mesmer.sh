@@ -30,9 +30,9 @@ mkdir -p "${DATA_DIR}/${OUTPUT_DIR}"
 docker run --rm \
     -v "${DATA_DIR}:/data" \
     vanvalenlab/deepcell-applications:latest \
-    python /run_app.py mesmer \
-    --nuclear "/data/${NUCLEAR_FILE}" \
-    --output-dir "/data/${OUTPUT_DIR}" \
+    mesmer \
+    --nuclear-image "/data/${NUCLEAR_FILE}" \
+    --output-directory "/data/${OUTPUT_DIR}" \
     --compartment "${COMPARTMENT}" \
     --image-mpp "${IMAGE_MPP}"
 

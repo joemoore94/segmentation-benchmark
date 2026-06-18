@@ -45,6 +45,7 @@ def main() -> None:
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
     adata_baysor_prior = ad.read_h5ad(ROI_DIR / "adata_baysor_prior.h5ad")
     adata_voronoi = ad.read_h5ad(ROI_DIR / "adata_voronoi.h5ad")
+    adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
     adatas = {
         "10x_native": adata_10x,
         "cellpose": adata_cellpose,
@@ -52,6 +53,7 @@ def main() -> None:
         "stardist": adata_stardist,
         "baysor_prior": adata_baysor_prior,
         "voronoi": adata_voronoi,
+        "mesmer": adata_mesmer,
     }
 
     counts = cell_count_summary(adatas)
@@ -219,6 +221,34 @@ def main() -> None:
     with open(TABLES_DIR / "disagreement_spatial_10x_voronoi.json", "w") as f:
         json.dump(spatial_voronoi, f, indent=2)
     print(spatial_voronoi)
+
+    # 10x native vs. Mesmer
+    matches_mesmer = match_cells_by_centroid(adata_10x, adata_mesmer, max_dist=MAX_MATCH_DIST)
+    matches_mesmer.to_csv(TABLES_DIR / "matches_10x_mesmer.csv", index=False)
+    print(f"\n=== 10x native vs. Mesmer ({len(matches_mesmer)} pairs) ===")
+
+    corr_mesmer = expression_correlation(adata_10x, adata_mesmer, matches_mesmer)
+    corr_mesmer.to_csv(TABLES_DIR / "expression_correlation_10x_mesmer.csv", index=False)
+    print(corr_mesmer["correlation"].describe())
+
+    print("\n=== Clustering cell types (Mesmer) ===")
+    labels_mesmer = cluster_cell_types(adata_mesmer, seed=0)
+    print(f"mesmer: {labels_mesmer.nunique()} clusters")
+    cluster_embedding(adata_mesmer, seed=0).to_csv(TABLES_DIR / "embedding_mesmer.csv")
+
+    agreement_mesmer = cell_type_agreement(labels_10x, labels_mesmer, matches_mesmer)
+    agreement_mesmer["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_mesmer.csv")
+    print(f"ARI = {agreement_mesmer['ari']:.4f}, n_matched = {agreement_mesmer['n_matched']}")
+
+    labels_mesmer_aligned = match_cluster_labels(labels_10x, labels_mesmer, matches_mesmer)
+    disagreement_mesmer = disagreement_table(
+        matches_mesmer, labels_10x, labels_mesmer_aligned, adata_10x
+    )
+    disagreement_mesmer.to_csv(TABLES_DIR / "disagreement_table_10x_mesmer.csv", index=False)
+    spatial_mesmer = disagreement_spatial_structure(disagreement_mesmer, n_perm=9999, seed=0)
+    with open(TABLES_DIR / "disagreement_spatial_10x_mesmer.json", "w") as f:
+        json.dump(spatial_mesmer, f, indent=2)
+    print(spatial_mesmer)
 
 
 if __name__ == "__main__":
