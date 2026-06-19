@@ -13,7 +13,7 @@
 | 10x native vs. Voronoi (Mesmer) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
 
-Three method families emerge. Nuclear methods (CellPose, StarDist, Mesmer) score ARI ~0.55 with spatially structured disagreement (Moran's I 0.09–0.22) concentrated in luminal breast epithelial cells whose cytoplasmic transcripts are invisible to nuclear-only masks. Voronoi variants (nearest-centroid assignment from CellPose or Mesmer nuclei) reach ARI 0.63–0.69 with 100% transcript capture and diffuse, boundary-driven residual error. Baysor reaches ARI 0.31 with near-random spatial disagreement concentrated on low-count macrophages.
+Three method families emerge. Nuclear methods (CellPose, StarDist, Mesmer) score ARI ~0.55 with spatially structured disagreement (Moran's I 0.09–0.22) concentrated in the luminal epithelial population — which in this breast cancer tissue likely encompasses the malignant cells — where dense cell packing and cytoplasmic transcripts outside nuclear masks create consistent boundary ambiguity. Voronoi variants (nearest-centroid assignment from CellPose or Mesmer nuclei) reach ARI 0.63–0.69 with 100% transcript capture and diffuse, boundary-driven residual error. Baysor reaches ARI 0.31 with near-random spatial disagreement; relaxing the one-to-one cluster matching constraint (many-to-one assignment) recovers ~8% of its apparent disagreement as an over-clustering artefact, bringing effective accuracy from 48% to 56%.
 
 **Voronoi (Mesmer) is the best non-reference method at ARI 0.686.** The gain over CellPose nuclear decomposes cleanly: adding cytoplasmic coverage (CellPose nuclear → Voronoi CP) contributes +0.083 ARI; improving nuclear centroid quality (Voronoi CP → Voronoi M) contributes an additional +0.056 ARI. Voronoi (Mesmer)'s residual disagreement retains a weak luminal-epithelial signal (density p=3.2e-12) versus nuclear Mesmer's strong one (p=3.8e-79), confirming that cytoplasmic coverage is the dominant driver.
 
@@ -40,12 +40,6 @@ Segmentation runs on a ~2mm x 2mm ROI with a mix of tumor, stroma, and immune-in
 Per-cell transcript aggregation → AnnData → cell counts, transcript capture, expression correlation, Leiden clustering, and spatial structure of disagreement (Moran's I, Mellon density). Independent Leiden runs assign arbitrary cluster IDs, so cluster labels are aligned across methods using the Hungarian algorithm (linear sum assignment on the confusion matrix) before computing disagreement rate and ARI.
 
 ## Results
-
-### How agreement is measured
-
-![Agreement/disagreement explainer](results/figures/agreement_explainer.png)
-
-Each comparison matches 10x-native cells to comparison-method cells by nearest centroid (panels A and B show the same 500 µm × 500 µm patch). Each method independently runs Leiden clustering; since the cluster IDs are arbitrary integers with no shared meaning, the Hungarian algorithm finds the one-to-one relabelling of the comparison method's clusters that maximises overlap with 10x native. After that alignment, a matched cell pair **agrees** if both methods assign the same (now unified) cluster label and **disagrees** if they differ (panel C). Panel D shows the full label-matching scatter for all 18,966 pairs: points on the diagonal are agreements, points off it are disagreements.
 
 ### Cell counts and transcript capture
 
@@ -83,7 +77,13 @@ All comparisons use 10x native (Xenium Ranger's own segmentation) as the referen
 
 **10x native vs. Voronoi (Mesmer)** (whole-cell vs. nearest-centroid assignment from Mesmer nuclei): 20,595 matched pairs, correlation 0.964, ARI 0.686, 18.8% disagreement, Moran's I 0.161. Swapping Mesmer's higher-quality nuclear centroids into the same Voronoi framework improves ARI by 0.056 over Voronoi (CellPose), isolating the contribution of nuclear detector quality from cytoplasmic coverage. The Moran's I (0.161) is higher than nuclear Mesmer's (0.090) despite lower overall disagreement — Voronoi (Mesmer)'s remaining errors are spatially concentrated in luminal-epithelial patches (density p=3.2e-12, DE top genes: MUC1, SERPINA3, CLIC6, PGR, MYBPC1) rather than scattered randomly, but the effect is far weaker than nuclear Mesmer (p=3.8e-79), confirming that cytoplasmic coverage dominates.
 
-**10x native vs. Baysor**: 10,953 matched pairs, correlation 0.786, ARI 0.305, 51.7% disagreement, Moran's I 0.033. More than half of matched cells land in different clusters, and the pattern is near-random spatially.
+**10x native vs. Baysor**: 10,953 matched pairs, correlation 0.786, ARI 0.305, 51.7% disagreement, Moran's I 0.033. More than half of matched cells land in different clusters, and the pattern is near-random spatially. Baysor resolves 21 clusters versus 10x native's 15; relaxing the one-to-one Hungarian constraint (many-to-one assignment, each comparison cluster independently assigned to its argmax 10x cluster) raises accuracy from 48.3% to 56.2%, confirming that ~8% of the apparent disagreement is a cluster-count artefact. The remaining ~44% is genuine: Baysor's transcript-density boundaries produce systematically different cell-type assignments concentrated on macrophages (CD14, MRC1, CD163).
+
+### Which cell types disagree?
+
+![Cell type vs. agreement with CellPose](results/figures/agreement_explainer.png)
+
+Luminal epithelial cells show the highest disagreement rate of any cell type across all nuclear segmentation methods (panel C, shown for CellPose). In this invasive ductal carcinoma tissue (Janesick et al. 2023), the luminal epithelial population at Leiden resolution 1.0 likely encompasses the malignant cells alongside residual normal luminal epithelial, as both share canonical markers (GATA3, PGR, ESR1, MUC1) and are not separable by nuclear morphology alone. These cells form dense, overlapping clusters where nuclear boundary ambiguity is highest and cytoplasmic transcripts — invisible to nuclear-only masks — carry the most discriminative expression. Panels A and B show this directly: the luminal epithelial tissue region (pink, panel A) overlaps the dominant disagreement zone (red, panel B). T cells and B cells are robustly identified regardless of method, consistent with their isolated nuclei and highly distinctive transcriptional signatures (CD3E, TRAC, MS4A1).
 
 ### Phenotypic density vs. disagreement (Mellon)
 
