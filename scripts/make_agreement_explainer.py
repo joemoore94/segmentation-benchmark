@@ -1,11 +1,11 @@
 """Cell type vs. agreement/disagreement: full-ROI spatial comparison.
 
-Side-by-side scatter of 10x-native cell centroids (full 2mm × 2mm ROI):
+Three-panel figure using 10x-native cell centroids (full 2mm × 2mm ROI):
   A) Cells coloured by annotated cell type.
   B) Same cells coloured by agreement (blue) or disagreement (red) against
      CellPose; unmatched 10x cells shown in gray.
-
-Comparing the two panels directly shows which cell types drive disagreement.
+  C) Disagree rate (%) by cell type for CellPose — quantifies which types
+     drive the spatial pattern in panels A and B.
 
 Usage::
 
@@ -86,7 +86,18 @@ def main() -> None:
     disagree_indexed.index = disagree_indexed.index.astype(str)
     obs = obs.join(disagree_indexed, how="left")
 
-    fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+    # Panel C data — per-cell-type disagree rate for CellPose
+    ct_disagree = pd.read_csv(TABLES / "celltype_disagreement.csv")
+    cp_rates = (
+        ct_disagree[ct_disagree["comparison"] == "CellPose"]
+        .set_index("cell_type")["disagree_rate"]
+        .reindex(list(CELLTYPE_COLORS.keys()))
+        .dropna()
+        .sort_values(ascending=True)
+    )
+
+    fig, axes = plt.subplots(1, 3, figsize=(26, 9),
+                             gridspec_kw={"width_ratios": [2, 2, 1.5]})
 
     # Panel A — cell types
     for ct, color in CELLTYPE_COLORS.items():
@@ -123,9 +134,16 @@ def main() -> None:
     axes[1].invert_yaxis()
     axes[1].legend(fontsize=9, loc="upper right", markerscale=3)
 
+    # Panel C — disagree rate by cell type (CellPose)
+    bar_colors = [CELLTYPE_COLORS[ct] for ct in cp_rates.index]
+    axes[2].barh(cp_rates.index, cp_rates.values * 100, color=bar_colors, edgecolor="white")
+    axes[2].set_xlabel("Disagree rate (%)")
+    axes[2].set_title("C · Disagree rate\nby cell type (CellPose)", fontweight="bold")
+    axes[2].set_xlim(0, 100)
+    axes[2].axvline(50, color="black", linewidth=0.8, linestyle="--", alpha=0.4)
+
     fig.suptitle(
-        "10x native cells: cell type vs. agreement with CellPose\n"
-        "Comparing panels A and B reveals which cell types drive method disagreement",
+        "Cell type vs. agreement with CellPose (10x native, full 2mm × 2mm ROI)",
         fontsize=11, fontweight="bold",
     )
     fig.tight_layout()
