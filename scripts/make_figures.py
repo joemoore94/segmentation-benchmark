@@ -208,14 +208,13 @@ def fig_disagreement_spatial_map() -> None:
         ax.set_aspect("equal")
         ax.invert_yaxis()
         ax.set_title(f"10x native vs. {label}")
-        handles = [
-            mpatches.Patch(color="#4C72B0", label="Agree"),
-            mpatches.Patch(color="#C44E52", label="Disagree"),
-        ]
-        ax.legend(handles=handles, fontsize=9)
 
-    fig.suptitle("Cell-type agreement (blue) vs. disagreement (red)")
-    fig.tight_layout()
+    fig.suptitle("Cell-type agreement vs. disagreement")
+    fig.legend(handles=[
+        mpatches.Patch(color="#4C72B0", label="Agree"),
+        mpatches.Patch(color="#C44E52", label="Disagree"),
+    ], loc="lower center", ncols=2, fontsize=11, framealpha=0.9)
+    fig.tight_layout(rect=[0, 0.04, 1, 1])
     fig.savefig(FIGURES_DIR / "disagreement_spatial_map.png", dpi=150)
     plt.close(fig)
 
@@ -255,7 +254,7 @@ def fig_density_vs_disagreement() -> None:
         sns.kdeplot(
             data=df, x="log_density", hue="disagree",
             palette={0.0: "#4C72B0", 1.0: "#C44E52"}, common_norm=False,
-            fill=True, alpha=0.3, ax=ax,
+            fill=True, alpha=0.3, ax=ax, legend=False,
         )
         medians = df.groupby("disagree")["log_density"].median()
         ax.axvline(medians[0.0], color="#4C72B0", linestyle="--")
@@ -264,12 +263,15 @@ def fig_density_vs_disagreement() -> None:
         p = summary.loc[csv_key, "p_value"] if csv_key in summary.index else float("nan")
         ax.set_title(f"10x native vs. {label}\n(p = {p:.1e})")
         ax.set_xlabel("Phenotypic log-density (Mellon)")
-        ax.legend(title="Disagree", labels=["Yes", "No"], fontsize=9)
 
     axes[0, 0].set_ylabel("Density")
     axes[1, 0].set_ylabel("Density")
     fig.suptitle("10x native phenotypic density (Mellon) vs. cell-type call disagreement")
-    fig.tight_layout()
+    fig.legend(handles=[
+        mpatches.Patch(color="#4C72B0", alpha=0.5, label="Agree"),
+        mpatches.Patch(color="#C44E52", alpha=0.5, label="Disagree"),
+    ], loc="lower center", ncols=2, fontsize=11, framealpha=0.9)
+    fig.tight_layout(rect=[0, 0.04, 1, 1])
     fig.savefig(FIGURES_DIR / "density_vs_disagreement.png", dpi=150)
     plt.close(fig)
 
@@ -323,10 +325,12 @@ def fig_local_morans_map() -> None:
         ax.set_ylabel("y (µm)")
         ax.set_aspect("equal")
         ax.invert_yaxis()
-        ax.legend(title="LISA", markerscale=2, fontsize=9)
 
     fig.suptitle("Local Moran's I: HH = disagreement hotspot, LL = agreement coldspot")
-    fig.tight_layout()
+    fig.legend(handles=[mpatches.Patch(color=color, label=cluster)
+                        for cluster, color in LISA_COLORS.items()],
+               title="LISA cluster", loc="lower center", ncols=4, fontsize=11, framealpha=0.9)
+    fig.tight_layout(rect=[0, 0.04, 1, 1])
     fig.savefig(FIGURES_DIR / "local_morans_map.png", dpi=150)
     plt.close(fig)
 
@@ -357,12 +361,15 @@ def fig_de_volcano() -> None:
         ax.axvline(0, color="black", linewidth=0.5)
         ax.set_xlabel("log fold change (disagree vs. agree)")
         ax.set_title(f"10x native vs. {label}")
-        ax.legend(fontsize=8)
 
     axes[0, 0].set_ylabel("-log10(adj. p)")
     axes[1, 0].set_ylabel("-log10(adj. p)")
     fig.suptitle("DE: disagree vs. agree cells (Wilcoxon, 10x native cells)")
-    fig.tight_layout()
+    fig.legend(handles=[
+        mpatches.Patch(color="#AAAAAA", label="n.s."),
+        mpatches.Patch(color="#C44E52", label="adj. p < 0.05"),
+    ], loc="lower center", ncols=2, fontsize=11, framealpha=0.9)
+    fig.tight_layout(rect=[0, 0.04, 1, 1])
     fig.savefig(FIGURES_DIR / "de_volcano.png", dpi=150)
     plt.close(fig)
 

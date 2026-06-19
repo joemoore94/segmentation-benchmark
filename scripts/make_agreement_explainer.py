@@ -120,7 +120,7 @@ def main() -> None:
         if len(sub):
             ax_ct.scatter(sub["centroid_x"], sub["centroid_y"],
                           c=color, s=2, alpha=0.5, rasterized=True)
-    ax_ct.set_title("A · Cell type (10x native)", fontweight="bold")
+    ax_ct.set_title("Cell type (10x native)", fontweight="bold")
     ax_ct.set_xlabel("x (µm)")
     ax_ct.set_ylabel("y (µm)")
     ax_ct.set_aspect("equal")
@@ -136,7 +136,7 @@ def main() -> None:
     ax_avg.set_xlim(0, 85)
     ax_avg.axvline(50, color="black", linewidth=0.8, linestyle="--", alpha=0.35)
     ax_avg.set_xlabel("Disagree rate (%)")
-    ax_avg.set_title("B · Average disagree rate by cell type\n(all methods)", fontweight="bold")
+    ax_avg.set_title("Average disagree rate by cell type\n(all methods)", fontweight="bold")
     ax_avg.tick_params(axis="y", labelsize=9)
     for val, ct in zip(avg_vals.values, ct_sorted):
         if val > 2:
@@ -161,7 +161,7 @@ def main() -> None:
                       c="#4C72B0", s=2, alpha=0.5, rasterized=True)
         ax_sp.scatter(dis["centroid_x"], dis["centroid_y"],
                       c="#C44E52", s=2, alpha=0.5, rasterized=True)
-        ax_sp.set_title(f"{letter} · {label} — spatial", fontweight="bold")
+        ax_sp.set_title(label, fontweight="bold")
         ax_sp.set_xlabel("x (µm)")
         ax_sp.set_ylabel("y (µm)")
         ax_sp.invert_yaxis()
@@ -181,25 +181,22 @@ def main() -> None:
         ax_bar.set_xlim(0, 85)
         ax_bar.axvline(50, color="black", linewidth=0.8, linestyle="--", alpha=0.35)
         ax_bar.set_xlabel("Disagree rate (%)")
-        ax_bar.set_title(f"{label} — by cell type", fontweight="bold")
+        ax_bar.set_title("Disagree rate by cell type", fontweight="bold")
         ax_bar.tick_params(axis="y", labelsize=9)
         for val, ct in zip(rates.values, ct_sorted):
             if val > 2:
                 ax_bar.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=7.5)
 
-        # Spatial legend only on first method row
-        if m == "cellpose":
-            legend_handles = [
-                mpatches.Patch(color="#CCCCCC", label="Unmatched"),
-                mpatches.Patch(color="#4C72B0", label="Agree"),
-                mpatches.Patch(color="#C44E52", label="Disagree"),
-            ]
-            ax_sp.legend(handles=legend_handles, fontsize=7, loc="upper right", markerscale=1.5)
-
     fig.suptitle(
-        "Cell type vs. agreement with 10x native (full 2mm × 2mm ROI)",
-        fontsize=13, fontweight="bold", y=0.999,
+        "Cell type vs. agreement with 10x native (full 2mm x 2mm ROI)",
+        fontsize=13, fontweight="bold",
     )
+    fig.legend(handles=[
+        mpatches.Patch(color="#CCCCCC", label="Unmatched"),
+        mpatches.Patch(color="#4C72B0", label="Agree"),
+        mpatches.Patch(color="#C44E52", label="Disagree"),
+    ], loc="lower center", ncols=3, fontsize=11, framealpha=0.9)
+    fig.subplots_adjust(top=0.965, bottom=0.04)
     fig.savefig(FIGURES / "agreement_explainer.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
     print("Saved agreement_explainer.png")

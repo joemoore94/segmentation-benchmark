@@ -62,8 +62,8 @@ All methods produce well-separated UMAP clusters. Leiden resolution yields: Cell
 ### Pairwise comparisons (all vs. 10x native)
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
-![Cell-type cluster correspondence](results/figures/cell_type_confusion.png)
 ![Disagreement mapped spatially](results/figures/disagreement_spatial_map.png)
+![Annotated cluster confusion matrices](results/figures/confusion_annotated.png)
 
 All comparisons use 10x native (Xenium Ranger's own segmentation) as the reference anchor.
 
