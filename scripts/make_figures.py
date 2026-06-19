@@ -30,7 +30,7 @@ FIGURES_DIR = Path("results/figures")
 # qv>=20 non-control transcripts in the full 2mm x 2mm ROI (see docs/dataset.md)
 TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
 
-sns.set_theme(style="whitegrid", context="talk")
+sns.set_theme(style="whitegrid", context="poster")
 
 
 METHOD_COLORS = {
@@ -172,7 +172,7 @@ def fig_expression_correlation() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 18), sharey=True)
+    fig, axes = plt.subplots(2, 3, figsize=(20, 11), sharey=True)
     for ax, (m, label, corr) in zip(axes.flatten(), pairs):
         median = corr["correlation"].median()
         sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=METHOD_COLORS[m])
@@ -183,7 +183,6 @@ def fig_expression_correlation() -> None:
 
     axes[0, 0].set_ylabel("Number of pairs")
     axes[1, 0].set_ylabel("Number of pairs")
-    axes[2, 0].set_ylabel("Number of pairs")
     fig.suptitle("Per-cell expression agreement vs. 10x native (matched cell pairs)")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "expression_correlation.png", dpi=150)
@@ -196,7 +195,7 @@ def fig_disagreement_spatial_map() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 20))
+    fig, axes = plt.subplots(2, 3, figsize=(20, 14))
     for ax, (label, df) in zip(axes.flatten(), pairs):
         sns.scatterplot(
             data=df, x="centroid_x", y="centroid_y",
@@ -227,7 +226,7 @@ def fig_cell_type_confusion() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(3, 2, figsize=(16, 22))
+    fig, axes = plt.subplots(2, 3, figsize=(22, 15))
     for ax, (m, label, confusion) in zip(axes.flatten(), pairs):
         sns.heatmap(confusion, annot=False, cmap="viridis", ax=ax)
         ax.set_xlabel(f"{label} Leiden cluster")
@@ -249,7 +248,7 @@ def fig_density_vs_disagreement() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 18), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 3, figsize=(20, 11), sharex=True, sharey=True)
     for ax, (m, label, df) in zip(axes.flatten(), pairs):
         df = df.copy()
         df["log_density"] = df["id_a"].map(log_density)
@@ -269,7 +268,6 @@ def fig_density_vs_disagreement() -> None:
 
     axes[0, 0].set_ylabel("Density")
     axes[1, 0].set_ylabel("Density")
-    axes[2, 0].set_ylabel("Density")
     fig.suptitle("10x native phenotypic density (Mellon) vs. cell-type call disagreement")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "density_vs_disagreement.png", dpi=150)
@@ -315,7 +313,7 @@ def fig_local_morans_map() -> None:
     ]
     LISA_COLORS = {"HH": "#C44E52", "LL": "#4C72B0", "HL": "#DD8452", "LH": "#CCB974"}
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 20))
+    fig, axes = plt.subplots(2, 3, figsize=(20, 14))
     for ax, (label, df) in zip(axes.flatten(), pairs):
         for cluster, color in LISA_COLORS.items():
             sub = df[df["lisa_cluster"] == cluster]
@@ -339,7 +337,7 @@ def fig_de_volcano() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 18), sharey=True)
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12), sharey=True)
     for ax, (m, label, df) in zip(axes.flatten(), pairs):
         sig = df["pvals_adj"] < 0.05
         ax.scatter(
@@ -363,7 +361,6 @@ def fig_de_volcano() -> None:
 
     axes[0, 0].set_ylabel("-log10(adj. p)")
     axes[1, 0].set_ylabel("-log10(adj. p)")
-    axes[2, 0].set_ylabel("-log10(adj. p)")
     fig.suptitle("DE: disagree vs. agree cells (Wilcoxon, 10x native cells)")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "de_volcano.png", dpi=150)
@@ -391,7 +388,7 @@ def fig_annotated_confusion() -> None:
     ]
     ten_x_clusters = sorted(cluster_to_ct.keys(), key=lambda c: (ct_order.index(cluster_to_ct[c]), int(c)))
 
-    fig, axes = plt.subplots(3, 2, figsize=(20, 32))
+    fig, axes = plt.subplots(2, 3, figsize=(28, 22))
 
     for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
         raw = pd.read_csv(TABLES_DIR / f"cell_type_confusion_10x_{method}.csv", index_col=0)
