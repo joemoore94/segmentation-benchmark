@@ -30,7 +30,7 @@ FIGURES_DIR = Path("results/figures")
 # qv>=20 non-control transcripts in the full 2mm x 2mm ROI (see docs/dataset.md)
 TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
 
-sns.set_theme(style="whitegrid", context="poster")
+sns.set_theme(style="whitegrid", context="talk")
 
 
 METHOD_COLORS = {
