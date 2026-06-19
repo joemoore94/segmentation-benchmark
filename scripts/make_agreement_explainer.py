@@ -4,8 +4,8 @@ Three-panel figure using 10x-native cell centroids (full 2mm × 2mm ROI):
   A) Cells coloured by annotated cell type.
   B) Same cells coloured by agreement (blue) or disagreement (red) against
      CellPose; unmatched 10x cells shown in gray.
-  C) Disagree rate (%) by cell type for CellPose — quantifies which types
-     drive the spatial pattern in panels A and B.
+  C) Disagree rate (%) by cell type for all six comparison methods —
+     quantifies which types drive the spatial pattern in panels A and B.
 
 Usage::
 
@@ -86,18 +86,14 @@ def main() -> None:
     disagree_indexed.index = disagree_indexed.index.astype(str)
     obs = obs.join(disagree_indexed, how="left")
 
-    # Panel C data — per-cell-type disagree rate for CellPose
+    # Panel C data — per-cell-type disagree rate, all methods
     ct_disagree = pd.read_csv(TABLES / "celltype_disagreement.csv")
-    cp_rates = (
-        ct_disagree[ct_disagree["comparison"] == "CellPose"]
-        .set_index("cell_type")["disagree_rate"]
-        .reindex(list(CELLTYPE_COLORS.keys()))
-        .dropna()
-        .sort_values(ascending=True)
-    )
+    method_order = ["CellPose", "StarDist", "Mesmer", "Voronoi (CP)", "Voronoi (M)", "Baysor"]
+    pivot = ct_disagree.pivot(index="cell_type", columns="comparison", values="disagree_rate")
+    pivot = pivot.reindex(index=list(CELLTYPE_COLORS.keys()), columns=method_order) * 100
 
-    fig, axes = plt.subplots(1, 3, figsize=(26, 9),
-                             gridspec_kw={"width_ratios": [2, 2, 1.5]})
+    fig, axes = plt.subplots(1, 3, figsize=(30, 9),
+                             gridspec_kw={"width_ratios": [2, 2, 2.2]})
 
     # Panel A — cell types
     for ct, color in CELLTYPE_COLORS.items():
@@ -134,13 +130,24 @@ def main() -> None:
     axes[1].invert_yaxis()
     axes[1].legend(fontsize=9, loc="upper right", markerscale=3)
 
-    # Panel C — disagree rate by cell type (CellPose)
-    bar_colors = [CELLTYPE_COLORS[ct] for ct in cp_rates.index]
-    axes[2].barh(cp_rates.index, cp_rates.values * 100, color=bar_colors, edgecolor="white")
-    axes[2].set_xlabel("Disagree rate (%)")
-    axes[2].set_title("C · Disagree rate\nby cell type (CellPose)", fontweight="bold")
-    axes[2].set_xlim(0, 100)
-    axes[2].axvline(50, color="black", linewidth=0.8, linestyle="--", alpha=0.4)
+    # Panel C — disagree rate heatmap, all methods × cell types
+    sns.heatmap(
+        pivot, ax=axes[2],
+        cmap="YlOrRd", vmin=0, vmax=80,
+        annot=True, fmt=".0f",
+        linewidths=0.5, linecolor="#dddddd",
+        cbar_kws={"label": "Disagree rate (%)"},
+        yticklabels=[
+            f"▌ {ct}" for ct in pivot.index
+        ],
+    )
+    for tick, ct in zip(axes[2].get_yticklabels(), pivot.index):
+        tick.set_color(CELLTYPE_COLORS.get(ct, "black"))
+    axes[2].set_title("C · Disagree rate (%) by cell type and method", fontweight="bold")
+    axes[2].set_xlabel("")
+    axes[2].set_ylabel("")
+    axes[2].tick_params(axis="x", rotation=35, labelsize=9)
+    axes[2].tick_params(axis="y", rotation=0, labelsize=9)
 
     fig.suptitle(
         "Cell type vs. agreement with CellPose (10x native, full 2mm × 2mm ROI)",
