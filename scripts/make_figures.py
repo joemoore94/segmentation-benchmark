@@ -108,7 +108,7 @@ def fig_cell_counts_and_sizes() -> None:
         color=[METHOD_COLORS[m] for m in methods],
     )
     axes[0].set_ylabel("Cell count (full 2mm × 2mm ROI)")
-    axes[0].set_title("Cell count")
+    axes[0].set_title("Cell count", fontweight="bold")
     axes[0].tick_params(axis="x", rotation=40)
     for label in axes[0].get_xticklabels():
         label.set_horizontalalignment("right")
@@ -135,7 +135,7 @@ def fig_cell_counts_and_sizes() -> None:
     axes[1].set_yticks([np.log10(v) for v in tick_vals])
     axes[1].set_yticklabels([str(v) for v in tick_vals])
     axes[1].set_ylabel("Transcripts per cell")
-    axes[1].set_title("Transcripts/cell distribution")
+    axes[1].set_title("Transcripts/cell distribution", fontweight="bold")
 
     cellpose_area_um2 = adata_cellpose.obs["area"] * PIXEL_SIZE**2
     stardist_area_um2 = adata_stardist.obs["area"] * PIXEL_SIZE**2
@@ -150,10 +150,10 @@ def fig_cell_counts_and_sizes() -> None:
     sns.histplot(tenx_nucleus_area_um2, bins=50, ax=axes[2],
                  color=METHOD_COLORS["10x_native"], label=METHOD_LABELS["10x_native"], alpha=0.4)
     axes[2].set_xlabel("Nucleus area (µm²)")
-    axes[2].set_title("Nuclear mask size (nuclear methods + 10x native)")
+    axes[2].set_title("Nuclear mask size (nuclear methods + 10x native)", fontweight="bold")
     axes[2].legend()
 
-    fig.suptitle("Cell count and QC: all methods (full 2mm × 2mm ROI)")
+    fig.suptitle("Cell count and QC: all methods (full 2mm × 2mm ROI)", fontsize=13, fontweight="bold")
     capture = counts.loc[methods, "transcript_capture_rate"]
     capture_str = ", ".join(f"{METHOD_LABELS[m]} {capture[m]:.0%}" for m in methods)
     fig.text(
@@ -176,14 +176,16 @@ def fig_expression_correlation() -> None:
     for ax, (m, label, corr) in zip(axes.flatten(), pairs):
         median = corr["correlation"].median()
         sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=METHOD_COLORS[m])
-        ax.axvline(median, color="black", linestyle="--", label=f"median = {median:.3f}")
+        ax.axvline(median, color="black", linestyle="--")
+        ax.text(0.04, 0.96, f"median = {median:.3f}", transform=ax.transAxes,
+                va="top", ha="left", fontsize=10,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8))
         ax.set_xlabel("Pearson correlation")
-        ax.set_title(f"10x native vs. {label}")
-        ax.legend(fontsize=9)
+        ax.set_title(f"10x native vs. {label}", fontweight="bold")
 
     axes[0, 0].set_ylabel("Number of pairs")
     axes[1, 0].set_ylabel("Number of pairs")
-    fig.suptitle("Per-cell expression agreement vs. 10x native (matched cell pairs)")
+    fig.suptitle("Per-cell expression agreement vs. 10x native (matched cell pairs)", fontsize=13, fontweight="bold")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "expression_correlation.png", dpi=150)
     plt.close(fig)
@@ -207,9 +209,9 @@ def fig_disagreement_spatial_map() -> None:
         ax.set_ylabel("y (µm)")
         ax.set_aspect("equal")
         ax.invert_yaxis()
-        ax.set_title(f"10x native vs. {label}")
+        ax.set_title(f"10x native vs. {label}", fontweight="bold")
 
-    fig.suptitle("Cell-type agreement vs. disagreement")
+    fig.suptitle("Cell-type agreement vs. disagreement", fontsize=13, fontweight="bold")
     fig.legend(handles=[
         mpatches.Patch(color="#4C72B0", label="Agree"),
         mpatches.Patch(color="#C44E52", label="Disagree"),
@@ -261,12 +263,15 @@ def fig_density_vs_disagreement() -> None:
         ax.axvline(medians[1.0], color="#C44E52", linestyle="--")
         csv_key = DENSITY_CSV_KEY[m]
         p = summary.loc[csv_key, "p_value"] if csv_key in summary.index else float("nan")
-        ax.set_title(f"10x native vs. {label}\n(p = {p:.1e})")
+        ax.set_title(f"10x native vs. {label}", fontweight="bold")
+        ax.text(0.04, 0.96, f"p = {p:.1e}", transform=ax.transAxes,
+                va="top", ha="left", fontsize=10,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8))
         ax.set_xlabel("Phenotypic log-density (Mellon)")
 
     axes[0, 0].set_ylabel("Density")
     axes[1, 0].set_ylabel("Density")
-    fig.suptitle("10x native phenotypic density (Mellon) vs. cell-type call disagreement")
+    fig.suptitle("10x native phenotypic density (Mellon) vs. cell-type call disagreement", fontsize=13, fontweight="bold")
     fig.legend(handles=[
         mpatches.Patch(color="#4C72B0", alpha=0.5, label="Agree"),
         mpatches.Patch(color="#C44E52", alpha=0.5, label="Disagree"),
@@ -294,7 +299,7 @@ def fig_pca_umap() -> None:
             data=emb, x="UMAP1", y="UMAP2", hue="leiden", palette=palette,
             s=12, alpha=0.6, ax=ax, legend=False,
         )
-        ax.set_title(f"{METHOD_LABELS[method]} ({n_clusters} clusters)")
+        ax.set_title(f"{METHOD_LABELS[method]} ({n_clusters} clusters)", fontweight="bold")
         ax.set_xlabel("UMAP1")
         ax.set_ylabel("UMAP2")
 
@@ -302,7 +307,7 @@ def fig_pca_umap() -> None:
     for ax in axes_flat[len(methods):]:
         ax.set_visible(False)
 
-    fig.suptitle("Per-method Leiden clustering (UMAP)")
+    fig.suptitle("Per-method Leiden clustering (UMAP)", fontsize=13, fontweight="bold")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "pca_umap_clusters.png", dpi=150)
     plt.close(fig)
@@ -320,13 +325,13 @@ def fig_local_morans_map() -> None:
         for cluster, color in LISA_COLORS.items():
             sub = df[df["lisa_cluster"] == cluster]
             ax.scatter(sub["centroid_x"], sub["centroid_y"], c=color, s=4, alpha=0.6, label=cluster)
-        ax.set_title(f"10x native vs. {label}")
+        ax.set_title(f"10x native vs. {label}", fontweight="bold")
         ax.set_xlabel("x (µm)")
         ax.set_ylabel("y (µm)")
         ax.set_aspect("equal")
         ax.invert_yaxis()
 
-    fig.suptitle("Local Moran's I: HH = disagreement hotspot, LL = agreement coldspot")
+    fig.suptitle("Local Moran's I: HH = disagreement hotspot, LL = agreement coldspot", fontsize=13, fontweight="bold")
     fig.legend(handles=[mpatches.Patch(color=color, label=cluster)
                         for cluster, color in LISA_COLORS.items()],
                title="LISA cluster", loc="lower center", ncols=4, fontsize=11, framealpha=0.9)
@@ -356,15 +361,15 @@ def fig_de_volcano() -> None:
             ax.annotate(
                 row["names"],
                 xy=(row["logfoldchanges"], -np.log10(row["pvals_adj"] + 1e-300)),
-                fontsize=7, ha="left",
+                fontsize=9, ha="left",
             )
         ax.axvline(0, color="black", linewidth=0.5)
         ax.set_xlabel("log fold change (disagree vs. agree)")
-        ax.set_title(f"10x native vs. {label}")
+        ax.set_title(f"10x native vs. {label}", fontweight="bold")
 
     axes[0, 0].set_ylabel("-log10(adj. p)")
     axes[1, 0].set_ylabel("-log10(adj. p)")
-    fig.suptitle("DE: disagree vs. agree cells (Wilcoxon, 10x native cells)")
+    fig.suptitle("DE: disagree vs. agree cells (Wilcoxon, 10x native cells)", fontsize=13, fontweight="bold")
     fig.legend(handles=[
         mpatches.Patch(color="#AAAAAA", label="n.s."),
         mpatches.Patch(color="#C44E52", label="adj. p < 0.05"),
@@ -375,12 +380,14 @@ def fig_de_volcano() -> None:
 
 
 def fig_annotated_confusion() -> None:
-    """Cell-type-level confusion matrices (10×10) for each comparison method.
+    """Confusion matrices: 10x native cell types (rows) × raw comparison clusters (columns).
 
-    Clusters are aggregated to cell types: 10x native rows by their Leiden
-    annotation; comparison columns by many-to-one (argmax) assignment to a 10x
-    cluster and therefore its cell type. Matrix is row-normalised and annotated
-    with integer percentages so every cell is directly readable.
+    Rows are aggregated from 15 10x Leiden clusters to 10 cell types using the
+    manual annotation. Columns are raw comparison clusters, sorted by their
+    many-to-one (argmax) cell type assignment so same-type clusters appear
+    together — creating a block-diagonal structure that reveals how many clusters
+    each method allocates per cell type and whether any straddle boundaries.
+    Matrix is row-normalised; integer percentage annotations in each cell.
     """
     annotations = pd.read_csv(TABLES_DIR / "cluster_annotations.csv", dtype={"leiden_cluster": str})
     cluster_to_ct = dict(zip(annotations["leiden_cluster"], annotations["cell_type"]))
@@ -390,45 +397,40 @@ def fig_annotated_confusion() -> None:
         "Endothelial", "Adipocytes", "T cells", "B cells",
         "Plasma cells", "Macrophages",
     ]
-
-    # Short display names for the axes to save space.
-    ct_short = {
-        "Luminal epithelial": "Luminal\nEpith.",
-        "Myoepithelial":      "Myoepith.",
-        "CAFs":               "CAFs",
-        "Smooth muscle":      "Smooth\nMuscle",
-        "Endothelial":        "Endoth.",
-        "Adipocytes":         "Adipo.",
-        "T cells":            "T cells",
-        "B cells":            "B cells",
-        "Plasma cells":       "Plasma",
-        "Macrophages":        "Macro.",
+    ct_abbrev = {
+        "Luminal epithelial": "Lum", "Myoepithelial": "Myo", "CAFs": "CAF",
+        "Smooth muscle": "SM",  "Endothelial": "End",  "Adipocytes": "Adi",
+        "T cells": "T",         "B cells": "B",        "Plasma cells": "Pla",
+        "Macrophages": "Mac",
     }
-    row_labels = [ct_short[ct] for ct in ct_order]
+    row_labels = [ct_abbrev[ct] for ct in ct_order]
 
-    fig, axes = plt.subplots(2, 3, figsize=(26, 18))
+    fig, axes = plt.subplots(2, 3, figsize=(34, 22))
 
     for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
         raw = pd.read_csv(TABLES_DIR / f"cell_type_confusion_10x_{method}.csv", index_col=0)
         raw.index = raw.index.astype(str)
         raw.columns = raw.columns.astype(str)
 
-        # Many-to-one assignment: each comp cluster → argmax 10x cluster → cell type.
         mat = raw.to_numpy().astype(float)
+
+        # Many-to-one: each comparison cluster → argmax 10x cluster → cell type.
         comp_col_ct = {
             raw.columns[j]: cluster_to_ct[raw.index[np.argmax(mat[:, j])]]
             for j in range(mat.shape[1])
         }
 
-        # Aggregate rows by 10x cell type, columns by comp cell type.
-        raw_indexed = raw.copy()
-        raw_indexed.index = [cluster_to_ct[r] for r in raw.index]
-        raw_indexed.columns = [comp_col_ct[c] for c in raw.columns]
-        ct_mat = raw_indexed.groupby(level=0).sum().T.groupby(level=0).sum().T
+        # Sort comparison columns by ct_order then cluster id.
+        comp_sorted = sorted(
+            raw.columns,
+            key=lambda c: (ct_order.index(comp_col_ct[c]), int(c)),
+        )
+        raw = raw[comp_sorted]
 
-        # Reindex to consistent ct_order, filling missing with 0.
-        present_cts = [ct for ct in ct_order if ct in ct_mat.index or ct in ct_mat.columns]
-        ct_mat = ct_mat.reindex(index=ct_order, columns=ct_order, fill_value=0)
+        # Aggregate rows: 15 10x clusters → 10 cell types.
+        raw_ct = raw.copy()
+        raw_ct.index = [cluster_to_ct[r] for r in raw.index]
+        ct_mat = raw_ct.groupby(level=0).sum().reindex(ct_order, fill_value=0)
 
         # Row-normalise.
         row_sums = ct_mat.sum(axis=1).replace(0, np.nan)
@@ -437,25 +439,40 @@ def fig_annotated_confusion() -> None:
         annot = (norm * 100).round(0).astype(int).astype(str)
         annot[annot == "0"] = ""
 
+        # Column labels: abbreviated cell type + cluster id, e.g. "Lum·3".
+        col_labels = [f"{ct_abbrev[comp_col_ct[c]]}·{c}" for c in comp_sorted]
+
         sns.heatmap(
             norm * 100, ax=ax,
             cmap="Blues", vmin=0, vmax=100,
-            annot=annot, fmt="", annot_kws={"size": 9},
-            xticklabels=row_labels, yticklabels=row_labels,
-            linewidths=0.5, linecolor="#dddddd",
+            annot=annot, fmt="", annot_kws={"size": 8},
+            xticklabels=col_labels, yticklabels=row_labels,
+            linewidths=0.4, linecolor="#dddddd",
             cbar_kws={"label": "% of 10x cell type"},
         )
 
+        # Draw thicker vertical lines between cell-type groups on the columns.
+        boundaries = []
+        prev_ct = None
+        for i, c in enumerate(comp_sorted):
+            if comp_col_ct[c] != prev_ct:
+                if i > 0:
+                    boundaries.append(i)
+                prev_ct = comp_col_ct[c]
+        for b in boundaries:
+            ax.axvline(b, color="black", linewidth=1.5)
+
         ax.set_title(label, fontweight="bold")
-        ax.set_xlabel(f"{label} cell type", fontsize=10)
-        ax.set_ylabel("10x native cell type", fontsize=10)
-        ax.tick_params(axis="x", labelsize=9, rotation=30)
+        ax.set_xlabel(f"{label} clusters (grouped by assigned cell type)", fontsize=9)
+        ax.set_ylabel("10x native cell type", fontsize=9)
+        ax.tick_params(axis="x", labelsize=8, rotation=45)
         ax.tick_params(axis="y", labelsize=9, rotation=0)
 
     fig.suptitle(
-        "Cell-type confusion matrices (row-normalised)\n"
-        "Values show % of each 10x native cell type matched to each comparison cell type",
-        fontsize=13, fontweight="bold",
+        "Cluster confusion matrices (row-normalised)  ·  "
+        "Columns = comparison clusters sorted by cell type  ·  "
+        "Values = % of 10x native cell type",
+        fontsize=12, fontweight="bold",
     )
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "confusion_annotated.png", dpi=150)
@@ -467,7 +484,6 @@ def main() -> None:
     fig_cell_counts_and_sizes()
     fig_expression_correlation()
     fig_disagreement_spatial_map()
-    fig_cell_type_confusion()
     fig_density_vs_disagreement()
     fig_pca_umap()
     lisa_files = [f"local_morans_10x_{m}.csv" for m, _ in COMPARISON_ORDER]

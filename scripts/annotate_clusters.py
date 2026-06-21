@@ -103,7 +103,8 @@ def save_annotation_table(adata: ad.AnnData) -> None:
 
 
 def fig_umap_annotated(adata: ad.AnnData) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    sns.set_theme(style="whitegrid", context="poster")
+    fig, axes = plt.subplots(1, 2, figsize=(22, 9))
 
     # Left: UMAP by cell type (annotated)
     cell_types = list(CELLTYPE_COLORS.keys())
@@ -116,8 +117,8 @@ def fig_umap_annotated(adata: ad.AnnData) -> None:
         )
     axes[0].set_xlabel("UMAP1")
     axes[0].set_ylabel("UMAP2")
-    axes[0].set_title("10x native: cell type annotation")
-    axes[0].legend(markerscale=3, fontsize=9, loc="best")
+    axes[0].set_title("Cell type annotation", fontweight="bold")
+    axes[0].legend(markerscale=3, loc="best")
 
     # Right: UMAP by Leiden cluster number (to cross-reference)
     n_clusters = adata.obs["leiden"].nunique()
@@ -131,10 +132,10 @@ def fig_umap_annotated(adata: ad.AnnData) -> None:
         )
     axes[1].set_xlabel("UMAP1")
     axes[1].set_ylabel("UMAP2")
-    axes[1].set_title("10x native: Leiden cluster IDs")
-    axes[1].legend(markerscale=3, fontsize=8, ncol=2, loc="best", title="Cluster")
+    axes[1].set_title("Leiden cluster IDs", fontweight="bold")
+    axes[1].legend(markerscale=3, ncol=2, loc="best", title="Cluster")
 
-    fig.suptitle("10x native — 23,629 cells, 2mm × 2mm ROI")
+    fig.suptitle("10x native — 23,629 cells, 2mm × 2mm ROI", fontsize=13, fontweight="bold")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "umap_annotated.png", dpi=150)
     plt.close(fig)
@@ -171,6 +172,7 @@ def build_celltype_disagreement(adata: ad.AnnData) -> pd.DataFrame:
 
 
 def fig_celltype_disagreement(df: pd.DataFrame) -> None:
+    sns.set_theme(style="whitegrid", context="poster")
     comparisons = [label for _, label in COMPARISONS]
     cell_types = list(CELLTYPE_COLORS.keys())
 
@@ -178,7 +180,7 @@ def fig_celltype_disagreement(df: pd.DataFrame) -> None:
     pivot = df.pivot(index="cell_type", columns="comparison", values="disagree_rate")
     pivot = pivot.reindex(index=cell_types, columns=comparisons)
 
-    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(26, 10))
 
     # Left: heatmap of disagree rates
     sns.heatmap(
@@ -188,7 +190,7 @@ def fig_celltype_disagreement(df: pd.DataFrame) -> None:
         cbar_kws={"label": "Disagreement rate (%)"},
         vmin=0, vmax=80,
     )
-    axes[0].set_title("Disagreement rate (%) by cell type and method")
+    axes[0].set_title("Disagreement rate (%) by cell type and method", fontweight="bold")
     axes[0].set_xlabel("")
     axes[0].set_ylabel("")
     axes[0].tick_params(axis="x", rotation=30)
@@ -204,11 +206,11 @@ def fig_celltype_disagreement(df: pd.DataFrame) -> None:
     axes[1].set_xticks(x + width * (len(comparisons) - 1) / 2)
     axes[1].set_xticklabels(cell_types, rotation=35, ha="right")
     axes[1].set_ylabel("Disagreement rate (%)")
-    axes[1].set_title("Disagreement rate by cell type and method")
-    axes[1].legend(fontsize=9)
+    axes[1].set_title("Disagreement rate by cell type and method", fontweight="bold")
+    axes[1].legend()
     axes[1].set_ylim(0, 85)
 
-    fig.suptitle("Which cell types drive method disagreement with 10x native?")
+    fig.suptitle("Which cell types drive method disagreement with 10x native?", fontsize=13, fontweight="bold")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "celltype_disagreement.png", dpi=150)
     plt.close(fig)
