@@ -375,86 +375,87 @@ def fig_de_volcano() -> None:
 
 
 def fig_annotated_confusion() -> None:
-    """Confusion matrix with annotated cell type labels on both axes.
+    """Cell-type-level confusion matrices (10×10) for each comparison method.
 
-    Rows = 10x native clusters, labelled with cell type.
-    Columns = comparison method clusters, labelled with the 10x cluster they
-    were matched to (via Hungarian algorithm) and that cluster's cell type.
-    Hungarian-matched pairs are outlined with a white border so the one-to-one
-    alignment is immediately visible. Matrix is row-normalised (proportion of
-    each 10x cluster's matched pairs that land in each comparison cluster).
+    Clusters are aggregated to cell types: 10x native rows by their Leiden
+    annotation; comparison columns by many-to-one (argmax) assignment to a 10x
+    cluster and therefore its cell type. Matrix is row-normalised and annotated
+    with integer percentages so every cell is directly readable.
     """
     annotations = pd.read_csv(TABLES_DIR / "cluster_annotations.csv", dtype={"leiden_cluster": str})
     cluster_to_ct = dict(zip(annotations["leiden_cluster"], annotations["cell_type"]))
 
-    # Sort 10x clusters by cell type then cluster id for a clean block structure.
     ct_order = [
         "Luminal epithelial", "Myoepithelial", "CAFs", "Smooth muscle",
         "Endothelial", "Adipocytes", "T cells", "B cells",
         "Plasma cells", "Macrophages",
     ]
-    ten_x_clusters = sorted(cluster_to_ct.keys(), key=lambda c: (ct_order.index(cluster_to_ct[c]), int(c)))
 
-    fig, axes = plt.subplots(2, 3, figsize=(28, 22))
+    # Short display names for the axes to save space.
+    ct_short = {
+        "Luminal epithelial": "Luminal\nEpith.",
+        "Myoepithelial":      "Myoepith.",
+        "CAFs":               "CAFs",
+        "Smooth muscle":      "Smooth\nMuscle",
+        "Endothelial":        "Endoth.",
+        "Adipocytes":         "Adipo.",
+        "T cells":            "T cells",
+        "B cells":            "B cells",
+        "Plasma cells":       "Plasma",
+        "Macrophages":        "Macro.",
+    }
+    row_labels = [ct_short[ct] for ct in ct_order]
+
+    fig, axes = plt.subplots(2, 3, figsize=(26, 18))
 
     for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
         raw = pd.read_csv(TABLES_DIR / f"cell_type_confusion_10x_{method}.csv", index_col=0)
         raw.index = raw.index.astype(str)
         raw.columns = raw.columns.astype(str)
 
-        # Recompute Hungarian assignment from the raw (pre-alignment) confusion matrix.
+        # Many-to-one assignment: each comp cluster → argmax 10x cluster → cell type.
         mat = raw.to_numpy().astype(float)
-        row_ind, col_ind = linear_sum_assignment(-mat)
-        # Map: comparison cluster (col name) -> matched 10x cluster (row name)
-        comp_cols = raw.columns.tolist()
-        ten_x_rows = raw.index.tolist()
-        match_map = {comp_cols[c]: ten_x_rows[r] for r, c in zip(row_ind, col_ind)}
+        comp_col_ct = {
+            raw.columns[j]: cluster_to_ct[raw.index[np.argmax(mat[:, j])]]
+            for j in range(mat.shape[1])
+        }
 
-        # Reindex rows to sorted 10x cluster order, keeping only rows present.
-        present_rows = [c for c in ten_x_clusters if c in raw.index]
-        raw = raw.reindex(index=present_rows)
+        # Aggregate rows by 10x cell type, columns by comp cell type.
+        raw_indexed = raw.copy()
+        raw_indexed.index = [cluster_to_ct[r] for r in raw.index]
+        raw_indexed.columns = [comp_col_ct[c] for c in raw.columns]
+        ct_mat = raw_indexed.groupby(level=0).sum().T.groupby(level=0).sum().T
 
-        # Row-normalise: fraction of each 10x cluster's pairs going to each comp cluster.
-        row_sums = raw.sum(axis=1).replace(0, np.nan)
-        norm = raw.div(row_sums, axis=0).fillna(0)
+        # Reindex to consistent ct_order, filling missing with 0.
+        present_cts = [ct for ct in ct_order if ct in ct_mat.index or ct in ct_mat.columns]
+        ct_mat = ct_mat.reindex(index=ct_order, columns=ct_order, fill_value=0)
 
-        # Build axis labels.
-        row_labels = [f"{c} · {cluster_to_ct[c]}" for c in present_rows]
-        col_labels = []
-        for cc in norm.columns:
-            matched_10x = match_map.get(cc, None)
-            if matched_10x is not None:
-                col_labels.append(f"{cc}→{cluster_to_ct[matched_10x]}")
-            else:
-                col_labels.append(f"{cc}·unmatched")
+        # Row-normalise.
+        row_sums = ct_mat.sum(axis=1).replace(0, np.nan)
+        norm = ct_mat.div(row_sums, axis=0).fillna(0)
+
+        annot = (norm * 100).round(0).astype(int).astype(str)
+        annot[annot == "0"] = ""
 
         sns.heatmap(
-            norm, ax=ax, cmap="Blues", vmin=0, vmax=1,
-            xticklabels=col_labels, yticklabels=row_labels,
-            linewidths=0.3, linecolor="#cccccc",
-            cbar_kws={"label": "Row proportion"},
+            norm * 100, ax=ax,
+            cmap="Blues", vmin=0, vmax=100,
+            annot=annot, fmt="", annot_kws={"size": 9},
+            xticklabels=row_labels, yticklabels=row_labels,
+            linewidths=0.5, linecolor="#dddddd",
+            cbar_kws={"label": "% of 10x cell type"},
         )
 
-        # Outline the Hungarian-matched cell in each row with a white rectangle.
-        for row_pos, ten_x_c in enumerate(present_rows):
-            matched_comp = next((cc for cc, tx in match_map.items() if tx == ten_x_c), None)
-            if matched_comp is not None and matched_comp in norm.columns:
-                col_pos = norm.columns.tolist().index(matched_comp)
-                ax.add_patch(plt.Rectangle(
-                    (col_pos, row_pos), 1, 1,
-                    fill=False, edgecolor="red", lw=2, clip_on=False,
-                ))
-
-        ax.set_title(f"10x native vs. {label}", fontsize=11)
-        ax.set_xlabel(f"{label} cluster → matched cell type", fontsize=9)
-        ax.set_ylabel("10x native cluster · cell type", fontsize=9)
-        ax.tick_params(axis="x", labelsize=7, rotation=45)
-        ax.tick_params(axis="y", labelsize=7)
+        ax.set_title(label, fontweight="bold")
+        ax.set_xlabel(f"{label} cell type", fontsize=10)
+        ax.set_ylabel("10x native cell type", fontsize=10)
+        ax.tick_params(axis="x", labelsize=9, rotation=30)
+        ax.tick_params(axis="y", labelsize=9, rotation=0)
 
     fig.suptitle(
-        "Cluster confusion matrices (row-normalised)\n"
-        "Red border = Hungarian-matched pair  ·  value = fraction of 10x cluster's cells",
-        fontsize=12,
+        "Cell-type confusion matrices (row-normalised)\n"
+        "Values show % of each 10x native cell type matched to each comparison cell type",
+        fontsize=13, fontweight="bold",
     )
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "confusion_annotated.png", dpi=150)
