@@ -6,9 +6,10 @@ nuclear-only segmentation:
   CellPose nuclear  ──(+cytoplasm)──▶  Voronoi (CP)  ──(+nuclei)──▶  Voronoi (M)
        0.547                                0.630                          0.686
 
-Left panel: slope chart of the three-step path (ARI on Y axis).
-Right panel: all three key metrics (ARI, disagree rate, transcript capture)
-             at each step in a grouped bar chart.
+Left panel: horizontal bar chart of all methods' ARI, with bracketed gain
+            annotations showing the decomposition path.
+Right panel: ARI, agreement rate, and transcript capture for the three
+             decomposition steps.
 
 Usage::
 
@@ -22,100 +23,88 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
-import pandas as pd
 import seaborn as sns
 
-TABLES = Path("results/tables")
 FIGURES = Path("results/figures")
 
-# The three steps in the decomposition path.
-STEPS = [
-    {
-        "label":    "CellPose\nNuclear",
-        "ari":      0.547,
-        "disagree": 0.308,
-        "capture":  0.354,
-        "color":    "#4C72B0",
-        "short":    "CP Nuclear",
-    },
-    {
-        "label":    "Voronoi\n(CellPose)",
-        "ari":      0.630,
-        "disagree": 0.219,
-        "capture":  1.000,
-        "color":    "#17BECF",
-        "short":    "Voronoi (CP)",
-    },
-    {
-        "label":    "Voronoi\n(Mesmer)",
-        "ari":      0.686,
-        "disagree": 0.188,
-        "capture":  1.000,
-        "color":    "#D62728",
-        "short":    "Voronoi (M)",
-    },
+# All methods sorted by ARI (bottom to top in a horizontal bar chart).
+ALL_METHODS = [
+    {"label": "Baysor",        "ari": 0.305, "color": "#DD8452", "family": "Transcript-density"},
+    {"label": "StarDist",      "ari": 0.545, "color": "#8172B2", "family": "Nuclear"},
+    {"label": "CellPose",      "ari": 0.547, "color": "#4C72B0", "family": "Nuclear"},
+    {"label": "Mesmer",        "ari": 0.557, "color": "#D62728", "family": "Nuclear"},
+    {"label": "Voronoi (CP)",  "ari": 0.630, "color": "#17BECF", "family": "Voronoi"},
+    {"label": "Voronoi (M)",   "ari": 0.686, "color": "#BCBD22", "family": "Voronoi"},
 ]
 
-# Context: other methods shown as reference dots on the slope chart.
-OTHER = [
-    {"label": "StarDist\nNuclear", "ari": 0.545, "color": "#8172B2"},
-    {"label": "Mesmer\nNuclear",   "ari": 0.557, "color": "#C44E52"},
-    {"label": "Baysor",            "ari": 0.305, "color": "#DD8452"},
-    {"label": "10x native\n(ref)", "ari": 1.000, "color": "#55A868"},
+# The three decomposition steps (subset of ALL_METHODS).
+STEPS = [
+    {"short": "CP Nuclear",   "ari": 0.547, "disagree": 0.308, "capture": 0.354, "color": "#4C72B0"},
+    {"short": "Voronoi (CP)", "ari": 0.630, "disagree": 0.219, "capture": 1.000, "color": "#17BECF"},
+    {"short": "Voronoi (M)",  "ari": 0.686, "disagree": 0.188, "capture": 1.000, "color": "#D62728"},
 ]
+
+# Y-position indices in ALL_METHODS for the decomposition path.
+PATH_INDICES = {m["label"]: i for i, m in enumerate(ALL_METHODS)}
+CP_IDX       = PATH_INDICES["CellPose"]
+VCP_IDX      = PATH_INDICES["Voronoi (CP)"]
+VM_IDX       = PATH_INDICES["Voronoi (M)"]
+
+
+def bracket(ax, y0, y1, x, label, color="#444444", fontsize=10):
+    """Draw a right-side bracket from y0 to y1 at x, labelled with `label`."""
+    pad = 0.008
+    ax.annotate("", xy=(x + pad, y1), xytext=(x + pad, y0),
+                arrowprops=dict(arrowstyle="<->", color=color, lw=1.8))
+    ax.text(x + pad + 0.012, (y0 + y1) / 2, label,
+            va="center", ha="left", fontsize=fontsize,
+            color=color, fontweight="bold")
 
 
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     sns.set_theme(style="whitegrid", context="poster")
 
-    fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(20, 9),
-                                             gridspec_kw={"width_ratios": [1.1, 1]})
+    fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(22, 9),
+                                             gridspec_kw={"width_ratios": [1.2, 1]})
 
-    # ---------------------------------------------------------------- Left: slope / path chart
-    xs = [0, 1, 2]
-    aris = [s["ari"] for s in STEPS]
-    colors = [s["color"] for s in STEPS]
+    # ---------------------------------------------------------------- Left: all-methods ARI bar chart
+    labels  = [m["label"] for m in ALL_METHODS]
+    aris    = [m["ari"]   for m in ALL_METHODS]
+    colors  = [m["color"] for m in ALL_METHODS]
+    ys      = np.arange(len(ALL_METHODS))
 
-    # Reference method dots at x=-0.5 (not on the path)
-    for other in OTHER:
-        ax_left.plot(-0.5, other["ari"], "D", color=other["color"], ms=10, zorder=3)
-        ax_left.text(-0.42, other["ari"], other["label"],
-                     va="center", ha="left", fontsize=9, color=other["color"])
+    bars = ax_left.barh(ys, aris, color=colors, height=0.6, edgecolor="white", zorder=3)
 
-    # Path line
-    ax_left.plot(xs, aris, "-", color="#444444", linewidth=2.5, zorder=2)
+    # Value labels at the end of each bar
+    for y, ari, m in zip(ys, aris, ALL_METHODS):
+        ax_left.text(ari + 0.005, y, f"{ari:.3f}",
+                     va="center", ha="left", fontsize=10, fontweight="bold",
+                     color=m["color"])
 
-    # Step nodes
-    for x, step in zip(xs, STEPS):
-        ax_left.plot(x, step["ari"], "o", color=step["color"], ms=18, zorder=4,
-                     markeredgecolor="white", markeredgewidth=2)
-        ax_left.text(x, step["ari"] - 0.035, f"ARI {step['ari']:.3f}",
-                     ha="center", va="top", fontsize=10, fontweight="bold")
-        ax_left.text(x, step["ari"] + 0.025, step["label"],
-                     ha="center", va="bottom", fontsize=10)
+    # Highlight decomposition path bars with a thicker border
+    for idx in [CP_IDX, VCP_IDX, VM_IDX]:
+        bar = bars[idx]
+        bar.set_linewidth(2.5)
+        bar.set_edgecolor("#333333")
 
-    # Gain annotations on the arrows
-    gains = [
-        (0.5, (aris[0] + aris[1]) / 2, "+cytoplasmic\ncoverage", f"+{aris[1]-aris[0]:.3f} ARI"),
-        (1.5, (aris[1] + aris[2]) / 2, "+better\nnuclei", f"+{aris[2]-aris[1]:.3f} ARI"),
-    ]
-    for gx, gy, label, delta in gains:
-        ax_left.annotate(
-            f"{label}\n{delta}",
-            xy=(gx, gy), ha="center", va="center", fontsize=9,
-            bbox=dict(boxstyle="round,pad=0.3", fc="lightyellow", ec="#bbbb88", alpha=0.95),
-        )
+    # Gain brackets to the right of the bars
+    x_bracket = 0.72
+    bracket(ax_left, CP_IDX, VCP_IDX, x_bracket,
+            f"+{aris[VCP_IDX] - aris[CP_IDX]:.3f}\n+cytoplasmic\ncoverage")
+    bracket(ax_left, VCP_IDX, VM_IDX, x_bracket,
+            f"+{aris[VM_IDX] - aris[VCP_IDX]:.3f}\n+better nuclei")
 
-    ax_left.set_xlim(-0.85, 2.55)
-    ax_left.set_ylim(0.22, 1.08)
-    ax_left.set_xticks(xs)
-    ax_left.set_xticklabels(["Step 1", "Step 2", "Step 3"], fontsize=11)
-    ax_left.set_ylabel("ARI vs. 10x native")
-    ax_left.set_title("ARI decomposition: what drives\nagreement with 10x native?",
-                       fontweight="bold")
-    ax_left.axhline(1.0, color="#55A868", linewidth=1, linestyle="--", alpha=0.5)
-    ax_left.axvline(-0.25, color="#cccccc", linewidth=1, linestyle=":")
+    ax_left.set_yticks(ys)
+    ax_left.set_yticklabels(labels, fontsize=11)
+    ax_left.set_xlabel("ARI vs. 10x native")
+    ax_left.set_xlim(0, 0.88)
+    ax_left.set_title("ARI vs. 10x native — all methods", fontweight="bold")
+
+    # Family legend
+    family_colors = {"Nuclear": "#4C72B0", "Voronoi": "#17BECF", "Transcript-density": "#DD8452"}
+    handles = [mpatches.Patch(color=c, label=f) for f, c in family_colors.items()]
+    ax_left.legend(handles=handles, fontsize=10, loc="lower right")
 
     # ---------------------------------------------------------------- Right: grouped bar chart
     metrics = ["ARI", "Agreement rate\n(1 − disagree)", "Transcript\ncapture"]
