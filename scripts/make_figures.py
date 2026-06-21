@@ -380,12 +380,13 @@ def fig_de_volcano() -> None:
 
 
 def fig_annotated_confusion() -> None:
-    """10×10 cell-type confusion matrices: 10x native (rows) vs. each method (columns).
+    """10×10 cell-type confusion matrices built directly from the disagreement tables.
 
-    Both axes are collapsed to the 10 annotated cell types. Comparison method
-    clusters are mapped to cell types by majority vote from the raw confusion
-    table, then summed. The result is a row-normalised 10×10 matrix where the
-    diagonal = agreement rate per cell type and off-diagonal = misassignment.
+    The disagreement table already contains label_a (10x native Leiden cluster)
+    and label_b (comparison method cluster, Hungarian-aligned to 10x cluster IDs).
+    Both map to the same 10 cell types via CLUSTER_ANNOTATIONS, giving a confusion
+    matrix that is exactly consistent with the reported disagreement rates.
+    Row-normalised; no cell annotations — colour only.
     """
     annotations = pd.read_csv(TABLES_DIR / "cluster_annotations.csv", dtype={"leiden_cluster": str})
     cluster_to_ct = dict(zip(annotations["leiden_cluster"], annotations["cell_type"]))
@@ -395,71 +396,42 @@ def fig_annotated_confusion() -> None:
         "Endothelial", "Adipocytes", "T cells", "B cells",
         "Plasma cells", "Macrophages",
     ]
-    # Short labels for tick marks
-    ct_abbrev = {
-        "Luminal epithelial": "Luminal\nEpithelial",
-        "Myoepithelial":      "Myoepithelial",
-        "CAFs":               "CAFs",
-        "Smooth muscle":      "Smooth\nMuscle",
-        "Endothelial":        "Endothelial",
-        "Adipocytes":         "Adipocytes",
-        "T cells":            "T cells",
-        "B cells":            "B cells",
-        "Plasma cells":       "Plasma\nCells",
-        "Macrophages":        "Macrophages",
-    }
 
-    fig, axes = plt.subplots(2, 3, figsize=(28, 18))
+    fig, axes = plt.subplots(2, 3, figsize=(26, 17))
 
     for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
-        raw = pd.read_csv(TABLES_DIR / f"cell_type_confusion_10x_{method}.csv", index_col=0)
-        raw.index = raw.index.astype(str)
-        raw.columns = raw.columns.astype(str)
+        dtable = pd.read_csv(TABLES_DIR / f"disagreement_table_10x_{method}.csv",
+                             dtype={"label_a": str, "label_b": str})
 
-        # Step 1: aggregate 10x rows (15 leiden clusters → 10 cell types)
-        raw.index = [cluster_to_ct.get(r, r) for r in raw.index]
-        ct_rows = raw.groupby(level=0).sum()  # shape: (≤10) × K
+        dtable["ct_a"] = dtable["label_a"].map(cluster_to_ct)
+        dtable["ct_b"] = dtable["label_b"].map(cluster_to_ct)
+        dtable = dtable.dropna(subset=["ct_a", "ct_b"])
 
-        # Step 2: assign each comparison column a cell type by majority vote
-        comp_col_ct = {col: ct_rows[col].idxmax() for col in ct_rows.columns}
+        counts = pd.crosstab(dtable["ct_a"], dtable["ct_b"])
+        counts = counts.reindex(index=ct_order, columns=ct_order, fill_value=0)
 
-        # Step 3: collapse comparison columns to cell types by summing
-        ct_rows.columns = [comp_col_ct[c] for c in ct_rows.columns]
-        ct_10x10 = ct_rows.T.groupby(level=0).sum().T  # shape: ≤10 × ≤10
-
-        # Reindex to full ct_order (fill missing with 0)
-        ct_10x10 = ct_10x10.reindex(index=ct_order, columns=ct_order, fill_value=0)
-
-        # Row-normalise to percentages
-        row_sums = ct_10x10.sum(axis=1).replace(0, np.nan)
-        norm = ct_10x10.div(row_sums, axis=0).fillna(0) * 100
-
-        annot = norm.round(0).astype(int).astype(str)
-        annot[annot == "0"] = ""
-
-        tick_labels = [ct_abbrev[ct] for ct in ct_order]
+        row_sums = counts.sum(axis=1).replace(0, np.nan)
+        norm = counts.div(row_sums, axis=0).fillna(0) * 100
 
         sns.heatmap(
             norm, ax=ax,
             cmap="Blues", vmin=0, vmax=100,
-            annot=annot, fmt="",
-            annot_kws={"size": 10, "weight": "bold"},
-            xticklabels=tick_labels, yticklabels=tick_labels,
-            linewidths=0.6, linecolor="#dddddd",
-            cbar_kws={"label": "% of 10x cell type", "shrink": 0.7},
+            annot=False,
+            xticklabels=ct_order, yticklabels=ct_order,
+            linewidths=0.5, linecolor="#e0e0e0",
+            cbar_kws={"label": "% of 10x cell type", "shrink": 0.75},
         )
 
         ax.set_title(label, fontweight="bold", fontsize=13)
-        ax.set_xlabel(f"{label} cell-type assignment", fontsize=10)
+        ax.set_xlabel(f"{label} assignment", fontsize=10)
         ax.set_ylabel("10x native cell type", fontsize=10)
-        ax.tick_params(axis="x", labelsize=9, rotation=35)
+        ax.tick_params(axis="x", labelsize=9, rotation=40)
         ax.tick_params(axis="y", labelsize=9, rotation=0)
         plt.setp(ax.get_xticklabels(), ha="right")
 
     fig.suptitle(
-        "Cell-type confusion matrices (row-normalised, %)\n"
-        "Rows = 10x native  ·  Columns = comparison method  ·  "
-        "Diagonal = agreement rate per cell type",
+        "Cell-type confusion matrices (row-normalised)  ·  "
+        "Diagonal = per-type agreement rate",
         fontsize=13, fontweight="bold",
     )
     fig.tight_layout()
