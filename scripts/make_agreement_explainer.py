@@ -187,16 +187,12 @@ def main() -> None:
             if val > 2:
                 ax_bar.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=7.5)
 
-    fig.suptitle(
-        "Cell type vs. agreement with 10x native (full 2mm x 2mm ROI)",
-        fontsize=13, fontweight="bold",
-    )
     fig.legend(handles=[
         mpatches.Patch(color="#CCCCCC", label="Unmatched"),
         mpatches.Patch(color="#4C72B0", label="Agree"),
         mpatches.Patch(color="#C44E52", label="Disagree"),
     ], loc="lower center", ncols=3, fontsize=11, framealpha=0.9)
-    fig.subplots_adjust(top=0.965, bottom=0.04)
+    fig.subplots_adjust(top=0.99, bottom=0.04)
     fig.savefig(FIGURES / "agreement_explainer.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
     print("Saved agreement_explainer.png")
