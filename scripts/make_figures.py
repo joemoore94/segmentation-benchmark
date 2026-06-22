@@ -398,7 +398,7 @@ def fig_annotated_confusion() -> None:
         "Plasma cells", "Macrophages",
     ]
 
-    fig, axes = plt.subplots(2, 3, figsize=(26, 17))
+    fig, axes = plt.subplots(2, 3, figsize=(36, 24))
 
     for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
         dtable = pd.read_csv(TABLES_DIR / f"disagreement_table_10x_{method}.csv",
@@ -423,17 +423,17 @@ def fig_annotated_confusion() -> None:
             cbar_kws={"label": "% of 10x cell type", "shrink": 0.75},
         )
 
-        ax.set_title(label, fontweight="bold", fontsize=13)
-        ax.set_xlabel(f"{label} assignment", fontsize=10)
-        ax.set_ylabel("10x native cell type", fontsize=10)
-        ax.tick_params(axis="x", labelsize=9, rotation=40)
-        ax.tick_params(axis="y", labelsize=9, rotation=0)
+        ax.set_title(label, fontweight="bold", fontsize=17)
+        ax.set_xlabel(f"{label} assignment", fontsize=14)
+        ax.set_ylabel("10x native cell type", fontsize=14)
+        ax.tick_params(axis="x", labelsize=13, rotation=45)
+        ax.tick_params(axis="y", labelsize=13, rotation=0)
         plt.setp(ax.get_xticklabels(), ha="right")
 
     fig.suptitle(
         "Cell-type confusion matrices (row-normalised)  ·  "
         "Diagonal = per-type agreement rate",
-        fontsize=13, fontweight="bold",
+        fontsize=18, fontweight="bold",
     )
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "confusion_annotated.png", dpi=150, bbox_inches="tight")
