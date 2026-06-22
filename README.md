@@ -73,11 +73,19 @@ Morphological methods and 10x native converge on 12–15 clusters with median si
 
 ![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
 
-![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
+### Cluster alignment
+
+![Cluster-level confusion matrices with Hungarian-matched pairs](results/figures/confusion_clusters.png)
+
+The raw Leiden cluster cross-tabulations show how each method's clusters map onto 10x native's 15. Each row is one 10x native cluster; columns are the comparison method's clusters; red borders mark the Hungarian-matched (optimal 1-to-1) pair. Morphological methods produce clean matches — the dominant cell in each row aligns with the Hungarian pair, and off-diagonal leakage is minimal. Baysor's 15×21 matrix is qualitatively different: signal disperses across many columns, matched pairs often capture a minority of cells, and 6 clusters have no 10x counterpart.
 
 ![Annotated cluster confusion matrices](results/figures/confusion_annotated.png)
 
-Per-cell expression correlation is high for all methods (median 0.79–0.96), but cluster-label agreement tells a different story. Nuclear methods (ARI ~0.55) and Voronoi methods (ARI 0.63–0.69) disagree with 10x native on roughly 20–34% of matched cells; Baysor disagrees on more than half. The confusion matrices show rows (10x native cell types) grouped along the diagonal for nuclear and Voronoi methods, with Baysor showing broader scatter, particularly in macrophage-rich and luminal epithelial regions.
+Collapsing clusters into 10 annotated cell types, the confusion matrices show rows grouped along the diagonal for nuclear and Voronoi methods, with Baysor showing broader scatter in macrophage-rich and luminal epithelial regions.
+
+![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
+
+Per-cell expression correlation is high for all methods (median 0.79–0.96), but cluster-label agreement tells a different story. Nuclear methods (ARI ~0.55) and Voronoi methods (ARI 0.63–0.69) disagree with 10x native on roughly 20–34% of matched cells; Baysor disagrees on more than half.
 
 ### Per-cluster pseudobulk
 

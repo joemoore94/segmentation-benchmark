@@ -19,7 +19,9 @@ import pandas as pd
 import seaborn as sns
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 
+from segbench.constants import CLUSTER_ANNOTATIONS
 from segbench.io import PIXEL_SIZE
 from segbench.style import apply_style
 
@@ -435,6 +437,91 @@ def fig_annotated_confusion() -> None:
     plt.close(fig)
 
 
+def fig_cluster_confusion() -> None:
+    """Raw Leiden cluster confusion matrices with Hungarian-matched pairs highlighted.
+
+    Unlike fig_annotated_confusion (which collapses to 10 cell types), this
+    shows the full cluster-level cross-tabulation so the reader can see how
+    methods with different cluster counts (12–21) align to 10x native's 15.
+    """
+    from matplotlib.patches import Rectangle
+
+    ct_short = {
+        "Luminal epithelial": "Lum. epi.",
+        "Macrophages": "Macro.",
+        "T cells": "T cells",
+        "B cells": "B cells",
+        "Myoepithelial": "Myoepi.",
+        "CAFs": "CAFs",
+        "Smooth muscle": "Sm. muscle",
+        "Endothelial": "Endoth.",
+        "Plasma cells": "Plasma",
+        "Adipocytes": "Adipo.",
+    }
+
+    fig, axes = plt.subplots(2, 3, figsize=(28, 14))
+    fig.subplots_adjust(left=0.06, right=0.88, top=0.92, bottom=0.06,
+                        hspace=0.45, wspace=0.40)
+
+    for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
+        path = TABLES_DIR / f"cell_type_confusion_10x_{method}.csv"
+        raw = pd.read_csv(path, index_col="label_a")
+        raw.index = raw.index.astype(str)
+        raw.columns = raw.columns.astype(str)
+
+        ref_ids = sorted(raw.index, key=int)
+        comp_ids = sorted(raw.columns, key=int)
+        raw = raw.loc[ref_ids, comp_ids]
+
+        row_ind, col_ind = linear_sum_assignment(-raw.to_numpy())
+        matched = set(zip(row_ind.tolist(), col_ind.tolist()))
+
+        row_sums = raw.sum(axis=1).replace(0, np.nan)
+        norm = raw.div(row_sums, axis=0).fillna(0) * 100
+
+        annot_text = norm.map(lambda v: f"{v:.0f}" if v >= 5 else "")
+
+        row_labels = [f"{c}: {ct_short.get(CLUSTER_ANNOTATIONS.get(c, ''), c)}"
+                      for c in ref_ids]
+
+        fs = 7 if len(comp_ids) <= 15 else 6
+        sns.heatmap(
+            norm.values, ax=ax,
+            cmap="Blues", vmin=0, vmax=100,
+            annot=np.array(annot_text), fmt="",
+            annot_kws={"fontsize": fs},
+            xticklabels=comp_ids, yticklabels=row_labels,
+            linewidths=0.3, linecolor="#e0e0e0",
+            cbar=False,
+        )
+
+        for r, c in matched:
+            ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
+                                   edgecolor="red", linewidth=1.8))
+
+        ax.set_title(f"{label}  ({len(comp_ids)} clusters)", fontweight="bold")
+        ax.set_xlabel(f"{label} cluster")
+        ax.set_ylabel("")
+        ax.tick_params(axis="x", rotation=0, labelsize=8)
+        ax.tick_params(axis="y", rotation=0, labelsize=8)
+
+    from matplotlib.cm import ScalarMappable
+    from matplotlib.colors import Normalize
+    sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
+    sm.set_array([])
+    cbar_ax = fig.add_axes([0.90, 0.12, 0.015, 0.76])
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar.set_label("% of 10x native cluster")
+
+    fig.suptitle(
+        "Cluster-level confusion matrices (row-normalised)  ·  "
+        "Red border = Hungarian-matched pair",
+        fontweight="bold",
+    )
+    fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     fig_cell_counts_and_sizes()
@@ -450,6 +537,9 @@ def main() -> None:
         fig_de_volcano()
     if (TABLES_DIR / "cluster_annotations.csv").exists():
         fig_annotated_confusion()
+    confusion_csvs = [f"cell_type_confusion_10x_{m}.csv" for m, _ in COMPARISON_ORDER]
+    if all((TABLES_DIR / f).exists() for f in confusion_csvs):
+        fig_cluster_confusion()
     print(f"wrote figures to {FIGURES_DIR}")
 
 
