@@ -1,6 +1,6 @@
 # Segmentation Benchmarking on Xenium Spatial Transcriptomics Data
 
-**Question:** Do segmentation methods optimized for imaging — nuclear pixel-mask models (CellPose, StarDist, Mesmer), Voronoi nearest-centroid assignment, and transcript-density EM (Baysor) — transfer well to imaging-based spatial transcriptomics (10x Xenium), and does method choice meaningfully change downstream cell-type calls?
+**Question:** Do nuclear-mask (CellPose, StarDist, Mesmer), Voronoi, and transcript-density (Baysor) segmentation methods transfer well to Xenium spatial transcriptomics, and does method choice meaningfully change downstream cell-type calls?
 
 ## Summary
 
@@ -15,7 +15,7 @@
 
 *Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag.
 
-Three method families emerge clearly. Nuclear methods (CellPose, StarDist, Mesmer) cluster at ARI ~0.55 with spatially structured disagreement concentrated in the luminal epithelial and likely malignant population. Voronoi variants reach ARI 0.63–0.69 with 100% transcript capture. Baysor reaches ARI 0.31 with near-random spatial disagreement. All metrics measure concordance with the 10x-native reference, not biological ground truth — transcript-density methods like Baysor may define genuinely different cell boundaries rather than incorrect ones.
+Three method families emerge clearly. Nuclear methods (CellPose, StarDist, Mesmer) cluster at ARI ~0.55 with spatially structured disagreement concentrated in the luminal epithelial and likely malignant population. Voronoi variants reach ARI 0.63–0.69 with 100% transcript capture. Baysor reaches ARI 0.31 with near-random spatial disagreement. All metrics measure concordance with the 10x-native reference, not biological ground truth; transcript-density methods like Baysor may define genuinely different cell boundaries rather than incorrect ones.
 
 <!-- Project 2 (label-transfer-benchmark): uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability. Add link once repo is public. -->
 
@@ -61,15 +61,15 @@ Nuclear-only methods capture 35–52% of transcripts; Mesmer's larger nuclear ma
 
 ![Annotated cluster confusion matrices](results/figures/confusion_annotated.png)
 
-Per-cell expression correlation is high for all methods (median 0.79–0.96), but cluster-label agreement tells a different story. Nuclear methods (ARI ~0.55) and Voronoi methods (ARI 0.63–0.69) disagree with 10x native on roughly 20–34% of matched cells; Baysor disagrees on more than half. The confusion matrices show rows (10x native cell types) grouped along the diagonal for nuclear and Voronoi methods, with Baysor showing broader scatter — particularly in macrophage-rich and luminal epithelial regions.
+Per-cell expression correlation is high for all methods (median 0.79–0.96), but cluster-label agreement tells a different story. Nuclear methods (ARI ~0.55) and Voronoi methods (ARI 0.63–0.69) disagree with 10x native on roughly 20–34% of matched cells; Baysor disagrees on more than half. The confusion matrices show rows (10x native cell types) grouped along the diagonal for nuclear and Voronoi methods, with Baysor showing broader scatter, particularly in macrophage-rich and luminal epithelial regions.
 
 ---
 
-## Q3: What drives the ARI gap — transcript coverage or nuclear detection quality?
+## Q3: What drives the ARI gap: transcript coverage or nuclear detection quality?
 
 ![ARI decomposition and three-metric comparison](results/figures/decomposition.png)
 
-The two Voronoi controls make this a clean experiment. CellPose nuclear and Voronoi (CellPose) segment identical cells from identical centroids — the only change is that Voronoi assigns all transcripts to the nearest centroid rather than counting only those inside the nuclear mask. That single change adds **+0.083 ARI** (0.547 → 0.630). Swapping in Mesmer's higher-quality nuclear centroids while keeping the same Voronoi assignment adds another **+0.056 ARI** (0.630 → 0.686). Cytoplasmic transcript coverage is the larger contributor; nuclear centroid quality is a meaningful but secondary effect. The nucleus expansion controls (Supplemental) confirm this: morphological dilation of CellPose masks reaches 0.592 at 20µm but never matches Voronoi's 0.630, which assigns all transcripts without a fixed radius.
+The two Voronoi controls make this a clean experiment. CellPose nuclear and Voronoi (CellPose) use identical centroids; Voronoi assigns all transcripts to the nearest centroid instead of counting only those inside the nuclear mask. That change alone adds **+0.083 ARI** (0.547 → 0.630). Swapping in Mesmer's higher-quality centroids adds another **+0.056 ARI** (0.630 → 0.686). Cytoplasmic coverage is the larger contributor; centroid quality is secondary. Morphological dilation of CellPose masks reaches ARI 0.592 at 20µm but never matches Voronoi's 0.630, confirming that a fixed-radius expansion cannot substitute for full transcript assignment.
 
 ---
 
@@ -88,9 +88,9 @@ The two Voronoi controls make this a clean experiment. CellPose nuclear and Voro
 | 10x native vs. Voronoi (M) | 0.161 | 9.5% | 20.4% |
 | 10x native vs. Baysor | 0.033 | 21.4% | 17.5% |
 
-Nuclear and Voronoi method disagreements are spatially structured (Moran's I 0.076–0.215), concentrated in the luminal epithelial territory visible in the top-left of each spatial map. Mesmer has the most agreement coldspots (32.5% LL) — large contiguous regions of identical cell-type calls. Voronoi (Mesmer) has the fewest disagreement hotspots (9.5% HH), consistent with residual errors being diffuse boundary noise rather than concentrated failure zones. Baysor's near-zero Moran's I (0.033) and roughly equal HH/LL split confirm its disagreement is spatially near-random — a different pattern entirely from the nuclear methods.
+Nuclear and Voronoi disagreements are spatially structured (Moran's I 0.076–0.215), concentrated in luminal epithelial territory. Mesmer has the most agreement coldspots (32.5% LL); Voronoi (Mesmer) has the fewest disagreement hotspots (9.5% HH), consistent with residual errors being diffuse boundary noise. Baysor's near-zero Moran's I (0.033) and equal HH/LL split confirm spatially near-random disagreement, unlike the nuclear methods.
 
-*LISA labels*: HH (High-High) = cell is in a disagreement cluster, surrounded by other disagreeing cells — a spatial hotspot. LL (Low-Low) = cell agrees with the reference, surrounded by other agreeing cells — a coldspot. Global Moran's I summarises the overall spatial autocorrelation of the disagree flag (0 = random, 1 = fully clustered).
+*LISA labels*: HH = disagreement hotspot; LL = agreement coldspot. Global Moran's I summarises spatial autocorrelation of the disagree flag (0 = random, 1 = fully clustered).
 
 ---
 
@@ -98,7 +98,7 @@ Nuclear and Voronoi method disagreements are spatially structured (Moran's I 0.0
 
 ![Cell type vs. agreement for all methods](results/figures/agreement_explainer.png)
 
-Adipocytes and myoepithelial cells carry the highest per-cell disagreement rates (~50–68% and ~40–47% across nuclear methods), but as rare populations they contribute modestly in absolute terms. Luminal epithelial cells are the dominant contributor by volume: ~35% per-cell disagreement across ~8,500 cells (~37% of all 10x-native cells) accounts for the majority of total disagreement events across every nuclear method. In this invasive ductal carcinoma tissue the luminal epithelial Leiden clusters at resolution 1.0 likely encompass malignant cells alongside residual normal epithelial — both share canonical markers (GATA3, PGR, ESR1, MUC1) and are not separable by nuclear morphology alone, where cytoplasmic transcripts carry the most discriminative signal. T cells and B cells are robustly identified regardless of method (CD3E, TRAC, MS4A1).
+Adipocytes and myoepithelial cells have the highest per-cell disagreement (~50–68% and ~40–47%) but are rare. Luminal epithelial cells dominate by volume: ~35% disagreement across ~8,500 cells drives the majority of total disagreement events. These clusters likely encompass malignant and normal epithelial cells; both share canonical markers (GATA3, PGR, ESR1, MUC1) and are inseparable by nuclear morphology alone. T cells and B cells are robustly identified regardless of method.
 
 ---
 
@@ -117,7 +117,7 @@ Adipocytes and myoepithelial cells carry the highest per-cell disagreement rates
 | 10x native vs. Voronoi (M) | 16,720 / 3,875 | -21.38 / -20.68 | 3.2e-12 |
 | 10x native vs. Baysor | 5,286 / 5,667 | -22.76 / -22.75 | 0.756 n.s. |
 
-Nuclear methods disagree on cells in higher-density phenotypic regions (Mann-Whitney p ≪ 0.001), and the DE volcano confirms the signal: disagreeing cells are enriched for luminal epithelial markers (MYBPC1, SERPINA3, CLIC6, PGR, GATA3, MUC1) — cytoplasmic transcripts underrepresented in nuclear-only masks. Voronoi (CellPose)'s disagreement is density-neutral (p = 0.19) with few significant DE genes, indicating residual error is geometric rather than cell-state-driven. Baysor's disagreement is also density-neutral but enriched for macrophage markers (CD14, MRC1, CD163), suggesting its transcript-density boundaries partition macrophage-rich regions differently from the morphology-based reference.
+Nuclear methods disagree on cells in higher-density phenotypic regions (Mann-Whitney p ≪ 0.001). The DE volcano confirms this: disagreeing cells are enriched for luminal epithelial markers (MYBPC1, SERPINA3, CLIC6, PGR, GATA3, MUC1), cytoplasmic transcripts underrepresented in nuclear-only masks. Voronoi (CellPose) disagreement is density-neutral (p = 0.19) with few DE genes, indicating residual errors are geometric. Baysor disagreement is also density-neutral but enriched for macrophage markers (CD14, MRC1, CD163), consistent with transcript-density boundaries partitioning macrophage-rich regions differently.
 
 ---
 
@@ -127,7 +127,7 @@ Nuclear methods disagree on cells in higher-density phenotypic regions (Mann-Whi
 
 ![Phenotypic landscape distortion vs. 10x native](results/figures/manifold_distortion.png)
 
-All methods are projected into a shared PCA space fit on the 10x-native reference (30 PCs, 55% variance explained), then embedded in a joint UMAP. The density ratio maps (log₂ method/10x) show which regions of phenotypic state space each method enriches or depletes. Nuclear methods show blue (depleted) regions concentrated in high-density luminal epithelial areas — consistent with missed cytoplasmic transcripts shifting those cells toward lower-expression states in PCA space. Voronoi methods track 10x native closely across most of state space. Baysor shows enrichment in a distinct region corresponding to its 21-cluster resolution of macrophage and stromal subtypes.
+All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55% variance explained) and embedded in a joint UMAP. Density ratio maps (log₂ method/10x) show which phenotypic regions each method enriches or depletes. Nuclear methods show depleted regions in high-density luminal epithelial areas, consistent with missed cytoplasmic transcripts pulling cells toward lower-expression PCA states. Voronoi methods track 10x native closely. Baysor shows enrichment in a distinct region corresponding to its finer resolution of macrophage and stromal subtypes.
 
 ---
 
@@ -145,14 +145,14 @@ The method ordering is stable across Leiden resolutions 0.5–2.0. Voronoi (Mesm
 
 | | 10x native | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (M) | Baysor |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **10x native** | — | 0.547 | 0.545 | 0.557 | 0.630 | 0.686 | 0.305 |
-| **CellPose** | | — | 0.764 | 0.606 | 0.533 | 0.556 | 0.415 |
-| **StarDist** | | | — | 0.639 | 0.525 | 0.540 | 0.411 |
-| **Mesmer** | | | | — | 0.480 | 0.528 | 0.455 |
-| **Voronoi (CP)** | | | | | — | 0.661 | 0.336 |
-| **Voronoi (M)** | | | | | | — | 0.377 |
+| **10x native** | 1.0 | 0.547 | 0.545 | 0.557 | 0.630 | 0.686 | 0.305 |
+| **CellPose** | | 1.0 | 0.764 | 0.606 | 0.533 | 0.556 | 0.415 |
+| **StarDist** | | | 1.0 | 0.639 | 0.525 | 0.540 | 0.411 |
+| **Mesmer** | | | | 1.0 | 0.480 | 0.528 | 0.455 |
+| **Voronoi (CP)** | | | | | 1.0 | 0.661 | 0.336 |
+| **Voronoi (M)** | | | | | | 1.0 | 0.377 |
 
-The short answer is no — at least not within the Voronoi family. CellPose and StarDist agree with each other at ARI 0.764, higher than the Voronoi pair (0.661), because both are nuclear morphology methods on the same DAPI image and tend to detect the same nuclei. Switching to Voronoi assignment lowers within-paradigm agreement because the two Voronoi variants use different nuclear centroids; the transcript assignment boundary shifts even when the underlying centroids are close. What Voronoi does raise is agreement with the 10x-native whole-cell reference (0.63–0.69), which is a different question — one about compatibility with the platform's own segmentation, not about cross-method reproducibility. Baysor remains structurally isolated from all morphological methods (ARI 0.30–0.46 regardless of partner), consistent with its transcript-density boundaries occupying a different cell-partition geometry.
+No, at least not within the Voronoi family. CellPose and StarDist agree with each other at ARI 0.764 (higher than the Voronoi pair at 0.661) because both are nuclear-morphology methods on the same DAPI image. Switching to Voronoi assignment lowers within-paradigm agreement because the two Voronoi variants use different centroids, shifting boundaries even where centroids are close. What Voronoi does raise is agreement with the 10x-native whole-cell reference (0.63–0.69): compatibility with the platform's own segmentation, not cross-method reproducibility. Baysor remains isolated from all morphological methods (ARI 0.30–0.46 regardless of partner).
 
 ---
 
@@ -169,7 +169,7 @@ The short answer is no — at least not within the Voronoi family. CellPose and 
 | 10x native vs. Voronoi (M) | 125.9 µm² | 117.7 µm² | 3.7e-19 |
 | 10x native vs. Baysor | 167.0 µm² | 173.4 µm² | 0.28 n.s. |
 
-Smaller 10x-native cells are significantly more likely to disagree with every morphological method (Mann-Whitney p ≪ 0.001). The direction is counter-intuitive: larger cells have more cytoplasmic volume and one might expect nuclear-only methods to miss more of their signal, yet it is the smaller cells that disagree more. The pattern holds even for Voronoi methods, which capture all transcripts regardless of cell size, pointing away from a transcript-capture explanation. The more likely mechanism is that smaller cells in the Xenium segmentation correspond to cells in densely packed tissue regions, where nuclei overlap, boundaries are ambiguous, and any method's cluster assignment is noisier. Baysor shows no size dependence (p = 0.28) — its transcript-density boundaries are insensitive to cell area as defined by morphological methods.
+Smaller 10x-native cells are significantly more likely to disagree with every morphological method (p ≪ 0.001). The direction is counter-intuitive: larger cells have more cytoplasm, yet it is smaller cells that disagree more. The pattern holds for Voronoi methods too, ruling out transcript capture as the cause. Smaller cells likely correspond to densely packed regions where any method's cluster assignment is noisier. Baysor shows no size dependence (p = 0.28); its boundaries are insensitive to morphologically defined cell area.
 
 ---
 
@@ -177,7 +177,7 @@ Smaller 10x-native cells are significantly more likely to disagree with every mo
 
 ![Marker gene recovery relative to 10x native](results/figures/marker_recovery.png)
 
-For matched cell pairs, 10x-native cell-type annotations are used to group cells by type, and the mean log-normalised expression of canonical markers is computed for each method's matched cells. Nuclear-only methods (CellPose, StarDist, Mesmer) recover 75–92% of cytoplasmic marker expression relative to 10x native, with the largest deficits for markers like MUC1, SERPINA3, and LYZ whose transcripts are concentrated outside the nucleus. Voronoi methods recover marker expression at near-100% for all cell types by capturing all transcripts. Baysor's recovery varies by cell type: macrophage markers (LYZ, CD14) are recovered at or above 10x-native levels, consistent with Baysor's transcript-density approach delineating cytoplasm-rich myeloid cells effectively, while T cell markers (CD3E) show slightly reduced recovery.
+Using 10x-native cell-type annotations as ground truth, nuclear methods recover 75–92% of cytoplasmic marker expression relative to 10x native, with the largest deficits for extranuclear markers like MUC1, SERPINA3, and LYZ. Voronoi methods recover near-100% across all cell types. Baysor recovers macrophage markers (LYZ, CD14) at or above 10x-native levels while showing slightly reduced T cell marker (CD3E) recovery.
 
 ---
 
@@ -194,7 +194,7 @@ For matched cell pairs, 10x-native cell-type annotations are used to group cells
 | Voronoi (M) | 0.9999 | 0.686 |
 | Baysor | 0.999 | 0.305 |
 
-The most striking result in the whole benchmark: Baysor's per-cell ARI of 0.305 — by far the lowest — coexists with a near-perfect pseudobulk Pearson correlation of 0.999. Summed across matched cells and normalised to CPM, Baysor's population-level expression profile is essentially indistinguishable from 10x native. This directly dissociates two senses of "agreement": Baysor draws different cell boundaries, assigning transcripts to different individual cells, but the aggregate transcript pool per tissue region is the same. Nuclear methods show the reverse pattern: moderate single-cell ARI (~0.55) but reduced pseudobulk correlation (0.97–0.98), because missing cytoplasmic transcripts systematically suppresses cytoplasmic marker signal across all cells of a type. Voronoi methods achieve both: high per-cell ARI and essentially perfect pseudobulk correlation.
+The headline result: Baysor's per-cell ARI of 0.305 (the lowest) coexists with a near-perfect pseudobulk Pearson r of 0.999. Baysor draws different cell boundaries and assigns transcripts to different individual cells, but the aggregate transcript pool per tissue region is the same as 10x native. Nuclear methods show the reverse: moderate single-cell ARI (~0.55) but reduced pseudobulk r (0.97–0.98), because missing cytoplasmic transcripts suppress marker signal systematically across all cells of a type. Voronoi methods achieve both.
 
 ---
 
@@ -290,7 +290,7 @@ CellPose masks expanded by 10µm and 20µm using `skimage.segmentation.expand_la
 | Config | ARI | Cells |
 | --- | --- | --- |
 | Baysor (prior, c=0.2) | 0.318 | 19,061 |
-| Baysor (prior, c=0.5) | 0.395 | — |
+| Baysor (prior, c=0.5) | 0.395 | - |
 | Baysor (prior, c=0.8) | 0.488 | 29,771 |
 
-c=0.8 inflates cell count to 29,771 — likely an artefact of the prior overriding Baysor's boundary inference at high confidence.
+c=0.8 inflates cell count to 29,771, likely an artefact of the prior overriding Baysor's boundary inference at high confidence.
