@@ -459,9 +459,9 @@ def fig_cluster_confusion() -> None:
         "Adipocytes": "Adipo.",
     }
 
-    fig, axes = plt.subplots(2, 3, figsize=(28, 14))
-    fig.subplots_adjust(left=0.06, right=0.88, top=0.92, bottom=0.06,
-                        hspace=0.45, wspace=0.40)
+    fig, axes = plt.subplots(2, 3, figsize=(42, 24))
+    fig.subplots_adjust(left=0.06, right=0.90, top=0.93, bottom=0.05,
+                        hspace=0.35, wspace=0.35)
 
     for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
         path = TABLES_DIR / f"cell_type_confusion_10x_{method}.csv"
@@ -484,41 +484,43 @@ def fig_cluster_confusion() -> None:
         row_labels = [f"{c}: {ct_short.get(CLUSTER_ANNOTATIONS.get(c, ''), c)}"
                       for c in ref_ids]
 
-        fs = 7 if len(comp_ids) <= 15 else 6
+        fs = 11 if len(comp_ids) <= 15 else 9
         sns.heatmap(
             norm.values, ax=ax,
             cmap="Blues", vmin=0, vmax=100,
             annot=np.array(annot_text), fmt="",
-            annot_kws={"fontsize": fs},
+            annot_kws={"fontsize": fs, "weight": "bold"},
             xticklabels=comp_ids, yticklabels=row_labels,
-            linewidths=0.3, linecolor="#e0e0e0",
+            linewidths=0.4, linecolor="#e0e0e0",
             cbar=False,
         )
 
         for r, c in matched:
             ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
-                                   edgecolor="red", linewidth=1.8))
+                                   edgecolor="red", linewidth=2.5))
 
-        ax.set_title(f"{label}  ({len(comp_ids)} clusters)", fontweight="bold")
-        ax.set_xlabel(f"{label} cluster")
+        ax.set_title(f"{label}  ({len(comp_ids)} clusters)",
+                     fontweight="bold", fontsize=16)
+        ax.set_xlabel(f"{label} cluster", fontsize=13)
         ax.set_ylabel("")
-        ax.tick_params(axis="x", rotation=0, labelsize=8)
-        ax.tick_params(axis="y", rotation=0, labelsize=8)
+        ax.tick_params(axis="x", rotation=0, labelsize=12)
+        ax.tick_params(axis="y", rotation=0, labelsize=12)
 
     from matplotlib.cm import ScalarMappable
     from matplotlib.colors import Normalize
     sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.90, 0.12, 0.015, 0.76])
+    cbar_ax = fig.add_axes([0.92, 0.12, 0.012, 0.76])
     cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.set_label("% of 10x native cluster")
+    cbar.set_label("% of 10x native cluster", fontsize=13)
+    cbar.ax.tick_params(labelsize=11)
 
     fig.suptitle(
         "Cluster-level confusion matrices (row-normalised)  ·  "
         "Red border = Hungarian-matched pair",
-        fontweight="bold",
+        fontweight="bold", fontsize=18,
     )
-    fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=200, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
