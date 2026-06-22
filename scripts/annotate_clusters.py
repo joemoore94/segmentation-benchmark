@@ -28,6 +28,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES_DIR = Path("results/tables")
@@ -103,7 +104,7 @@ def save_annotation_table(adata: ad.AnnData) -> None:
 
 
 def fig_umap_annotated(adata: ad.AnnData) -> None:
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
     fig, axes = plt.subplots(1, 2, figsize=(22, 9))
 
     # Left: UMAP by cell type (annotated)
@@ -172,7 +173,7 @@ def build_celltype_disagreement(adata: ad.AnnData) -> pd.DataFrame:
 
 
 def fig_celltype_disagreement(df: pd.DataFrame) -> None:
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
     comparisons = [label for _, label in COMPARISONS]
     cell_types = list(CELLTYPE_COLORS.keys())
 

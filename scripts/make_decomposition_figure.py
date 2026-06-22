@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 import seaborn as sns
+from segbench.style import apply_style
 
 FIGURES = Path("results/figures")
 
@@ -63,7 +64,7 @@ def bracket(ax, y0, y1, x, label, color="#444444", fontsize=10):
 
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
 
     fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(22, 9),
                                              gridspec_kw={"width_ratios": [1.2, 1]})

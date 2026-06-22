@@ -25,6 +25,7 @@ import scanpy as sc
 import seaborn as sns
 
 from segbench.compare import cell_type_agreement, cluster_cell_types
+from segbench.style import apply_style
 
 ROI_DIR   = Path("data/processed/roi")
 TABLES    = Path("results/tables")
@@ -55,7 +56,7 @@ def main() -> None:
     TABLES.mkdir(parents=True, exist_ok=True)
     FIGURES.mkdir(parents=True, exist_ok=True)
     sc.settings.verbosity = 0
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
 
     print("Loading AnnData files...")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")

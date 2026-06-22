@@ -35,6 +35,7 @@ import seaborn as sns
 import umap as umap_lib
 from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
+from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 FIGURES = Path("results/figures")
@@ -86,7 +87,7 @@ def density_grid(xy: np.ndarray, grid_x: np.ndarray, grid_y: np.ndarray) -> np.n
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     sc.settings.verbosity = 0
-    sns.set_theme(style="white", context="poster")
+    apply_style(scatter=True)
     rng = np.random.default_rng(RANDOM_STATE)
 
     print("Loading AnnData files...")

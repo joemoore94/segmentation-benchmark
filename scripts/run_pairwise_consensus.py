@@ -31,6 +31,7 @@ import pandas as pd
 import seaborn as sns
 
 from segbench.compare import cell_type_agreement, cluster_cell_types, match_cells_by_centroid
+from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
@@ -70,7 +71,7 @@ FAMILY_COLORS = {
 def main() -> None:
     TABLES.mkdir(parents=True, exist_ok=True)
     FIGURES.mkdir(parents=True, exist_ok=True)
-    sns.set_theme(style="white", context="poster")
+    apply_style(scatter=True)
 
     print("Loading AnnData files...")
     adatas: dict[str, ad.AnnData] = {}
@@ -113,7 +114,7 @@ def main() -> None:
     print(ari_df.round(3).to_string())
 
     # ---------------------------------------------------------------- figure
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
     fig, ax = plt.subplots(figsize=(15, 13))
 
     diag_mask = np.eye(n, dtype=bool)

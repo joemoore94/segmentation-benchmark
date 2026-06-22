@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import mannwhitneyu
+from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
@@ -59,7 +60,7 @@ def load_disagree_with_area(adata_10x: ad.AnnData, method: str) -> pd.DataFrame:
 
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
 
     print("Loading 10x native AnnData...")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")

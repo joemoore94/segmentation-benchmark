@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
@@ -84,7 +85,7 @@ def recluster_10x() -> ad.AnnData:
 
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
 
     print("Loading data...")
     adata = recluster_10x()

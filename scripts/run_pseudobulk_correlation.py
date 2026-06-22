@@ -36,6 +36,7 @@ import scipy.sparse as sp
 import seaborn as sns
 import scanpy as sc
 from scipy.stats import pearsonr
+from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
@@ -96,7 +97,7 @@ def main() -> None:
     TABLES.mkdir(parents=True, exist_ok=True)
     FIGURES.mkdir(parents=True, exist_ok=True)
     sc.settings.verbosity = 0
-    sns.set_theme(style="whitegrid", context="poster")
+    apply_style()
 
     print("Loading 10x native and building cell type labels...")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
