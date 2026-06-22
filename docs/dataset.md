@@ -182,35 +182,24 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 
 ### Mesmer
 
-- Not run, blocked externally on deepcell.org, not on anything in this repo.
-  A native `mesmer` conda env (Python 3.10, DeepCell 0.12.10, TensorFlow
-  2.8.4, no Docker needed on this x86_64 machine) is set up, and
-  `segbench.segmentation.mesmer_run.run_mesmer` / `scripts/run_mesmer.py`
-  call `deepcell.applications.Mesmer()` directly via `conda run -n mesmer`.
-- `Mesmer()` requires a `DEEPCELL_ACCESS_TOKEN` to fetch its pretrained
-  weights (`models/MultiplexSegmentation-9.tar.gz`, md5
-  `a1dfbce2594f927b9112f23a0a1739e0`) from `https://users.deepcell.org/api/getData/`.
-  As of June 2026, `users.deepcell.org`'s account system is broken end to
-  end: signup returns a server error (HTTP 500, tried with two different
-  emails), login fails ("username and password didn't match") even with the
-  documented `email-local-part` username convention, and "forgot password"
-  never sends a reset email. No public mirror of the weights archive (which
-  would let `fetch_data`'s local md5-cache check succeed without a token) was
-  found. The DeepCell.org "PREDICT" cloud page is a token-free alternative
-  but requires browser upload, which was ruled out in favor of staying CLI-only.
-- Plan if/when access is restored: nuclear-only segmentation on `dapi.tif`
-  (no membrane channel, see image-format gotcha #1), on the same 1mm x 1mm
-  sub-region used for Baysor to keep its compute footprint small and its
-  results directly comparable.
+- Run via the `vanvalenlab/deepcell-applications` Docker image, which bundles
+  pretrained weights (`MultiplexSegmentation-9.tar.gz`) and bypasses the
+  `DEEPCELL_ACCESS_TOKEN` requirement of the pip package (the deepcell.org
+  account system was broken end-to-end when this project started).
+  `segbench.segmentation.mesmer_run.run_mesmer` calls `scripts/run_mesmer.sh`
+  via `bash`, which runs the Docker container with `--volume`-mounted data dir.
+- Nuclear-only segmentation on `dapi.tif` (no membrane channel; see image-format
+  gotcha #1); `--compartment nuclear`.
+- Result: **21,697 cells** -> `mesmer_out/mask.tif` (shape `(1, H, W, 1)`,
+  squeezed to `(H, W)` before quantification).
 
 ### Cross-method comparison scope
 
-All five methods (CellPose, Baysor, 10x native, StarDist, and the
-CellPose-prior Baysor hybrid) now cover the same full 2mm x 2mm ROI, so cell
-counts, size distributions, and transcript capture rates are directly
-comparable without density normalization. `match_cells_by_centroid` (max
-10 µm) pairs 8,947 CellPose/Baysor cells, 18,966 CellPose/10x native cells,
-19,460 CellPose/StarDist cells, and 9,572 CellPose/Baysor(prior) cells; all
-matched-pair metrics (expression correlation, cell-type agreement, spatial
-disagreement) are computed over these full-ROI matched sets. See
-[`../README.md`](../README.md#results) for results.
+All methods (CellPose, StarDist, Mesmer, Voronoi (CellPose), Voronoi (Mesmer),
+Baysor, and 10x native) cover the same full 2mm x 2mm ROI, so cell counts,
+size distributions, and transcript capture rates are directly comparable without
+density normalization. Matched-pair metrics (expression correlation, cell-type
+agreement, spatial disagreement) are computed over nearest-centroid matches
+(max 10 µm) with 10x native as the reference anchor. The CellPose-prior Baysor
+hybrid is included as a supplemental comparison. See
+[`../README.md`](../README.md) for results.

@@ -208,11 +208,13 @@ segmentation-benchmark/
 │   └── processed/           # cropped ROI + derived files (gitignored)
 ├── notebooks/
 ├── src/segbench/
+│   ├── constants.py         # shared CLUSTER_ANNOTATIONS and CELLTYPE_COLORS
 │   ├── io.py                # load Xenium bundle, ROI cropping
-│   ├── segmentation/        # per-method wrappers
+│   ├── segmentation/        # per-method wrappers (CellPose, StarDist, Mesmer, Baysor)
 │   ├── quantify.py          # transcript aggregation -> per-cell AnnData
 │   ├── compare.py           # cross-method comparison metrics
-│   └── spatial.py           # spatial structure of disagreement
+│   ├── spatial.py           # spatial structure of disagreement
+│   └── style.py             # shared matplotlib theme
 ├── scripts/                 # CLI entry points
 ├── results/{figures,tables}/
 └── tests/
