@@ -113,7 +113,7 @@ def size_summary(adatas: dict[str, AnnData]) -> pd.DataFrame:
 
 def _dense(adata: AnnData) -> NDArray[np.floating]:
     x = adata.X
-    return np.asarray(x.todense() if hasattr(x, "todense") else x, dtype=np.float64)
+    return np.asarray(x.toarray() if hasattr(x, "toarray") else x, dtype=np.float64)
 
 
 def expression_correlation(

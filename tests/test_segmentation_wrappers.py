@@ -19,15 +19,15 @@ def test_run_mesmer_nuclear_only_invokes_script_with_expected_args(
 
     mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
-    assert args[:5] == ["conda", "run", "-n", "mesmer", "python"]
-    assert args[5] == str(mesmer_run._SCRIPT)
-    assert args[6:] == [str(tmp_path), "dapi.tif", "mesmer_out", "nuclear", str(PIXEL_SIZE)]
+    assert args == ["bash", str(mesmer_run._SCRIPT),
+                    str(tmp_path), "dapi.tif", "mesmer_out", "nuclear", str(PIXEL_SIZE)]
     assert out == tmp_path / "mesmer_out"
 
 
-def test_run_mesmer_with_membrane_appends_membrane_file(
+def test_run_mesmer_membrane_file_accepted_but_ignored(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    from segbench.io import PIXEL_SIZE
     from segbench.segmentation import mesmer_run
 
     mock_run = MagicMock()
@@ -38,15 +38,8 @@ def test_run_mesmer_with_membrane_appends_membrane_file(
     )
 
     args = mock_run.call_args[0][0]
-    assert args[:5] == ["conda", "run", "-n", "mesmer", "python"]
-    assert args[6:] == [
-        str(tmp_path),
-        "dapi.tif",
-        "mesmer_out",
-        "whole-cell",
-        "0.2125",
-        "membrane.tif",
-    ]
+    assert args == ["bash", str(mesmer_run._SCRIPT),
+                    str(tmp_path), "dapi.tif", "mesmer_out", "whole-cell", str(PIXEL_SIZE)]
 
 
 def test_run_stardist_invokes_script_with_expected_args(

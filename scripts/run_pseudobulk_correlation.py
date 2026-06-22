@@ -36,29 +36,12 @@ import scipy.sparse as sp
 import seaborn as sns
 import scanpy as sc
 from scipy.stats import pearsonr
+from segbench.constants import CLUSTER_ANNOTATIONS
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
-
-CLUSTER_ANNOTATIONS = {
-    "0":  "Luminal epithelial",
-    "1":  "Luminal epithelial",
-    "2":  "Macrophages",
-    "3":  "Luminal epithelial",
-    "4":  "Myoepithelial",
-    "5":  "T cells",
-    "6":  "B cells",
-    "7":  "Macrophages",
-    "8":  "Luminal epithelial",
-    "9":  "CAFs",
-    "10": "Smooth muscle",
-    "11": "Endothelial",
-    "12": "Plasma cells",
-    "13": "CAFs",
-    "14": "Adipocytes",
-}
 
 COMPARISONS = [
     ("cellpose",       "CellPose",     "#4C72B0", 0.547),
@@ -76,21 +59,15 @@ CELL_TYPES = [
 ]
 
 
-def to_dense(X) -> np.ndarray:
-    if sp.issparse(X):
-        return np.asarray(X.todense())
-    return np.asarray(X)
-
-
 def pseudobulk(adata: ad.AnnData, cell_ids: list[str]) -> np.ndarray:
     idx_map = {name: i for i, name in enumerate(adata.obs_names)}
     idxs = [idx_map[c] for c in cell_ids if c in idx_map]
     if not idxs:
         return np.zeros(adata.n_vars)
-    X = to_dense(adata.X[idxs, :])
-    raw = X.sum(axis=0)
+    X = adata.X[idxs, :]
+    raw = (X.toarray() if sp.issparse(X) else np.asarray(X)).sum(axis=0)
     total = raw.sum()
-    return raw / total * 1e6 if total > 0 else raw  # CPM
+    return raw / total * 1e6 if total > 0 else raw
 
 
 def main() -> None:
@@ -134,6 +111,10 @@ def main() -> None:
 
         # Shared genes for fair comparison
         shared = adata_10x_raw.var_names.intersection(adata_comp.var_names)
+        ref_gene_pos = {g: i for i, g in enumerate(adata_10x_raw.var_names)}
+        comp_gene_pos = {g: i for i, g in enumerate(adata_comp.var_names)}
+        shared_ref_idx = [ref_gene_pos[g] for g in shared]
+        shared_comp_idx = [comp_gene_pos[g] for g in shared]
 
         corrs_per_ct: dict[str, float] = {}
         for ct in CELL_TYPES:
@@ -142,25 +123,15 @@ def main() -> None:
             if len(comp_ids) < 5:
                 corrs_per_ct[ct] = np.nan
                 continue
-            ref_pb = ref_pseudobulk[ct][
-                [list(adata_10x_raw.var_names).index(g) for g in shared]
-            ]
-            comp_pb_full = pseudobulk(adata_comp, comp_ids)
-            comp_pb = comp_pb_full[
-                [list(adata_comp.var_names).index(g) for g in shared]
-            ]
+            ref_pb = ref_pseudobulk[ct][shared_ref_idx]
+            comp_pb = pseudobulk(adata_comp, comp_ids)[shared_comp_idx]
             r, _ = pearsonr(np.log1p(ref_pb), np.log1p(comp_pb))
             corrs_per_ct[ct] = round(float(r), 4)
 
         # Global correlation (matched cells, all types pooled)
         all_comp_ids = [id_b_from_a[cid] for cid in all_ct_ids if cid in id_b_from_a]
-        ref_global_shared = ref_global[
-            [list(adata_10x_raw.var_names).index(g) for g in shared]
-        ]
-        comp_global_full = pseudobulk(adata_comp, all_comp_ids)
-        comp_global = comp_global_full[
-            [list(adata_comp.var_names).index(g) for g in shared]
-        ]
+        ref_global_shared = ref_global[shared_ref_idx]
+        comp_global = pseudobulk(adata_comp, all_comp_ids)[shared_comp_idx]
         r_global, _ = pearsonr(np.log1p(ref_global_shared), np.log1p(comp_global))
         r_global = round(float(r_global), 4)
         print(f"  {label}: global pseudobulk r={r_global:.4f}, ARI={ari:.3f}")

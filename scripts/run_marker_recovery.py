@@ -37,30 +37,12 @@ import pandas as pd
 import scipy.sparse as sp
 import seaborn as sns
 import scanpy as sc
+from segbench.constants import CLUSTER_ANNOTATIONS
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
-
-# Cluster → cell type mapping from annotate_clusters.py
-CLUSTER_ANNOTATIONS = {
-    "0":  "Luminal epithelial",
-    "1":  "Luminal epithelial",
-    "2":  "Macrophages",
-    "3":  "Luminal epithelial",
-    "4":  "Myoepithelial",
-    "5":  "T cells",
-    "6":  "B cells",
-    "7":  "Macrophages",
-    "8":  "Luminal epithelial",
-    "9":  "CAFs",
-    "10": "Smooth muscle",
-    "11": "Endothelial",
-    "12": "Plasma cells",
-    "13": "CAFs",
-    "14": "Adipocytes",
-}
 
 CELL_TYPE_MARKERS: dict[str, list[str]] = {
     "Luminal epithelial": ["GATA3", "ESR1", "PGR", "MUC1"],
@@ -99,16 +81,17 @@ def log_norm(adata: ad.AnnData) -> np.ndarray:
 
 def mean_marker_expression(
     adata: ad.AnnData, X_lognorm: np.ndarray, cell_ids: list[str],
-    cell_type: str, markers: list[str]
+    markers: list[str]
 ) -> dict[str, float]:
     id_to_idx = {name: i for i, name in enumerate(adata.obs_names)}
+    gene_to_idx = {g: i for i, g in enumerate(adata.var_names)}
     idxs = [id_to_idx[cid] for cid in cell_ids if cid in id_to_idx]
     result = {}
     for marker in markers:
-        if marker not in adata.var_names:
+        gene_idx = gene_to_idx.get(marker)
+        if gene_idx is None:
             result[marker] = np.nan
             continue
-        gene_idx = list(adata.var_names).index(marker)
         vals = X_lognorm[idxs, gene_idx] if idxs else np.array([])
         result[marker] = float(np.mean(vals)) if len(vals) > 0 else np.nan
     return result
@@ -120,14 +103,15 @@ def main() -> None:
     apply_style()
 
     print("Loading 10x native and building cell type labels...")
-    adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
+    adata_10x_raw = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
+    adata_10x = adata_10x_raw.copy()
     sc.pp.normalize_total(adata_10x)
     sc.pp.log1p(adata_10x)
     sc.pp.pca(adata_10x, n_comps=30, random_state=0)
     sc.pp.neighbors(adata_10x, n_neighbors=15, random_state=0)
     sc.tl.leiden(adata_10x, resolution=1.0, random_state=0, flavor="igraph")
     cell_type_labels = adata_10x.obs["leiden"].map(CLUSTER_ANNOTATIONS)
-    X_10x_lognorm = log_norm(ad.read_h5ad(ROI_DIR / "adata_10x.h5ad"))
+    X_10x_lognorm = log_norm(adata_10x_raw)
 
     # Collect all markers
     all_markers = [m for markers in CELL_TYPE_MARKERS.values() for m in markers]
@@ -136,7 +120,7 @@ def main() -> None:
     rows_ref = []
     for cell_type, markers in CELL_TYPE_MARKERS.items():
         ct_ids = list(cell_type_labels[cell_type_labels == cell_type].index)
-        expr = mean_marker_expression(adata_10x, X_10x_lognorm, ct_ids, cell_type, markers)
+        expr = mean_marker_expression(adata_10x_raw, X_10x_lognorm, ct_ids, markers)
         for marker, val in expr.items():
             rows_ref.append({"method": "10x native", "cell_type": cell_type,
                              "marker": marker, "mean_lognorm": val})
@@ -159,7 +143,7 @@ def main() -> None:
             ct_ids_10x = list(cell_type_labels[cell_type_labels == cell_type].index)
             # Get matched cells in the comparison method
             comp_ids = [id_b_from_a[cid] for cid in ct_ids_10x if cid in id_b_from_a]
-            expr = mean_marker_expression(adata_comp, X_comp_lognorm, comp_ids, cell_type, markers)
+            expr = mean_marker_expression(adata_comp, X_comp_lognorm, comp_ids, markers)
             for marker, val in expr.items():
                 rows_comp.append({"method": label, "cell_type": cell_type,
                                   "marker": marker, "mean_lognorm": val})

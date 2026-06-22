@@ -84,7 +84,7 @@ def box(ax, xl, xr, yc, h, label, color, alpha=1.0,
                 color=text_color, alpha=0.85, zorder=4, style="italic")
 
 
-def arrow(ax, x0, x1, y, color="#555555", lw=1.5, shrink=0.02):
+def arrow(ax, x0, x1, y, color="#555555", lw=1.5):
     ax.annotate(
         "", xy=(x1, y), xytext=(x0, y),
         arrowprops=dict(
@@ -167,7 +167,6 @@ def main() -> None:
         sublabel="provided whole-cell segmentation · reference anchor")
 
     # -------- arrows from approach → cell×gene --------
-    y_mid = (ROWS["nuclear"] + ROWS["ref"]) / 2 + 0.05
     for row_key in ("nuclear", "voronoi", "baysor", "ref"):
         y = ROWS[row_key]
         brace_arrow(ax, X_APPROACH_R + 0.05, X_MATRIX_L - 0.05,

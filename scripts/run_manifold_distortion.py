@@ -31,7 +31,6 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy.sparse as sp
-import seaborn as sns
 import umap as umap_lib
 from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA

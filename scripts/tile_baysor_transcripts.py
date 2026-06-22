@@ -29,7 +29,6 @@ ROI_DIR = Path("data/processed/roi")
 OUT_DIR = ROI_DIR / "baysor_tiles"
 
 ROI_EXTENT = (0.0, 2000.0)  # microns, both x and y
-TILE_SIZE = 1000.0  # microns
 MARGIN = 50.0  # microns of padding on each interior tile edge
 
 TILES = {

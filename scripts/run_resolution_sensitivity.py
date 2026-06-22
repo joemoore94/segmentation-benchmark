@@ -19,7 +19,6 @@ from pathlib import Path
 
 import anndata as ad
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import pandas as pd
 import scanpy as sc
 import seaborn as sns

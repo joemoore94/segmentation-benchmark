@@ -24,42 +24,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from segbench.constants import CELLTYPE_COLORS, CLUSTER_ANNOTATIONS
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
-
-CLUSTER_ANNOTATIONS = {
-    "0":  "Luminal epithelial",
-    "1":  "Luminal epithelial",
-    "2":  "Macrophages",
-    "3":  "Luminal epithelial",
-    "4":  "Myoepithelial",
-    "5":  "T cells",
-    "6":  "B cells",
-    "7":  "Macrophages",
-    "8":  "Luminal epithelial",
-    "9":  "CAFs",
-    "10": "Smooth muscle",
-    "11": "Endothelial",
-    "12": "Plasma cells",
-    "13": "CAFs",
-    "14": "Adipocytes",
-}
-
-CELLTYPE_COLORS = {
-    "Luminal epithelial": "#E377C2",
-    "Myoepithelial":      "#8172B2",
-    "T cells":            "#2CA02C",
-    "B cells":            "#17BECF",
-    "Macrophages":        "#D62728",
-    "Plasma cells":       "#FF7F0E",
-    "CAFs":               "#7F7F7F",
-    "Smooth muscle":      "#BCBD22",
-    "Endothelial":        "#1F77B4",
-    "Adipocytes":         "#8C564B",
-}
 
 COMPARISON_ORDER = [
     ("cellpose",       "CellPose"),

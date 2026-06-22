@@ -19,7 +19,6 @@ import pandas as pd
 import seaborn as sns
 
 import numpy as np
-from scipy.optimize import linear_sum_assignment
 
 from segbench.io import PIXEL_SIZE
 from segbench.style import apply_style
@@ -219,25 +218,6 @@ def fig_disagreement_spatial_map() -> None:
     ], loc="lower center", ncols=2, fontsize=11, framealpha=0.9)
     fig.tight_layout(rect=[0, 0.04, 1, 1])
     fig.savefig(FIGURES_DIR / "disagreement_spatial_map.png", dpi=150)
-    plt.close(fig)
-
-
-def fig_cell_type_confusion() -> None:
-    pairs = [
-        (m, label, pd.read_csv(TABLES_DIR / f"cell_type_confusion_10x_{m}.csv", index_col=0))
-        for m, label in COMPARISON_ORDER
-    ]
-
-    fig, axes = plt.subplots(2, 3, figsize=(22, 15))
-    for ax, (m, label, confusion) in zip(axes.flatten(), pairs):
-        sns.heatmap(confusion, annot=False, cmap="viridis", ax=ax)
-        ax.set_xlabel(f"{label} Leiden cluster")
-        ax.set_ylabel("10x native Leiden cluster")
-        ax.set_title(f"10x native vs. {label}")
-
-    fig.suptitle("Cell-type cluster correspondence (matched pairs, Hungarian-aligned labels)")
-    fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "cell_type_confusion.png", dpi=150)
     plt.close(fig)
 
 
