@@ -38,6 +38,7 @@ COMPARISONS = {
     "10x native vs. Voronoi (Mesmer)": "disagreement_table_10x_voronoi_mesmer.csv",
     "10x native vs. Baysor": "disagreement_table_10x_baysor.csv",
     "10x native vs. Baysor (prior)": "disagreement_table_10x_baysor_prior.csv",
+    "10x native vs. Segger": "disagreement_table_10x_segger.csv",
 }
 
 
@@ -61,6 +62,9 @@ def main() -> None:
 
     rows = []
     for label, fname in COMPARISONS.items():
+        if not (TABLES_DIR / fname).exists():
+            print(f"\n=== {label}: skipped (file not found) ===")
+            continue
         disagreement = pd.read_csv(TABLES_DIR / fname)
         disagreement["log_density"] = disagreement["id_a"].map(log_density)
 

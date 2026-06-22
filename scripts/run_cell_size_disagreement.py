@@ -46,6 +46,7 @@ COMPARISONS = [
     ("voronoi_stardist",  "Voronoi (SD)", "#9467BD", "Voronoi"),
     ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22", "Voronoi"),
     ("baysor",            "Baysor",       "#DD8452", "Transcript-density"),
+    ("segger",            "Segger",       "#E377C2", "Multimodal"),
 ]
 
 PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]

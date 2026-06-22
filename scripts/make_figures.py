@@ -45,6 +45,7 @@ METHOD_COLORS = {
     "mesmer": "#D62728",
     "voronoi_mesmer": "#BCBD22",
     "voronoi_stardist": "#9467BD",
+    "segger": "#E377C2",
 }
 METHOD_LABELS = {
     "cellpose": "CellPose",
@@ -56,6 +57,7 @@ METHOD_LABELS = {
     "mesmer": "Mesmer",
     "voronoi_mesmer": "Voronoi (M)",
     "voronoi_stardist": "Voronoi (SD)",
+    "segger": "Segger",
 }
 
 # Methods included in the main analysis figures.
@@ -84,9 +86,11 @@ def fig_cell_counts_and_sizes() -> None:
     counts = pd.read_csv(TABLES_DIR / "cell_counts.csv", index_col="method")
     methods = [m for m in MAIN_METHODS if m in counts.index]
 
+    FILE_KEY = {"10x_native": "10x"}
     adatas_for_violin = {}
     for m in methods:
-        adatas_for_violin[m] = ad.read_h5ad(ROI_DIR / f"adata_{m}.h5ad")
+        fname = f"adata_{FILE_KEY.get(m, m)}.h5ad"
+        adatas_for_violin[m] = ad.read_h5ad(ROI_DIR / fname)
 
     transcripts_by_method = {
         m: np.asarray(adatas_for_violin[m].X.sum(axis=1)).ravel()

@@ -49,6 +49,7 @@ METHODS = [
     ("voronoi_stardist",  "Voronoi (SD)", "adata_voronoi_stardist.h5ad"),
     ("voronoi_mesmer",    "Voronoi (M)",  "adata_voronoi_mesmer.h5ad"),
     ("baysor",            "Baysor",       "adata_baysor.h5ad"),
+    ("segger",            "Segger",       "adata_segger.h5ad"),
 ]
 
 FAMILY = {
@@ -60,6 +61,7 @@ FAMILY = {
     "Voronoi (SD)": "Voronoi",
     "Voronoi (M)":  "Voronoi",
     "Baysor":       "Transcript-density",
+    "Segger":       "Multimodal",
 }
 
 FAMILY_COLORS = {
@@ -67,6 +69,7 @@ FAMILY_COLORS = {
     "Nuclear":            "#4C72B0",
     "Voronoi":            "#17BECF",
     "Transcript-density": "#DD8452",
+    "Multimodal":         "#E377C2",
 }
 
 
@@ -77,18 +80,24 @@ def main() -> None:
 
     print("Loading AnnData files...")
     adatas: dict[str, ad.AnnData] = {}
-    for _, label, fname in METHODS:
-        adatas[label] = ad.read_h5ad(ROI_DIR / fname)
+    available_methods = []
+    for key, label, fname in METHODS:
+        path = ROI_DIR / fname
+        if not path.exists():
+            print(f"  {label}: skipped (file not found)")
+            continue
+        adatas[label] = ad.read_h5ad(path)
+        available_methods.append((key, label, fname))
         print(f"  {label}: {adatas[label].n_obs} cells")
 
     print("\nClustering each method (Leiden resolution 1.0)...")
     labels: dict[str, pd.Series] = {}
-    for _, label, _ in METHODS:
+    for _, label, _ in available_methods:
         labels[label] = cluster_cell_types(adatas[label], resolution=1.0, seed=0)
         labels[label].index = labels[label].index.astype(str)
         print(f"  {label}: {labels[label].nunique()} clusters")
 
-    method_labels = [m[1] for m in METHODS]
+    method_labels = [m[1] for m in available_methods]
     n = len(method_labels)
     ari_matrix = np.full((n, n), np.nan)
     np.fill_diagonal(ari_matrix, 1.0)

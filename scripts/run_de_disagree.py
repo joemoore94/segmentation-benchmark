@@ -38,6 +38,7 @@ COMPARISONS = {
     "10x native vs. Voronoi (Mesmer)": "disagreement_table_10x_voronoi_mesmer.csv",
     "10x native vs. Baysor": "disagreement_table_10x_baysor.csv",
     "10x native vs. Baysor (prior)": "disagreement_table_10x_baysor_prior.csv",
+    "10x native vs. Segger": "disagreement_table_10x_segger.csv",
 }
 
 
@@ -73,6 +74,9 @@ def main() -> None:
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
 
     for label, fname in COMPARISONS.items():
+        if not (TABLES_DIR / fname).exists():
+            print(f"\n=== DE: {label}: skipped (file not found) ===")
+            continue
         print(f"\n=== DE: {label} ===")
         disagreement = pd.read_csv(TABLES_DIR / fname)
         n_agree = (disagreement["disagree"] == 0.0).sum()

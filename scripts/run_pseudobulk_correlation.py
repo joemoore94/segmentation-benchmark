@@ -39,9 +39,10 @@ COMPARISONS = [
     ("stardist",          "StarDist",     "#8172B2", 0.545),
     ("mesmer",            "Mesmer",       "#D62728", 0.557),
     ("voronoi",           "Voronoi (CP)", "#17BECF", 0.630),
-    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD", 0.000),  # ARI placeholder — update after run_comparison.py
+    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD", 0.584),
     ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22", 0.686),
     ("baysor",            "Baysor",       "#DD8452", 0.305),
+    ("segger",            "Segger",       "#E377C2", 0.000),  # ARI placeholder — update after Segger run
 ]
 
 PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]

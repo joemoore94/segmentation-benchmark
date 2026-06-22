@@ -41,6 +41,7 @@ METHODS = [
     ("voronoi_stardist",  "Voronoi (SD)"),
     ("voronoi_mesmer",    "Voronoi (M)"),
     ("baysor",            "Baysor"),
+    ("segger",            "Segger"),
 ]
 
 METHOD_COLORS = {
@@ -51,6 +52,7 @@ METHOD_COLORS = {
     "Voronoi (SD)": "#9467BD",
     "Voronoi (M)":  "#BCBD22",
     "Baysor":       "#DD8452",
+    "Segger":       "#E377C2",
 }
 
 PLOT_METHODS = [m for m in METHODS if m[0] not in ("cellpose", "stardist", "mesmer")]
@@ -64,12 +66,16 @@ def main() -> None:
 
     print("Loading AnnData files...")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
-    adatas = {m: ad.read_h5ad(ROI_DIR / f"adata_{m}.h5ad") for m, _ in METHODS}
+    available = [(m, l) for m, l in METHODS if (ROI_DIR / f"adata_{m}.h5ad").exists()]
+    skipped = [(m, l) for m, l in METHODS if not (ROI_DIR / f"adata_{m}.h5ad").exists()]
+    for m, l in skipped:
+        print(f"  {l}: skipped (file not found)")
+    adatas = {m: ad.read_h5ad(ROI_DIR / f"adata_{m}.h5ad") for m, _ in available}
 
     print("Loading match tables...")
     matches = {
         m: pd.read_csv(TABLES / f"disagreement_table_10x_{m}.csv")
-        for m, _ in METHODS
+        for m, _ in available
     }
 
     rows = []
@@ -78,7 +84,7 @@ def main() -> None:
         labels_10x = cluster_cell_types(adata_10x, resolution=res)
         labels_10x.index = labels_10x.index.astype(str)
         n_10x = labels_10x.nunique()
-        for method, label in METHODS:
+        for method, label in available:
             labels_comp = cluster_cell_types(adatas[method], resolution=res)
             labels_comp.index = labels_comp.index.astype(str)
             n_comp = labels_comp.nunique()

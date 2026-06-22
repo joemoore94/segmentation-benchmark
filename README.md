@@ -10,7 +10,7 @@
 | 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 |
 | 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 |
 | 10x native vs. Voronoi (CellPose) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 |
-| 10x native vs. Voronoi (StarDist) | — | — | — | — | — |
+| 10x native vs. Voronoi (StarDist) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 |
 | 10x native vs. Voronoi (Mesmer) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
 
@@ -50,7 +50,7 @@ Cells are matched by nearest centroid across methods. Leiden clustering runs ind
 | | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (SD) | Voronoi (M) | Baysor | 10x native |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Cells | 20,166 | 24,745 | 21,697 | 20,166 | 24,745 | 21,697 | 18,321 | 23,629 |
-| Median tx/cell | 49 | 45 | 70 | 149 | — | 142 | 53 | 124 |
+| Median tx/cell | 49 | 45 | 70 | 149 | 122 | 142 | 53 | 124 |
 | Transcript capture | 35.4% | 40.8% | 51.8% | 100% | 100% | 100% | 98.6% | 99.0% |
 
 ![Cell counts, transcripts/cell, and nucleus area by method](results/figures/cell_counts_and_sizes.png)
@@ -70,7 +70,7 @@ Leiden clustering runs independently on each method's cells (normalize → PCA �
 | StarDist | 12 | 24,745 | 1,512 | 457 | 4,771 |
 | Mesmer | 15 | 21,697 | 1,400 | 32 | 2,906 |
 | Voronoi (CP) | 14 | 20,166 | 1,134 | 213 | 3,092 |
-| Voronoi (SD) | — | 24,745 | — | — | — |
+| Voronoi (SD) | 16 | 24,743 | 1,394 | 24 | 5,000 |
 | Voronoi (M) | 14 | 21,697 | 1,557 | 192 | 3,262 |
 | Baysor | 21 | 18,321 | 609 | 86 | 3,070 |
 
@@ -122,7 +122,7 @@ The two Voronoi controls make this a clean experiment. CellPose nuclear and Voro
 | 10x native vs. StarDist | 0.215 | 18.6% | 15.0% |
 | 10x native vs. Mesmer | 0.090 | 17.1% | 32.5% |
 | 10x native vs. Voronoi (CP) | 0.076 | 11.1% | 27.2% |
-| 10x native vs. Voronoi (SD) | — | — | — |
+| 10x native vs. Voronoi (SD) | 0.194 | 23.2% | 30.8% |
 | 10x native vs. Voronoi (M) | 0.161 | 9.5% | 20.4% |
 | 10x native vs. Baysor | 0.033 | 21.4% | 17.5% |
 
@@ -152,7 +152,7 @@ Adipocytes and myoepithelial cells have the highest per-cell disagreement (~50�
 | 10x native vs. StarDist | 14,254 / 7,175 | -21.87 / -20.63 | 1.1e-90 |
 | 10x native vs. Mesmer | 14,850 / 5,745 | -21.73 / -20.14 | 3.8e-79 |
 | 10x native vs. Voronoi (CP) | 14,805 / 4,161 | -21.05 / -21.35 | 0.191 n.s. |
-| 10x native vs. Voronoi (SD) | — | — | — |
+| 10x native vs. Voronoi (SD) | 14,597 / 6,831 | -21.74 / -20.56 | 5.5e-51 |
 | 10x native vs. Voronoi (M) | 16,720 / 3,875 | -21.38 / -20.68 | 3.2e-12 |
 | 10x native vs. Baysor | 5,286 / 5,667 | -22.76 / -22.75 | 0.756 n.s. |
 
@@ -176,12 +176,12 @@ All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55%
 
 | | 10x native | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (SD) | Voronoi (M) | Baysor |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **10x native** | 1.0 | 0.547 | 0.545 | 0.557 | 0.630 | — | 0.686 | 0.305 |
-| **CellPose** | | 1.0 | 0.764 | 0.606 | 0.533 | — | 0.556 | 0.415 |
-| **StarDist** | | | 1.0 | 0.639 | 0.525 | — | 0.540 | 0.411 |
-| **Mesmer** | | | | 1.0 | 0.480 | — | 0.528 | 0.455 |
-| **Voronoi (CP)** | | | | | 1.0 | — | 0.661 | 0.336 |
-| **Voronoi (SD)** | | | | | | 1.0 | — | — |
+| **10x native** | 1.0 | 0.547 | 0.545 | 0.557 | 0.630 | 0.584 | 0.686 | 0.305 |
+| **CellPose** | | 1.0 | 0.764 | 0.606 | 0.533 | 0.557 | 0.556 | 0.415 |
+| **StarDist** | | | 1.0 | 0.639 | 0.525 | 0.568 | 0.540 | 0.411 |
+| **Mesmer** | | | | 1.0 | 0.480 | 0.535 | 0.528 | 0.455 |
+| **Voronoi (CP)** | | | | | 1.0 | 0.581 | 0.661 | 0.336 |
+| **Voronoi (SD)** | | | | | | 1.0 | 0.633 | 0.361 |
 | **Voronoi (M)** | | | | | | | 1.0 | 0.377 |
 
 No, at least not within the Voronoi family. CellPose and StarDist agree with each other at ARI 0.764 (higher than the Voronoi pair at 0.661) because both are nuclear-morphology methods on the same DAPI image. Switching to Voronoi assignment lowers within-paradigm agreement because the two Voronoi variants use different centroids, shifting boundaries even where centroids are close. What Voronoi does raise is agreement with the 10x-native whole-cell reference (0.63–0.69): compatibility with the platform's own segmentation, not cross-method reproducibility. Baysor remains isolated from all morphological methods (ARI 0.30–0.46 regardless of partner).
@@ -198,7 +198,7 @@ No, at least not within the Voronoi family. CellPose and StarDist agree with eac
 | 10x native vs. StarDist | 121.2 µm² | 116.9 µm² | 2.4e-12 |
 | 10x native vs. Mesmer | 126.2 µm² | 119.1 µm² | 3.2e-07 |
 | 10x native vs. Voronoi (CP) | 126.8 µm² | 111.5 µm² | 4.9e-32 |
-| 10x native vs. Voronoi (SD) | — | — | — |
+| 10x native vs. Voronoi (SD) | 123.8 µm² | 112.4 µm² | 8.8e-29 |
 | 10x native vs. Voronoi (M) | 125.9 µm² | 117.7 µm² | 3.7e-19 |
 | 10x native vs. Baysor | 167.0 µm² | 173.4 µm² | 0.28 n.s. |
 
@@ -224,7 +224,7 @@ Using 10x-native cell-type annotations as ground truth, nuclear methods recover 
 | StarDist | 0.88–0.99 | 0.975 | 0.545 |
 | Mesmer | 0.92–0.99 | 0.983 | 0.557 |
 | Voronoi (CP) | 0.98–1.00 | 0.9999 | 0.630 |
-| Voronoi (SD) | — | — | — |
+| Voronoi (SD) | 0.98–1.00 | 0.9999 | 0.584 |
 | Voronoi (M) | 0.98–1.00 | 0.9999 | 0.686 |
 | Baysor | 0.94–1.00 | 0.999 | 0.305 |
 

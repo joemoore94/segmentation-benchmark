@@ -47,6 +47,7 @@ METHODS = [
     ("voronoi_stardist",  "Voronoi (SD)"),
     ("voronoi_mesmer",    "Voronoi (M)"),
     ("baysor",            "Baysor"),
+    ("segger",            "Segger"),
 ]
 
 METHOD_COLORS = {
@@ -58,6 +59,7 @@ METHOD_COLORS = {
     "Voronoi (SD)": "#9467BD",
     "Voronoi (M)":  "#BCBD22",
     "Baysor":       "#DD8452",
+    "Segger":       "#E377C2",
 }
 
 PLOT_METHODS = [m for m in METHODS if m[0] not in ("cellpose", "stardist", "mesmer")]
@@ -95,7 +97,11 @@ def main() -> None:
 
     print("Loading AnnData files...")
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
-    adatas = {label: ad.read_h5ad(ROI_DIR / f"adata_{m}.h5ad") for m, label in METHODS}
+    available_methods = [(m, l) for m, l in METHODS if (ROI_DIR / f"adata_{m}.h5ad").exists()]
+    for m, l in METHODS:
+        if not (ROI_DIR / f"adata_{m}.h5ad").exists():
+            print(f"  {l}: skipped (file not found)")
+    adatas = {label: ad.read_h5ad(ROI_DIR / f"adata_{m}.h5ad") for m, label in available_methods}
 
     # ---------------------------------------------------------------- shared gene set
     all_genes = set(adata_10x.var_names)
@@ -113,7 +119,7 @@ def main() -> None:
 
     print("Projecting comparison methods into shared PCA space...")
     projections: dict[str, np.ndarray] = {"10x native": Z_10x}
-    for m, label in METHODS:
+    for m, label in available_methods:
         X = normalize_log(adatas[label][:, shared_genes].X)
         projections[label] = pca.transform(X)
         print(f"  {label}: {X.shape[0]} cells projected")
@@ -135,7 +141,7 @@ def main() -> None:
     # ---------------------------------------------------------------- figure 1: shared UMAP coloured by method
     print("\nRendering shared UMAP figure...")
     fig, ax = plt.subplots(figsize=(14, 11))
-    for method_label in ["10x native"] + [lab for _, lab in METHODS]:
+    for method_label in ["10x native"] + [lab for _, lab in available_methods]:
         xy = umap_coords[method_label]
         idx = rng.choice(len(xy), size=min(2000, len(xy)), replace=False)
         ax.scatter(xy[idx, 0], xy[idx, 1],
@@ -147,7 +153,7 @@ def main() -> None:
     handles = [plt.Line2D([0], [0], marker="o", color="w",
                           markerfacecolor=METHOD_COLORS[lab], markersize=10,
                           label=lab)
-               for lab in ["10x native"] + [lab for _, lab in METHODS]]
+               for lab in ["10x native"] + [lab for _, lab in available_methods]]
     ax.legend(handles=handles, fontsize=10, loc="best")
     fig.suptitle("Phenotypic landscape: shared reference space", fontsize=13, fontweight="bold")
     fig.tight_layout()
@@ -158,7 +164,7 @@ def main() -> None:
     # ---------------------------------------------------------------- figure 2: density distortion
     # Build a common grid from 10x UMAP extent.
     all_u = np.concatenate([umap_coords["10x native"]] +
-                           [umap_coords[lab] for _, lab in METHODS])
+                           [umap_coords[lab] for _, lab in available_methods])
     x_min, x_max = np.percentile(all_u[:, 0], [1, 99])
     y_min, y_max = np.percentile(all_u[:, 1], [1, 99])
     gx, gy = np.meshgrid(np.linspace(x_min, x_max, GRID_SIZE),
@@ -167,7 +173,7 @@ def main() -> None:
     print("\nComputing 2D KDE for each method...")
     dens_10x = density_grid(umap_coords["10x native"], gx, gy)
     dens: dict[str, np.ndarray] = {}
-    for _, label in METHODS:
+    for _, label in available_methods:
         dens[label] = density_grid(umap_coords[label], gx, gy)
         print(f"  {label}: done")
 

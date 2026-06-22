@@ -33,7 +33,7 @@ ALL_METHODS = [
     {"label": "Baysor",        "ari": 0.305, "color": "#DD8452", "family": "Transcript-density"},
     {"label": "CellPose",      "ari": 0.547, "color": "#4C72B0", "family": "Nuclear"},
     {"label": "Voronoi (CP)",  "ari": 0.630, "color": "#17BECF", "family": "Voronoi"},
-    {"label": "Voronoi (SD)",  "ari": 0.000, "color": "#9467BD", "family": "Voronoi"},  # ARI placeholder
+    {"label": "Voronoi (SD)",  "ari": 0.584, "color": "#9467BD", "family": "Voronoi"},
     {"label": "Voronoi (M)",   "ari": 0.686, "color": "#BCBD22", "family": "Voronoi"},
 ]
 
