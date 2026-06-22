@@ -459,8 +459,8 @@ def fig_cluster_confusion() -> None:
         "Adipocytes": "Adipo.",
     }
 
-    fig, axes = plt.subplots(2, 3, figsize=(42, 24))
-    fig.subplots_adjust(left=0.06, right=0.90, top=0.93, bottom=0.05,
+    fig, axes = plt.subplots(3, 2, figsize=(14, 20))
+    fig.subplots_adjust(left=0.10, right=0.86, top=0.95, bottom=0.03,
                         hspace=0.35, wspace=0.35)
 
     for ax, (method, label) in zip(axes.flatten(), COMPARISON_ORDER):
@@ -484,7 +484,7 @@ def fig_cluster_confusion() -> None:
         row_labels = [f"{c}: {ct_short.get(CLUSTER_ANNOTATIONS.get(c, ''), c)}"
                       for c in ref_ids]
 
-        fs = 11 if len(comp_ids) <= 15 else 9
+        fs = 13 if len(comp_ids) <= 15 else 11
         sns.heatmap(
             norm.values, ax=ax,
             cmap="Blues", vmin=0, vmax=100,
@@ -500,25 +500,25 @@ def fig_cluster_confusion() -> None:
                                    edgecolor="red", linewidth=2.5))
 
         ax.set_title(f"{label}  ({len(comp_ids)} clusters)",
-                     fontweight="bold", fontsize=16)
-        ax.set_xlabel(f"{label} cluster", fontsize=13)
+                     fontweight="bold", fontsize=18)
+        ax.set_xlabel(f"{label} cluster", fontsize=14)
         ax.set_ylabel("")
-        ax.tick_params(axis="x", rotation=0, labelsize=12)
-        ax.tick_params(axis="y", rotation=0, labelsize=12)
+        ax.tick_params(axis="x", rotation=0, labelsize=13)
+        ax.tick_params(axis="y", rotation=0, labelsize=13)
 
     from matplotlib.cm import ScalarMappable
     from matplotlib.colors import Normalize
     sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.92, 0.12, 0.012, 0.76])
+    cbar_ax = fig.add_axes([0.91, 0.08, 0.015, 0.84])
     cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.set_label("% of 10x native cluster", fontsize=13)
-    cbar.ax.tick_params(labelsize=11)
+    cbar.set_label("% of 10x native cluster", fontsize=14)
+    cbar.ax.tick_params(labelsize=12)
 
     fig.suptitle(
         "Cluster-level confusion matrices (row-normalised)  ·  "
         "Red border = Hungarian-matched pair",
-        fontweight="bold", fontsize=18,
+        fontweight="bold", fontsize=20,
     )
     fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
