@@ -24,6 +24,7 @@ import scanpy as sc
 import seaborn as sns
 
 from segbench.compare import cell_type_agreement, cluster_cell_types
+from segbench.spatial import disagreement_table, morans_i
 from segbench.style import apply_style
 
 ROI_DIR   = Path("data/processed/roi")
@@ -83,11 +84,15 @@ def main() -> None:
             m["id_b"] = m["id_b"].astype(str)
             result = cell_type_agreement(labels_10x, labels_comp, m)
             ari = result["ari"]
-            print(f"  {label:18s}: ARI={ari:.4f}  clusters: 10x={n_10x}, {label}={n_comp}")
+            dt = disagreement_table(m, labels_10x, labels_comp, adata_10x)
+            coords = dt[["centroid_x", "centroid_y"]].to_numpy()
+            mi = morans_i(coords, dt["disagree"].to_numpy(dtype=float))
+            print(f"  {label:18s}: ARI={ari:.4f}  I={mi:.4f}  clusters: 10x={n_10x}, {label}={n_comp}")
             rows.append({
                 "resolution": res,
                 "method": label,
                 "ari": round(ari, 4),
+                "morans_i": round(mi, 4),
                 "n_clusters_10x": n_10x,
                 "n_clusters_comp": n_comp,
             })
@@ -112,24 +117,21 @@ def main() -> None:
     ax.legend(fontsize=10)
     ax.set_xticks(RESOLUTIONS)
 
-    # Right: method rank at each resolution (rank 1 = highest ARI)
+    # Right: Moran's I of disagreement vs resolution
     ax2 = axes[1]
-    pivot = df.pivot(index="resolution", columns="method", values="ari")
-    ranks = pivot.rank(axis=1, ascending=False)
     for _, label in METHODS:
-        ax2.plot(ranks.index, ranks[label], "o-", color=METHOD_COLORS[label],
+        sub = df[df["method"] == label]
+        ax2.plot(sub["resolution"], sub["morans_i"], "o-", color=METHOD_COLORS[label],
                  label=label, linewidth=2.5, markersize=8)
     ax2.axvline(1.0, color="black", linewidth=1, linestyle="--", alpha=0.4)
     ax2.set_xlabel("Leiden resolution")
-    ax2.set_ylabel("ARI rank (1 = best agreement with 10x native)")
-    ax2.set_title("Method rank across resolutions", fontweight="bold")
-    ax2.invert_yaxis()
-    ax2.set_yticks(range(1, len(METHODS) + 1))
+    ax2.set_ylabel("Global Moran's I of disagreement")
+    ax2.set_title("Spatial structure of disagreement across resolutions", fontweight="bold")
     ax2.set_xticks(RESOLUTIONS)
     ax2.legend(fontsize=10)
 
     fig.suptitle(
-        "Leiden resolution sensitivity: ARI vs. 10x native across five resolutions",
+        "Leiden resolution sensitivity: ARI and spatial autocorrelation vs. 10x native",
         fontsize=13, fontweight="bold",
     )
     fig.tight_layout()

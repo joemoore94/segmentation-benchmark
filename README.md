@@ -41,7 +41,7 @@ Cells are matched by nearest centroid across methods. Leiden clustering runs ind
 
 ---
 
-## Q1: How many cells and transcripts does each method recover?
+## Cell and transcript recovery
 
 | | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (M) | Baysor | 10x native |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -55,7 +55,23 @@ Nuclear-only methods capture 35–52% of transcripts; Mesmer's larger nuclear ma
 
 ---
 
-## Q2: Do methods agree on cell-type identity for matched cells?
+## Clustering comparison
+
+Leiden clustering runs independently on each method's cells (normalize → PCA → neighbors → Leiden at resolution 1.0). Cluster labels are aligned across methods via Hungarian algorithm before computing confusion matrices and disagreement.
+
+| Method | Clusters | Cells | Median cells/cluster | Min | Max |
+| --- | --- | --- | --- | --- | --- |
+| 10x native | 15 | 23,629 | 1,333 | 199 | 3,314 |
+| CellPose | 13 | 20,166 | 1,080 | 105 | 3,658 |
+| StarDist | 12 | 24,745 | 1,512 | 457 | 4,771 |
+| Mesmer | 15 | 21,697 | 1,400 | 32 | 2,906 |
+| Voronoi (CP) | 14 | 20,166 | 1,134 | 213 | 3,092 |
+| Voronoi (M) | 14 | 21,697 | 1,557 | 192 | 3,262 |
+| Baysor | 21 | 18,321 | 609 | 86 | 3,070 |
+
+Morphological methods and 10x native converge on 12–15 clusters with median sizes above 1,000 cells. Baysor produces 21 clusters with a median of 609 — smaller, more fragmented populations consistent with over-segmentation rather than finer biological resolution (its ARI of 0.31 and near-random spatial disagreement support this; see resolution stability below).
+
+![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 
@@ -63,9 +79,21 @@ Nuclear-only methods capture 35–52% of transcripts; Mesmer's larger nuclear ma
 
 Per-cell expression correlation is high for all methods (median 0.79–0.96), but cluster-label agreement tells a different story. Nuclear methods (ARI ~0.55) and Voronoi methods (ARI 0.63–0.69) disagree with 10x native on roughly 20–34% of matched cells; Baysor disagrees on more than half. The confusion matrices show rows (10x native cell types) grouped along the diagonal for nuclear and Voronoi methods, with Baysor showing broader scatter, particularly in macrophage-rich and luminal epithelial regions.
 
+### Per-cluster pseudobulk
+
+![Per-cluster pseudobulk correlation vs. 10x native](results/figures/pseudobulk_by_cluster.png)
+
+To test whether cluster-level expression profiles agree, matched cells are grouped by 10x native's 15 Leiden clusters and pseudobulked per method. Nuclear methods drop to r = 0.86–0.87 on luminal epithelial clusters (0, 1, 3, 8) — the same populations driving single-cell disagreement — while Voronoi variants stay above 0.99 across all clusters. Baysor shows a comparable luminal dip plus reduced correlation on macrophage clusters (2, 7), consistent with transcript-density boundaries partitioning those populations differently.
+
+### Resolution stability
+
+![ARI and Moran's I across Leiden resolutions 0.5–2.0](results/figures/resolution_sensitivity.png)
+
+The method ordering is stable across Leiden resolutions 0.5–2.0. Voronoi (Mesmer) leads at resolutions 0.8 and above; Baysor is consistently lowest. At resolution 0.5 (9 clusters) CellPose briefly edges Voronoi (Mesmer) because the luminal epithelial population collapses into a single large cluster that aligns well with nuclear boundaries alone. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant: morphological methods maintain I = 0.2–0.6 (spatially structured disagreement) while Baysor stays near zero (0.004–0.065) regardless of cluster granularity.
+
 ---
 
-## Q3: What drives the ARI gap: transcript coverage or nuclear detection quality?
+## ARI decomposition: coverage vs. detection quality
 
 ![ARI decomposition and three-metric comparison](results/figures/decomposition.png)
 
@@ -73,7 +101,7 @@ The two Voronoi controls make this a clean experiment. CellPose nuclear and Voro
 
 ---
 
-## Q4: Where in the tissue do methods disagree?
+## Spatial structure of disagreement
 
 ![Disagreement mapped spatially](results/figures/disagreement_spatial_map.png)
 
@@ -94,7 +122,7 @@ Nuclear and Voronoi disagreements are spatially structured (Moran's I 0.076–0.
 
 ---
 
-## Q5: Which cell types are most sensitive to segmentation choice?
+## Cell-type sensitivity
 
 ![Cell type vs. agreement for all methods](results/figures/agreement_explainer.png)
 
@@ -102,7 +130,7 @@ Adipocytes and myoepithelial cells have the highest per-cell disagreement (~50�
 
 ---
 
-## Q6: Is disagreement cell-state-dependent or geometric?
+## Disagreement drivers: cell state vs. geometry
 
 ![Phenotypic density vs. disagreement](results/figures/density_vs_disagreement.png)
 
@@ -121,7 +149,7 @@ Nuclear methods disagree on cells in higher-density phenotypic regions (Mann-Whi
 
 ---
 
-## Q7: Does segmentation alter the shape of the phenotypic landscape?
+## Phenotypic landscape distortion
 
 ![All methods in shared PCA/UMAP space](results/figures/manifold_shared_umap.png)
 
@@ -131,15 +159,7 @@ All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55%
 
 ---
 
-## Q8: Are these findings stable across clustering resolutions?
-
-![ARI across Leiden resolutions 0.5–2.0](results/figures/resolution_sensitivity.png)
-
-The method ordering is stable across Leiden resolutions 0.5–2.0. Voronoi (Mesmer) leads at resolutions 0.8 and above; Baysor is consistently lowest. At resolution 0.5 (9 clusters, very coarse) CellPose nuclear briefly edges Voronoi (Mesmer) because the luminal epithelial population collapses into a single large cluster that aligns well with nuclear boundaries alone. The Voronoi advantage grows with resolution, consistent with cytoplasmic transcripts becoming more important for distinguishing finer cell-state distinctions.
-
----
-
-## Q9: Does Voronoi assignment raise pairwise agreement between methods?
+## Pairwise method agreement
 
 ![Pairwise ARI between all segmentation methods](results/figures/pairwise_consensus.png)
 
@@ -156,7 +176,7 @@ No, at least not within the Voronoi family. CellPose and StarDist agree with eac
 
 ---
 
-## Q10: Are smaller cells more likely to disagree?
+## Cell size and disagreement
 
 ![Cell size vs. disagreement probability](results/figures/cell_size_disagreement.png)
 
@@ -173,7 +193,7 @@ Smaller 10x-native cells are significantly more likely to disagree with every mo
 
 ---
 
-## Q11: Does segmentation method affect recovery of cell-type marker genes?
+## Marker gene recovery
 
 ![Marker gene recovery relative to 10x native](results/figures/marker_recovery.png)
 
@@ -181,7 +201,7 @@ Using 10x-native cell-type annotations as ground truth, nuclear methods recover 
 
 ---
 
-## Q12: Do methods converge on population-level expression profiles?
+## Population-level convergence
 
 ![Pseudobulk correlation vs. 10x native](results/figures/pseudobulk_correlation.png)
 
@@ -258,12 +278,6 @@ See [`scripts/run_baysor.sh`](scripts/run_baysor.sh).
 ---
 
 ## Supplemental
-
-### Per-method Leiden clustering (UMAP)
-
-![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
-
-Leiden clustering runs independently on each method's cells; cluster counts vary (CellPose 13, StarDist 12, Mesmer 15, Voronoi (CP) 14, Voronoi (M) 14, Baysor 21, 10x native 15). Baysor's higher count reflects richer per-cell transcript profiles resolving finer expression differences at resolution 1.0.
 
 ### Cell type annotation (10x native)
 

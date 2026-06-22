@@ -1,23 +1,14 @@
-"""Pseudobulk correlation: do methods agree on cell-type-level expression?
+"""Pseudobulk correlation: do methods agree at population level?
 
-Individual cell misclassification does not necessarily imply population-level
-expression errors. This script sums counts across all matched cells of each
-10x-native cell type for every method, normalises to CPM, and computes
-Pearson correlation between each method's per-type pseudobulk and the 10x-
-native reference. A high correlation (>0.95) at the pseudobulk level alongside
-low ARI at the single-cell level would indicate that methods disagree on how
-to assign individual cells to types but still produce coherent population
-profiles.
-
-Left panel: heatmap of per-cell-type pseudobulk Pearson correlation,
-            method (rows) × 10x-native cell type (columns).
-Right panel: global pseudobulk Pearson (all cell types pooled) vs. ARI,
-             showing whether the two metrics are correlated or dissociated.
+Sums counts per group (cell type or Leiden cluster), normalises to CPM, and
+computes Pearson correlation between each method and 10x native.
 
 Reads:  data/processed/roi/adata_*.h5ad
         results/tables/disagreement_table_10x_*.csv
-Writes: results/figures/pseudobulk_correlation.png
+Writes: results/figures/pseudobulk_correlation.png      (cell-type level)
+        results/figures/pseudobulk_by_cluster.png        (Leiden cluster level)
         results/tables/pseudobulk_correlation.csv
+        results/tables/pseudobulk_by_cluster.csv
 
 Usage::
 
@@ -194,6 +185,80 @@ def main() -> None:
     fig.savefig(FIGURES / "pseudobulk_correlation.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
     print("Saved pseudobulk_correlation.png")
+
+    # ---- Cluster-level pseudobulk ----------------------------------------
+    leiden_labels = adata_10x.obs["leiden"]
+    cluster_ids = sorted(leiden_labels.unique(), key=int)
+    cluster_labels = [f"{c}: {CLUSTER_ANNOTATIONS[c]}" for c in cluster_ids]
+
+    ref_cluster_pb: dict[str, np.ndarray] = {}
+    for c in cluster_ids:
+        cids = list(leiden_labels[leiden_labels == c].index)
+        ref_cluster_pb[c] = pseudobulk(adata_10x_raw, cids)
+
+    ref_gene_pos = {g: i for i, g in enumerate(adata_10x_raw.var_names)}
+
+    cluster_rows = []
+    for method, label, color, ari in COMPARISONS:
+        path = TABLES / f"disagreement_table_10x_{method}.csv"
+        if not path.exists():
+            continue
+        dtable = pd.read_csv(path)
+        id_b_from_a = dict(zip(dtable["id_a"].astype(str), dtable["id_b"].astype(str)))
+        adata_comp = ad.read_h5ad(ROI_DIR / f"adata_{method}.h5ad")
+        shared = adata_10x_raw.var_names.intersection(adata_comp.var_names)
+        comp_gene_pos = {g: i for i, g in enumerate(adata_comp.var_names)}
+        shared_ref_idx = [ref_gene_pos[g] for g in shared]
+        shared_comp_idx = [comp_gene_pos[g] for g in shared]
+
+        corrs: dict[str, float] = {}
+        for c in cluster_ids:
+            cids_10x = list(leiden_labels[leiden_labels == c].index)
+            comp_ids = [id_b_from_a[cid] for cid in cids_10x if cid in id_b_from_a]
+            if len(comp_ids) < 5:
+                corrs[c] = np.nan
+                continue
+            ref_pb = ref_cluster_pb[c][shared_ref_idx]
+            comp_pb = pseudobulk(adata_comp, comp_ids)[shared_comp_idx]
+            r, _ = pearsonr(np.log1p(ref_pb), np.log1p(comp_pb))
+            corrs[c] = round(float(r), 4)
+
+        row = {"method": label}
+        for c, cl in zip(cluster_ids, cluster_labels):
+            row[cl] = corrs.get(c, np.nan)
+        cluster_rows.append(row)
+
+    df_cl = pd.DataFrame(cluster_rows)
+    df_cl.to_csv(TABLES / "pseudobulk_by_cluster.csv", index=False)
+
+    pivot_cl = df_cl.set_index("method")[cluster_labels]
+    pivot_cl = pivot_cl.reindex(index=[l for _, l, _, _ in COMPARISONS if l in pivot_cl.index])
+
+    fig2, ax_cl = plt.subplots(figsize=(18, 6))
+    sns.heatmap(
+        pivot_cl,
+        annot=True, fmt=".3f",
+        cmap="YlOrRd",
+        vmin=0.90, vmax=1.0,
+        linewidths=0.4, linecolor="white",
+        ax=ax_cl,
+        cbar_kws={"label": "Pseudobulk Pearson r (log CPM)", "shrink": 0.7},
+        annot_kws={"size": 9, "weight": "bold"},
+    )
+    ax_cl.set_title(
+        "Per-cluster pseudobulk Pearson correlation vs. 10x native\n"
+        "(matched cells grouped by 10x Leiden cluster, log CPM, shared genes)",
+        fontweight="bold", fontsize=12,
+    )
+    ax_cl.set_xlabel("")
+    ax_cl.set_ylabel("")
+    ax_cl.tick_params(axis="x", rotation=40, labelsize=9)
+    plt.setp(ax_cl.get_xticklabels(), ha="right")
+    ax_cl.tick_params(axis="y", rotation=0, labelsize=11)
+    fig2.tight_layout()
+    fig2.savefig(FIGURES / "pseudobulk_by_cluster.png", dpi=150, bbox_inches="tight")
+    plt.close(fig2)
+    print("Saved pseudobulk_by_cluster.png")
 
 
 if __name__ == "__main__":
