@@ -77,11 +77,7 @@ Morphological methods and 10x native converge on 12–15 clusters with median si
 
 ![Cluster-level confusion matrices with Hungarian-matched pairs](results/figures/confusion_clusters.png)
 
-The raw Leiden cluster cross-tabulations show how each method's clusters map onto 10x native's 15. Each row is one 10x native cluster; columns are the comparison method's clusters; red borders mark the Hungarian-matched (optimal 1-to-1) pair. Morphological methods produce clean matches — the dominant cell in each row aligns with the Hungarian pair, and off-diagonal leakage is minimal. Baysor's 15×21 matrix is qualitatively different: signal disperses across many columns, matched pairs often capture a minority of cells, and 6 clusters have no 10x counterpart.
-
-![Annotated cluster confusion matrices](results/figures/confusion_annotated.png)
-
-Collapsing clusters into 10 annotated cell types, the confusion matrices show rows grouped along the diagonal for nuclear and Voronoi methods, with Baysor showing broader scatter in macrophage-rich and luminal epithelial regions.
+The raw Leiden cluster cross-tabulations show how each method's clusters map onto 10x native's 15. Each row is one 10x native cluster; columns are the comparison method's clusters; red borders mark the Hungarian-matched (optimal 1-to-1) pair. Morphological methods produce clean matches — the dominant cell in each row aligns with the Hungarian pair, and off-diagonal leakage is minimal. Baysor's 15×21 matrix is qualitatively different: signal disperses across many columns, matched pairs often capture a minority of cells, and 6 clusters have no 10x counterpart. Collapsing to annotated cell types, the same pattern holds — Baysor shows broader scatter particularly in macrophage and luminal epithelial populations.
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 

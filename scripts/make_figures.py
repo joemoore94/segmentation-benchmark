@@ -362,88 +362,8 @@ def fig_de_volcano() -> None:
     plt.close(fig)
 
 
-def fig_annotated_confusion() -> None:
-    """10x10 cell-type confusion matrices built directly from the disagreement tables.
-
-    Row-normalised with numeric annotations in each cell so off-diagonal
-    percentages are readable even at low values.
-    """
-    from matplotlib.cm import ScalarMappable
-    from matplotlib.colors import Normalize
-
-    annotations = pd.read_csv(TABLES_DIR / "cluster_annotations.csv", dtype={"leiden_cluster": str})
-    cluster_to_ct = dict(zip(annotations["leiden_cluster"], annotations["cell_type"]))
-
-    ct_order = [
-        "Luminal epithelial", "Myoepithelial", "CAFs", "Smooth muscle",
-        "Endothelial", "Adipocytes", "T cells", "B cells",
-        "Plasma cells", "Macrophages",
-    ]
-    ct_short = [
-        "Lum. epith.", "Myoepith.", "CAFs", "Sm. muscle",
-        "Endothelial", "Adipocytes", "T cells", "B cells",
-        "Plasma cells", "Macrophages",
-    ]
-
-    fig, axes = plt.subplots(2, 3, figsize=(22, 14))
-    fig.subplots_adjust(left=0.07, right=0.88, top=0.92, bottom=0.08,
-                        hspace=0.45, wspace=0.35)
-
-    for i, (ax, (method, label)) in enumerate(zip(axes.flatten(), COMPARISON_ORDER)):
-        dtable = pd.read_csv(TABLES_DIR / f"disagreement_table_10x_{method}.csv",
-                             dtype={"label_a": str, "label_b": str})
-
-        dtable["ct_a"] = dtable["label_a"].map(cluster_to_ct)
-        dtable["ct_b"] = dtable["label_b"].map(cluster_to_ct)
-        dtable = dtable.dropna(subset=["ct_a", "ct_b"])
-
-        counts = pd.crosstab(dtable["ct_a"], dtable["ct_b"])
-        counts = counts.reindex(index=ct_order, columns=ct_order, fill_value=0)
-
-        row_sums = counts.sum(axis=1).replace(0, np.nan)
-        norm = counts.div(row_sums, axis=0).fillna(0) * 100
-
-        annot_text = norm.map(lambda v: f"{v:.0f}" if v >= 1 else "")
-
-        sns.heatmap(
-            norm, ax=ax,
-            cmap="Blues", vmin=0, vmax=100,
-            annot=annot_text, fmt="",
-            annot_kws={"fontsize": 8},
-            xticklabels=ct_short, yticklabels=ct_short,
-            linewidths=0.5, linecolor="#e0e0e0",
-            cbar=False,
-        )
-
-        ax.set_title(label, fontweight="bold")
-        ax.set_xlabel(f"{label} assignment")
-        ax.set_ylabel("10x native cell type" if i % 3 == 0 else "")
-        ax.tick_params(axis="x", rotation=45)
-        ax.tick_params(axis="y", rotation=0)
-        plt.setp(ax.get_xticklabels(), ha="right")
-
-    sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
-    sm.set_array([])
-    cbar_ax = fig.add_axes([0.90, 0.12, 0.015, 0.76])
-    cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.set_label("% of 10x cell type")
-
-    fig.suptitle(
-        "Cell-type confusion matrices (row-normalised)  ·  "
-        "Diagonal = per-type agreement rate",
-        fontweight="bold",
-    )
-    fig.savefig(FIGURES_DIR / "confusion_annotated.png", dpi=200, bbox_inches="tight")
-    plt.close(fig)
-
-
 def fig_cluster_confusion() -> None:
-    """Raw Leiden cluster confusion matrices with Hungarian-matched pairs highlighted.
-
-    Unlike fig_annotated_confusion (which collapses to 10 cell types), this
-    shows the full cluster-level cross-tabulation so the reader can see how
-    methods with different cluster counts (12–21) align to 10x native's 15.
-    """
+    """Cluster-level confusion matrices with Hungarian-matched pairs highlighted."""
     from matplotlib.patches import Rectangle
 
     ct_short = {
@@ -518,7 +438,7 @@ def fig_cluster_confusion() -> None:
     fig.suptitle(
         "Cluster-level confusion matrices (row-normalised)  ·  "
         "Red border = Hungarian-matched pair",
-        fontweight="bold", fontsize=20,
+        fontsize=14, fontstyle="italic", y=0.99,
     )
     fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -537,8 +457,6 @@ def main() -> None:
     de_files = [f"de_disagree_10x_{m}.csv" for m, _ in COMPARISON_ORDER]
     if all((TABLES_DIR / f).exists() for f in de_files):
         fig_de_volcano()
-    if (TABLES_DIR / "cluster_annotations.csv").exists():
-        fig_annotated_confusion()
     confusion_csvs = [f"cell_type_confusion_10x_{m}.csv" for m, _ in COMPARISON_ORDER]
     if all((TABLES_DIR / f).exists() for f in confusion_csvs):
         fig_cluster_confusion()
