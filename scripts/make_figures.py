@@ -361,13 +361,10 @@ def fig_de_volcano() -> None:
 
 
 def fig_annotated_confusion() -> None:
-    """10×10 cell-type confusion matrices built directly from the disagreement tables.
+    """10x10 cell-type confusion matrices built directly from the disagreement tables.
 
-    The disagreement table already contains label_a (10x native Leiden cluster)
-    and label_b (comparison method cluster, Hungarian-aligned to 10x cluster IDs).
-    Both map to the same 10 cell types via CLUSTER_ANNOTATIONS, giving a confusion
-    matrix that is exactly consistent with the reported disagreement rates.
-    Row-normalised; no cell annotations — colour only.
+    Row-normalised with numeric annotations in each cell so off-diagonal
+    percentages are readable even at low values.
     """
     from matplotlib.cm import ScalarMappable
     from matplotlib.colors import Normalize
@@ -380,15 +377,15 @@ def fig_annotated_confusion() -> None:
         "Endothelial", "Adipocytes", "T cells", "B cells",
         "Plasma cells", "Macrophages",
     ]
-    # Abbreviated for axis tick labels — max ~12 chars so labels are legible at typical zoom
     ct_short = [
         "Lum. epith.", "Myoepith.", "CAFs", "Sm. muscle",
         "Endothelial", "Adipocytes", "T cells", "B cells",
         "Plasma cells", "Macrophages",
     ]
 
-    fig, axes = plt.subplots(2, 3, figsize=(42, 28))
-    fig.subplots_adjust(right=0.87, hspace=0.38, wspace=0.40)
+    fig, axes = plt.subplots(2, 3, figsize=(22, 14))
+    fig.subplots_adjust(left=0.07, right=0.88, top=0.92, bottom=0.08,
+                        hspace=0.45, wspace=0.35)
 
     for i, (ax, (method, label)) in enumerate(zip(axes.flatten(), COMPARISON_ORDER)):
         dtable = pd.read_csv(TABLES_DIR / f"disagreement_table_10x_{method}.csv",
@@ -404,37 +401,37 @@ def fig_annotated_confusion() -> None:
         row_sums = counts.sum(axis=1).replace(0, np.nan)
         norm = counts.div(row_sums, axis=0).fillna(0) * 100
 
+        annot_text = norm.map(lambda v: f"{v:.0f}" if v >= 1 else "")
+
         sns.heatmap(
             norm, ax=ax,
             cmap="Blues", vmin=0, vmax=100,
-            annot=False,
+            annot=annot_text, fmt="",
+            annot_kws={"fontsize": 8},
             xticklabels=ct_short, yticklabels=ct_short,
             linewidths=0.5, linecolor="#e0e0e0",
             cbar=False,
         )
 
-        ax.set_title(label, fontweight="bold", fontsize=20)
-        ax.set_xlabel(f"{label} assignment", fontsize=16)
-        # y-label only on left column to avoid repetition
-        ax.set_ylabel("10x native cell type" if i % 3 == 0 else "", fontsize=16)
-        ax.tick_params(axis="x", labelsize=17, rotation=45)
-        ax.tick_params(axis="y", labelsize=17, rotation=0)
+        ax.set_title(label, fontweight="bold")
+        ax.set_xlabel(f"{label} assignment")
+        ax.set_ylabel("10x native cell type" if i % 3 == 0 else "")
+        ax.tick_params(axis="x", rotation=45)
+        ax.tick_params(axis="y", rotation=0)
         plt.setp(ax.get_xticklabels(), ha="right")
 
-    # One shared colorbar for the whole figure
     sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.89, 0.15, 0.018, 0.68])
+    cbar_ax = fig.add_axes([0.90, 0.12, 0.015, 0.76])
     cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.set_label("% of 10x cell type", fontsize=16)
-    cbar.ax.tick_params(labelsize=15)
+    cbar.set_label("% of 10x cell type")
 
     fig.suptitle(
         "Cell-type confusion matrices (row-normalised)  ·  "
         "Diagonal = per-type agreement rate",
-        fontsize=20, fontweight="bold",
+        fontweight="bold",
     )
-    fig.savefig(FIGURES_DIR / "confusion_annotated.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "confusion_annotated.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 
