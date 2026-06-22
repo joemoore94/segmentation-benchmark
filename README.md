@@ -209,16 +209,16 @@ Using 10x-native cell-type annotations as ground truth, nuclear methods recover 
 
 ![Pseudobulk correlation vs. 10x native](results/figures/pseudobulk_correlation.png)
 
-| Method | Global pseudobulk r | Single-cell ARI |
-| --- | --- | --- |
-| CellPose | 0.970 | 0.547 |
-| StarDist | 0.975 | 0.545 |
-| Mesmer | 0.983 | 0.557 |
-| Voronoi (CP) | 0.9999 | 0.630 |
-| Voronoi (M) | 0.9999 | 0.686 |
-| Baysor | 0.999 | 0.305 |
+| Method | Per-cell-type pseudobulk r (range) | Aggregate r | Single-cell ARI |
+| --- | --- | --- | --- |
+| CellPose | 0.87–0.98 | 0.970 | 0.547 |
+| StarDist | 0.88–0.99 | 0.975 | 0.545 |
+| Mesmer | 0.92–0.99 | 0.983 | 0.557 |
+| Voronoi (CP) | 0.98–1.00 | 0.9999 | 0.630 |
+| Voronoi (M) | 0.98–1.00 | 0.9999 | 0.686 |
+| Baysor | 0.94–1.00 | 0.999 | 0.305 |
 
-The headline result: Baysor's per-cell ARI of 0.305 (the lowest) coexists with a near-perfect pseudobulk Pearson r of 0.999. Baysor draws different cell boundaries and assigns transcripts to different individual cells, but the aggregate transcript pool per tissue region is the same as 10x native. Nuclear methods show the reverse: moderate single-cell ARI (~0.55) but reduced pseudobulk r (0.97–0.98), because missing cytoplasmic transcripts suppress marker signal systematically across all cells of a type. Voronoi methods achieve both.
+Pseudobulk is computed within each of 10 annotated cell types (not as a whole-ROI sum), so the correlation tests whether each method's cell-type compartments recover the same expression programs as 10x native. Baysor's per-cell-type correlations range from 0.94 (plasma cells) to 0.997 (CAFs), degrading predictably on rare populations with fewer cells. Despite its low single-cell ARI of 0.305, Baysor is competitive with nuclear methods at the cell-type level — its aggregate r of 0.999 sits above CellPose (0.970) and StarDist (0.975). Nuclear methods show reduced pseudobulk r (0.97–0.98) because missing cytoplasmic transcripts suppress marker signal systematically across all cells of a type. Voronoi methods achieve both high single-cell ARI and near-perfect pseudobulk agreement.
 
 ---
 
