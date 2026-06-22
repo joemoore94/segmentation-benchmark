@@ -34,22 +34,26 @@ FIGURES   = Path("results/figures")
 RESOLUTIONS = [0.5, 0.8, 1.0, 1.5, 2.0]
 
 METHODS = [
-    ("cellpose",       "CellPose"),
-    ("stardist",       "StarDist"),
-    ("mesmer",         "Mesmer"),
-    ("voronoi",        "Voronoi (CP)"),
-    ("voronoi_mesmer", "Voronoi (M)"),
-    ("baysor",         "Baysor"),
+    ("cellpose",          "CellPose"),
+    ("stardist",          "StarDist"),
+    ("mesmer",            "Mesmer"),
+    ("voronoi",           "Voronoi (CP)"),
+    ("voronoi_stardist",  "Voronoi (SD)"),
+    ("voronoi_mesmer",    "Voronoi (M)"),
+    ("baysor",            "Baysor"),
 ]
 
 METHOD_COLORS = {
-    "CellPose":    "#4C72B0",
-    "StarDist":    "#8172B2",
-    "Mesmer":      "#D62728",
-    "Voronoi (CP)":"#17BECF",
-    "Voronoi (M)": "#BCBD22",
-    "Baysor":      "#DD8452",
+    "CellPose":     "#4C72B0",
+    "StarDist":     "#8172B2",
+    "Mesmer":       "#D62728",
+    "Voronoi (CP)": "#17BECF",
+    "Voronoi (SD)": "#9467BD",
+    "Voronoi (M)":  "#BCBD22",
+    "Baysor":       "#DD8452",
 }
+
+PLOT_METHODS = [m for m in METHODS if m[0] not in ("cellpose", "stardist", "mesmer")]
 
 
 def main() -> None:
@@ -104,9 +108,9 @@ def main() -> None:
     # ---------------------------------------------------------------- figure
     fig, axes = plt.subplots(1, 2, figsize=(22, 9))
 
-    # Left: ARI vs resolution, one line per method
+    # Left: ARI vs resolution, one line per method (plot subset)
     ax = axes[0]
-    for _, label in METHODS:
+    for _, label in PLOT_METHODS:
         sub = df[df["method"] == label]
         ax.plot(sub["resolution"], sub["ari"], "o-", color=METHOD_COLORS[label],
                 label=label, linewidth=2.5, markersize=8)
@@ -117,9 +121,9 @@ def main() -> None:
     ax.legend(fontsize=10)
     ax.set_xticks(RESOLUTIONS)
 
-    # Right: Moran's I of disagreement vs resolution
+    # Right: Moran's I of disagreement vs resolution (plot subset)
     ax2 = axes[1]
-    for _, label in METHODS:
+    for _, label in PLOT_METHODS:
         sub = df[df["method"] == label]
         ax2.plot(sub["resolution"], sub["morans_i"], "o-", color=METHOD_COLORS[label],
                  label=label, linewidth=2.5, markersize=8)

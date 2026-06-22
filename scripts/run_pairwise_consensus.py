@@ -41,13 +41,14 @@ MAX_MATCH_DIST = 10.0
 
 # Ordered by family so the heatmap groups naturally.
 METHODS = [
-    ("10x",            "10x native",   "adata_10x.h5ad"),
-    ("cellpose",       "CellPose",     "adata_cellpose.h5ad"),
-    ("stardist",       "StarDist",     "adata_stardist.h5ad"),
-    ("mesmer",         "Mesmer",       "adata_mesmer.h5ad"),
-    ("voronoi",        "Voronoi (CP)", "adata_voronoi.h5ad"),
-    ("voronoi_mesmer", "Voronoi (M)",  "adata_voronoi_mesmer.h5ad"),
-    ("baysor",         "Baysor",       "adata_baysor.h5ad"),
+    ("10x",               "10x native",   "adata_10x.h5ad"),
+    ("cellpose",          "CellPose",     "adata_cellpose.h5ad"),
+    ("stardist",          "StarDist",     "adata_stardist.h5ad"),
+    ("mesmer",            "Mesmer",       "adata_mesmer.h5ad"),
+    ("voronoi",           "Voronoi (CP)", "adata_voronoi.h5ad"),
+    ("voronoi_stardist",  "Voronoi (SD)", "adata_voronoi_stardist.h5ad"),
+    ("voronoi_mesmer",    "Voronoi (M)",  "adata_voronoi_mesmer.h5ad"),
+    ("baysor",            "Baysor",       "adata_baysor.h5ad"),
 ]
 
 FAMILY = {
@@ -56,6 +57,7 @@ FAMILY = {
     "StarDist":     "Nuclear",
     "Mesmer":       "Nuclear",
     "Voronoi (CP)": "Voronoi",
+    "Voronoi (SD)": "Voronoi",
     "Voronoi (M)":  "Voronoi",
     "Baysor":       "Transcript-density",
 }

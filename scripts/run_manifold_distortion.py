@@ -40,23 +40,27 @@ ROI_DIR = Path("data/processed/roi")
 FIGURES = Path("results/figures")
 
 METHODS = [
-    ("cellpose",       "CellPose"),
-    ("stardist",       "StarDist"),
-    ("mesmer",         "Mesmer"),
-    ("voronoi",        "Voronoi (CP)"),
-    ("voronoi_mesmer", "Voronoi (M)"),
-    ("baysor",         "Baysor"),
+    ("cellpose",          "CellPose"),
+    ("stardist",          "StarDist"),
+    ("mesmer",            "Mesmer"),
+    ("voronoi",           "Voronoi (CP)"),
+    ("voronoi_stardist",  "Voronoi (SD)"),
+    ("voronoi_mesmer",    "Voronoi (M)"),
+    ("baysor",            "Baysor"),
 ]
 
 METHOD_COLORS = {
-    "10x native":  "#55A868",
-    "CellPose":    "#4C72B0",
-    "StarDist":    "#8172B2",
-    "Mesmer":      "#D62728",
-    "Voronoi (CP)":"#17BECF",
-    "Voronoi (M)": "#BCBD22",
-    "Baysor":      "#DD8452",
+    "10x native":   "#55A868",
+    "CellPose":     "#4C72B0",
+    "StarDist":     "#8172B2",
+    "Mesmer":       "#D62728",
+    "Voronoi (CP)": "#17BECF",
+    "Voronoi (SD)": "#9467BD",
+    "Voronoi (M)":  "#BCBD22",
+    "Baysor":       "#DD8452",
 }
+
+PLOT_METHODS = [m for m in METHODS if m[0] not in ("cellpose", "stardist", "mesmer")]
 
 N_PCS     = 30
 N_SAMPLE  = 5_000   # cells per method for UMAP (full set used for density)
@@ -176,11 +180,11 @@ def main() -> None:
     vmax = max(np.abs(v).max() for v in log2_ratio.values())
     vmax = min(vmax, 3.0)   # cap at ±3 log2 for colour saturation
 
-    fig, axes = plt.subplots(2, 3, figsize=(28, 18))
+    fig, axes = plt.subplots(2, 2, figsize=(20, 18))
     cmap = "RdBu_r"
     norm = mcolors.TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
 
-    for ax, (_, label) in zip(axes.flatten(), METHODS):
+    for ax, (_, label) in zip(axes.flatten(), PLOT_METHODS):
         im = ax.pcolormesh(gx, gy, log2_ratio[label], cmap=cmap, norm=norm,
                            shading="auto", rasterized=True)
         # Overlay 10x native UMAP as faint grey dots for orientation

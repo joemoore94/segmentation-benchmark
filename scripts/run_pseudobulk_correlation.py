@@ -35,13 +35,16 @@ TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
 
 COMPARISONS = [
-    ("cellpose",       "CellPose",     "#4C72B0", 0.547),
-    ("stardist",       "StarDist",     "#8172B2", 0.545),
-    ("mesmer",         "Mesmer",       "#D62728", 0.557),
-    ("voronoi",        "Voronoi (CP)", "#17BECF", 0.630),
-    ("voronoi_mesmer", "Voronoi (M)",  "#BCBD22", 0.686),
-    ("baysor",         "Baysor",       "#DD8452", 0.305),
+    ("cellpose",          "CellPose",     "#4C72B0", 0.547),
+    ("stardist",          "StarDist",     "#8172B2", 0.545),
+    ("mesmer",            "Mesmer",       "#D62728", 0.557),
+    ("voronoi",           "Voronoi (CP)", "#17BECF", 0.630),
+    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD", 0.000),  # ARI placeholder — update after run_comparison.py
+    ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22", 0.686),
+    ("baysor",            "Baysor",       "#DD8452", 0.305),
 ]
+
+PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]
 
 CELL_TYPES = [
     "Luminal epithelial", "Macrophages", "T cells", "B cells",
@@ -134,9 +137,10 @@ def main() -> None:
     df = pd.DataFrame(rows)
     df.to_csv(TABLES / "pseudobulk_correlation.csv", index=False)
 
-    # Pivot for heatmap: method × cell type
-    pivot = df.set_index("method")[CELL_TYPES]
-    pivot = pivot.reindex(index=[l for _, l, _, _ in COMPARISONS if l in pivot.index])
+    # Pivot for heatmap: method × cell type (plot subset only)
+    plot_labels = {l for _, l, _, _ in PLOT_COMPARISONS}
+    pivot = df[df["method"].isin(plot_labels)].set_index("method")[CELL_TYPES]
+    pivot = pivot.reindex(index=[l for _, l, _, _ in PLOT_COMPARISONS if l in pivot.index])
 
     # ---------------------------------------------------------------- figure
     fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(26, 9),
@@ -163,11 +167,11 @@ def main() -> None:
     plt.setp(ax_left.get_xticklabels(), ha="right")
     ax_left.tick_params(axis="y", rotation=0, labelsize=11)
 
-    # Right: global pseudobulk r vs. ARI scatter
-    method_order = [l for _, l, _, _ in COMPARISONS if l in df["method"].values]
+    # Right: global pseudobulk r vs. ARI scatter (plot subset only)
+    method_order = [l for _, l, _, _ in PLOT_COMPARISONS if l in df["method"].values]
     x_vals = df.set_index("method").loc[method_order, "ari"].values
     y_vals = df.set_index("method").loc[method_order, "global_r"].values
-    colors = [c for _, l, c, _ in COMPARISONS if l in df["method"].values]
+    colors = [c for _, l, c, _ in PLOT_COMPARISONS if l in df["method"].values]
 
     ax_right.scatter(x_vals, y_vals, c=colors, s=220, zorder=5, edgecolors="white", linewidths=1.5)
     for label, x, y in zip(method_order, x_vals, y_vals):
@@ -231,8 +235,8 @@ def main() -> None:
     df_cl = pd.DataFrame(cluster_rows)
     df_cl.to_csv(TABLES / "pseudobulk_by_cluster.csv", index=False)
 
-    pivot_cl = df_cl.set_index("method")[cluster_labels]
-    pivot_cl = pivot_cl.reindex(index=[l for _, l, _, _ in COMPARISONS if l in pivot_cl.index])
+    pivot_cl = df_cl[df_cl["method"].isin(plot_labels)].set_index("method")[cluster_labels]
+    pivot_cl = pivot_cl.reindex(index=[l for _, l, _, _ in PLOT_COMPARISONS if l in pivot_cl.index])
 
     fig2, ax_cl = plt.subplots(figsize=(18, 6))
     sns.heatmap(

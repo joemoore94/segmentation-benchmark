@@ -36,13 +36,16 @@ TABLES_DIR = Path("results/tables")
 FIGURES_DIR = Path("results/figures")
 
 COMPARISONS = [
-    ("cellpose",       "CellPose"),
-    ("stardist",       "StarDist"),
-    ("mesmer",         "Mesmer"),
-    ("voronoi",        "Voronoi (CP)"),
-    ("voronoi_mesmer", "Voronoi (M)"),
-    ("baysor",         "Baysor"),
+    ("cellpose",          "CellPose"),
+    ("stardist",          "StarDist"),
+    ("mesmer",            "Mesmer"),
+    ("voronoi",           "Voronoi (CP)"),
+    ("voronoi_stardist",  "Voronoi (SD)"),
+    ("voronoi_mesmer",    "Voronoi (M)"),
+    ("baysor",            "Baysor"),
 ]
+
+PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]
 
 
 def build_annotated_adata() -> ad.AnnData:
@@ -140,14 +143,15 @@ def build_celltype_disagreement(adata: ad.AnnData) -> pd.DataFrame:
 
 def fig_celltype_disagreement(df: pd.DataFrame) -> None:
     apply_style()
-    comparisons = [label for _, label in COMPARISONS]
+    comparisons = [label for _, label in PLOT_COMPARISONS]
     cell_types = list(CELLTYPE_COLORS.keys())
 
-    # Pivot to cell_type × comparison matrix of disagree rates
-    pivot = df.pivot(index="cell_type", columns="comparison", values="disagree_rate")
+    # Pivot to cell_type × comparison matrix of disagree rates (plot subset)
+    pivot = df[df["comparison"].isin(comparisons)]
+    pivot = pivot.pivot(index="cell_type", columns="comparison", values="disagree_rate")
     pivot = pivot.reindex(index=cell_types, columns=comparisons)
 
-    fig, axes = plt.subplots(1, 2, figsize=(26, 10))
+    fig, axes = plt.subplots(1, 2, figsize=(22, 10))
 
     # Left: heatmap of disagree rates
     sns.heatmap(
@@ -164,8 +168,8 @@ def fig_celltype_disagreement(df: pd.DataFrame) -> None:
 
     # Right: grouped bar chart — each group is a cell type, bars are comparisons
     x = np.arange(len(cell_types))
-    width = 0.13
-    comparison_colors = ["#4C72B0", "#8172B2", "#D62728", "#17BECF", "#BCBD22", "#DD8452"]
+    width = 0.18
+    comparison_colors = ["#17BECF", "#9467BD", "#BCBD22", "#DD8452"]
     for i, (comp, color) in enumerate(zip(comparisons, comparison_colors)):
         vals = [pivot.loc[ct, comp] * 100 if ct in pivot.index else 0 for ct in cell_types]
         axes[1].bar(x + i * width, vals, width, label=comp, color=color, alpha=0.85)

@@ -32,12 +32,10 @@ TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
 
 COMPARISON_ORDER = [
-    ("cellpose",       "CellPose"),
-    ("stardist",       "StarDist"),
-    ("mesmer",         "Mesmer"),
-    ("voronoi",        "Voronoi (CP)"),
-    ("voronoi_mesmer", "Voronoi (M)"),
-    ("baysor",         "Baysor"),
+    ("voronoi",          "Voronoi (CP)"),
+    ("voronoi_stardist", "Voronoi (SD)"),
+    ("voronoi_mesmer",   "Voronoi (M)"),
+    ("baysor",           "Baysor"),
 ]
 
 
@@ -71,10 +69,10 @@ def main() -> None:
     bar_colors = [CELLTYPE_COLORS[ct] for ct in ct_sorted]
 
     # ---------------------------------------------------------------- layout
-    fig = plt.figure(figsize=(18, 44))
+    fig = plt.figure(figsize=(18, 32))
     gs = gridspec.GridSpec(
-        7, 2, figure=fig,
-        height_ratios=[3, 1.8, 1.8, 1.8, 1.8, 1.8, 1.8],
+        5, 2, figure=fig,
+        height_ratios=[3, 1.8, 1.8, 1.8, 1.8],
         hspace=0.5, wspace=0.35,
     )
     ax_ct  = fig.add_subplot(gs[0, 0])   # Panel A: cell type map
@@ -82,7 +80,7 @@ def main() -> None:
 
     method_rows = [
         (fig.add_subplot(gs[1 + i, 0]), fig.add_subplot(gs[1 + i, 1]))
-        for i in range(6)
+        for i in range(4)
     ]
 
     # ---------------------------------------------------------------- Panel A: cell type map
@@ -114,7 +112,7 @@ def main() -> None:
             ax_avg.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=11)
 
     # ---------------------------------------------------------------- Method rows
-    panel_letters = "CDEFGH"
+    panel_letters = "CDEF"
     for (ax_sp, ax_bar), (m, label), letter in zip(method_rows, COMPARISON_ORDER, panel_letters):
         # Load disagree table for this method
         df = pd.read_csv(TABLES / f"disagreement_table_10x_{m}.csv")

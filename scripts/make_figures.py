@@ -44,6 +44,7 @@ METHOD_COLORS = {
     "voronoi": "#17BECF",
     "mesmer": "#D62728",
     "voronoi_mesmer": "#BCBD22",
+    "voronoi_stardist": "#9467BD",
 }
 METHOD_LABELS = {
     "cellpose": "CellPose",
@@ -54,29 +55,28 @@ METHOD_LABELS = {
     "voronoi": "Voronoi (CP)",
     "mesmer": "Mesmer",
     "voronoi_mesmer": "Voronoi (M)",
+    "voronoi_stardist": "Voronoi (SD)",
 }
 
-# Methods included in the main analysis figures (baysor_prior is supplemental).
-MAIN_METHODS = ["10x_native", "cellpose", "stardist", "mesmer", "voronoi", "voronoi_mesmer", "baysor"]
+# Methods included in the main analysis figures.
+# Nuclear methods (CellPose, StarDist, Mesmer) are retained in tables but omitted
+# from most figures — they cluster at ARI ~0.55 with similar disagreement patterns.
+MAIN_METHODS = ["10x_native", "voronoi", "voronoi_stardist", "voronoi_mesmer", "baysor"]
 
-# The six pairwise comparisons shown in multi-panel figures, in 2×3 grid order.
+# The four pairwise comparisons shown in multi-panel figures, in 2×2 grid order.
 COMPARISON_ORDER = [
-    ("cellpose",       "CellPose"),
-    ("stardist",       "StarDist"),
-    ("mesmer",         "Mesmer"),
-    ("voronoi",        "Voronoi (CP)"),
-    ("voronoi_mesmer", "Voronoi (M)"),
-    ("baysor",         "Baysor"),
+    ("voronoi",          "Voronoi (CP)"),
+    ("voronoi_stardist", "Voronoi (SD)"),
+    ("voronoi_mesmer",   "Voronoi (M)"),
+    ("baysor",           "Baysor"),
 ]
 
 # Keys used in the density_disagreement_summary.csv comparison column.
 DENSITY_CSV_KEY = {
-    "cellpose":       "10x native vs. CellPose",
-    "stardist":       "10x native vs. StarDist",
-    "mesmer":         "10x native vs. Mesmer",
-    "voronoi":        "10x native vs. Voronoi",
-    "voronoi_mesmer": "10x native vs. Voronoi (Mesmer)",
-    "baysor":         "10x native vs. Baysor",
+    "voronoi":          "10x native vs. Voronoi",
+    "voronoi_stardist": "10x native vs. Voronoi (StarDist)",
+    "voronoi_mesmer":   "10x native vs. Voronoi (Mesmer)",
+    "baysor":           "10x native vs. Baysor",
 }
 
 
@@ -84,23 +84,20 @@ def fig_cell_counts_and_sizes() -> None:
     counts = pd.read_csv(TABLES_DIR / "cell_counts.csv", index_col="method")
     methods = [m for m in MAIN_METHODS if m in counts.index]
 
-    adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
-    adata_baysor = ad.read_h5ad(ROI_DIR / "adata_baysor.h5ad")
-    adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
-    adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
-    adata_voronoi = ad.read_h5ad(ROI_DIR / "adata_voronoi.h5ad")
-    adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
-    adata_voronoi_mesmer = ad.read_h5ad(ROI_DIR / "adata_voronoi_mesmer.h5ad")
+    adatas_for_violin = {}
+    for m in methods:
+        adatas_for_violin[m] = ad.read_h5ad(ROI_DIR / f"adata_{m}.h5ad")
 
     transcripts_by_method = {
-        "cellpose": np.asarray(adata_cellpose.X.sum(axis=1)).ravel(),
-        "baysor": np.asarray(adata_baysor.X.sum(axis=1)).ravel(),
-        "10x_native": np.asarray(adata_10x.X.sum(axis=1)).ravel(),
-        "stardist": np.asarray(adata_stardist.X.sum(axis=1)).ravel(),
-        "voronoi": np.asarray(adata_voronoi.X.sum(axis=1)).ravel(),
-        "mesmer": np.asarray(adata_mesmer.X.sum(axis=1)).ravel(),
-        "voronoi_mesmer": np.asarray(adata_voronoi_mesmer.X.sum(axis=1)).ravel(),
+        m: np.asarray(adatas_for_violin[m].X.sum(axis=1)).ravel()
+        for m in methods
     }
+
+    # Nuclear methods loaded separately for the nucleus area QC panel
+    adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
+    adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
+    adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
+    adata_10x = adatas_for_violin.get("10x_native") or ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
 
     fig, axes = plt.subplots(1, 3, figsize=(20, 6))
 
@@ -155,7 +152,7 @@ def fig_cell_counts_and_sizes() -> None:
     axes[2].set_title("Nuclear mask size (nuclear methods + 10x native)", fontweight="bold")
     axes[2].legend()
 
-    fig.suptitle("Cell count and QC: all methods (full 2mm × 2mm ROI)", fontsize=13, fontweight="bold")
+    fig.suptitle("Cell count and QC (full 2mm × 2mm ROI)", fontsize=13, fontweight="bold")
     capture = counts.loc[methods, "transcript_capture_rate"]
     capture_str = ", ".join(f"{METHOD_LABELS[m]} {capture[m]:.0%}" for m in methods)
     fig.text(
@@ -174,7 +171,7 @@ def fig_expression_correlation() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(2, 3, figsize=(20, 11), sharey=True)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 11), sharey=True)
     for ax, (m, label, corr) in zip(axes.flatten(), pairs):
         median = corr["correlation"].median()
         sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=METHOD_COLORS[m])
@@ -199,7 +196,7 @@ def fig_disagreement_spatial_map() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(2, 3, figsize=(20, 14))
+    fig, axes = plt.subplots(2, 2, figsize=(16, 14))
     for ax, (label, df) in zip(axes.flatten(), pairs):
         sns.scatterplot(
             data=df, x="centroid_x", y="centroid_y",
@@ -232,7 +229,7 @@ def fig_density_vs_disagreement() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(2, 3, figsize=(20, 11), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 11), sharex=True, sharey=True)
     for ax, (m, label, df) in zip(axes.flatten(), pairs):
         df = df.copy()
         df["log_density"] = df["id_a"].map(log_density)
@@ -268,9 +265,9 @@ def fig_pca_umap() -> None:
     methods = [m for m in MAIN_METHODS if m != "10x_native"] + ["10x_native"]
     embeddings = {m: pd.read_csv(TABLES_DIR / f"embedding_{m}.csv", index_col=0) for m in methods}
 
-    ncols = 4
+    ncols = 3
     nrows = 2
-    fig, axes = plt.subplots(nrows, ncols, figsize=(24, 12))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(20, 12))
     axes_flat = axes.flatten()
 
     for idx, method in enumerate(methods):
@@ -286,7 +283,6 @@ def fig_pca_umap() -> None:
         ax.set_xlabel("UMAP1")
         ax.set_ylabel("UMAP2")
 
-    # hide the unused 8th panel
     for ax in axes_flat[len(methods):]:
         ax.set_visible(False)
 
@@ -303,7 +299,7 @@ def fig_local_morans_map() -> None:
     ]
     LISA_COLORS = {"HH": "#C44E52", "LL": "#4C72B0", "HL": "#DD8452", "LH": "#CCB974"}
 
-    fig, axes = plt.subplots(2, 3, figsize=(20, 14))
+    fig, axes = plt.subplots(2, 2, figsize=(16, 14))
     for ax, (label, df) in zip(axes.flatten(), pairs):
         for cluster, color in LISA_COLORS.items():
             sub = df[df["lisa_cluster"] == cluster]
@@ -329,7 +325,7 @@ def fig_de_volcano() -> None:
         for m, label in COMPARISON_ORDER
     ]
 
-    fig, axes = plt.subplots(2, 3, figsize=(20, 12), sharey=True)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12), sharey=True)
     for ax, (m, label, df) in zip(axes.flatten(), pairs):
         sig = df["pvals_adj"] < 0.05
         ax.scatter(
@@ -379,7 +375,7 @@ def fig_cluster_confusion() -> None:
         "Adipocytes": "Adipo.",
     }
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 20))
+    fig, axes = plt.subplots(2, 2, figsize=(14, 14))
     fig.subplots_adjust(left=0.10, right=0.86, top=0.95, bottom=0.03,
                         hspace=0.35, wspace=0.35)
 

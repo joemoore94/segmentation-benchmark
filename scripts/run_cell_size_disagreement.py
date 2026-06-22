@@ -39,13 +39,16 @@ TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
 
 COMPARISONS = [
-    ("cellpose",       "CellPose",     "#4C72B0", "Nuclear"),
-    ("stardist",       "StarDist",     "#8172B2", "Nuclear"),
-    ("mesmer",         "Mesmer",       "#D62728", "Nuclear"),
-    ("voronoi",        "Voronoi (CP)", "#17BECF", "Voronoi"),
-    ("voronoi_mesmer", "Voronoi (M)",  "#BCBD22", "Voronoi"),
-    ("baysor",         "Baysor",       "#DD8452", "Transcript-density"),
+    ("cellpose",          "CellPose",     "#4C72B0", "Nuclear"),
+    ("stardist",          "StarDist",     "#8172B2", "Nuclear"),
+    ("mesmer",            "Mesmer",       "#D62728", "Nuclear"),
+    ("voronoi",           "Voronoi (CP)", "#17BECF", "Voronoi"),
+    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD", "Voronoi"),
+    ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22", "Voronoi"),
+    ("baysor",            "Baysor",       "#DD8452", "Transcript-density"),
 ]
+
+PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]
 
 N_BINS = 10
 
@@ -91,8 +94,8 @@ def main() -> None:
 
     fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(22, 9))
 
-    # Left: binned disagree probability vs. cell area for all methods
-    for method, label, color, family in COMPARISONS:
+    # Left: binned disagree probability vs. cell area (plot subset)
+    for method, label, color, family in PLOT_COMPARISONS:
         if label not in all_dfs:
             continue
         df = all_dfs[label]

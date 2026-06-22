@@ -55,13 +55,16 @@ CELL_TYPE_MARKERS: dict[str, list[str]] = {
 }
 
 COMPARISONS = [
-    ("cellpose",       "CellPose",     "#4C72B0"),
-    ("stardist",       "StarDist",     "#8172B2"),
-    ("mesmer",         "Mesmer",       "#D62728"),
-    ("voronoi",        "Voronoi (CP)", "#17BECF"),
-    ("voronoi_mesmer", "Voronoi (M)",  "#BCBD22"),
-    ("baysor",         "Baysor",       "#DD8452"),
+    ("cellpose",          "CellPose",     "#4C72B0"),
+    ("stardist",          "StarDist",     "#8172B2"),
+    ("mesmer",            "Mesmer",       "#D62728"),
+    ("voronoi",           "Voronoi (CP)", "#17BECF"),
+    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD"),
+    ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22"),
+    ("baysor",            "Baysor",       "#DD8452"),
 ]
+
+PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]
 
 # Markers to show in the right-panel line plots (one per cell type family)
 HIGHLIGHT_MARKERS = ["GATA3", "CD3E", "LYZ"]
@@ -157,13 +160,15 @@ def main() -> None:
     df_comp2 = df_comp.join(baseline, on=["cell_type", "marker"])
     df_comp2["relative_recovery"] = df_comp2["mean_lognorm"] / df_comp2["baseline"].replace(0, np.nan)
 
-    # Pivot for heatmap: rows = cell_type + marker, cols = method
-    df_comp2["ct_marker"] = df_comp2["cell_type"] + " · " + df_comp2["marker"]
-    pivot = df_comp2.pivot(index="ct_marker", columns="method", values="relative_recovery")
-    # Order rows by cell type order then marker
+    # Pivot for heatmap: rows = cell_type + marker, cols = method (plot subset only)
+    plot_labels = {l for _, l, _ in PLOT_COMPARISONS}
+    df_plot = df_comp2[df_comp2["method"].isin(plot_labels)]
+    df_plot = df_plot.copy()
+    df_plot["ct_marker"] = df_plot["cell_type"] + " · " + df_plot["marker"]
+    pivot = df_plot.pivot(index="ct_marker", columns="method", values="relative_recovery")
     row_order = [f"{ct} · {m}" for ct, markers in CELL_TYPE_MARKERS.items() for m in markers
                  if f"{ct} · {m}" in pivot.index]
-    col_order = [l for _, l, _ in COMPARISONS if l in pivot.columns]
+    col_order = [l for _, l, _ in PLOT_COMPARISONS if l in pivot.columns]
     pivot = pivot.reindex(index=row_order, columns=col_order)
 
     # ---------------------------------------------------------------- figure
@@ -202,8 +207,8 @@ def main() -> None:
         ax_left.axhline(c, color="black", linewidth=1.5)
 
     # Right: absolute expression for 3 highlight markers (one panel each)
-    methods_all = ["10x native"] + [l for _, l, _ in COMPARISONS]
-    colors_all  = ["#55A868"] + [c for _, _, c in COMPARISONS]
+    methods_all = ["10x native"] + [l for _, l, _ in PLOT_COMPARISONS]
+    colors_all  = ["#55A868"] + [c for _, _, c in PLOT_COMPARISONS]
     x = np.arange(len(methods_all))
 
     for i, (ct, marker) in enumerate(zip(HIGHLIGHT_CELLTYPES, HIGHLIGHT_MARKERS)):

@@ -47,6 +47,7 @@ def main() -> None:
     adata_voronoi = ad.read_h5ad(ROI_DIR / "adata_voronoi.h5ad")
     adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
     adata_voronoi_mesmer = ad.read_h5ad(ROI_DIR / "adata_voronoi_mesmer.h5ad")
+    adata_voronoi_stardist = ad.read_h5ad(ROI_DIR / "adata_voronoi_stardist.h5ad")
     adatas = {
         "10x_native": adata_10x,
         "cellpose": adata_cellpose,
@@ -56,6 +57,7 @@ def main() -> None:
         "voronoi": adata_voronoi,
         "mesmer": adata_mesmer,
         "voronoi_mesmer": adata_voronoi_mesmer,
+        "voronoi_stardist": adata_voronoi_stardist,
     }
 
     counts = cell_count_summary(adatas)
@@ -293,6 +295,48 @@ def main() -> None:
     with open(TABLES_DIR / "disagreement_spatial_10x_voronoi_mesmer.json", "w") as f:
         json.dump(spatial_voronoi_mesmer, f, indent=2)
     print(spatial_voronoi_mesmer)
+
+    # 10x native vs. Voronoi (StarDist centroids)
+    matches_voronoi_stardist = match_cells_by_centroid(
+        adata_10x, adata_voronoi_stardist, max_dist=MAX_MATCH_DIST
+    )
+    matches_voronoi_stardist.to_csv(TABLES_DIR / "matches_10x_voronoi_stardist.csv", index=False)
+    print(f"\n=== 10x native vs. Voronoi (StarDist) ({len(matches_voronoi_stardist)} pairs) ===")
+
+    corr_voronoi_stardist = expression_correlation(adata_10x, adata_voronoi_stardist, matches_voronoi_stardist)
+    corr_voronoi_stardist.to_csv(TABLES_DIR / "expression_correlation_10x_voronoi_stardist.csv", index=False)
+    print(corr_voronoi_stardist["correlation"].describe())
+
+    print("\n=== Clustering cell types (Voronoi-StarDist) ===")
+    labels_voronoi_stardist = cluster_cell_types(adata_voronoi_stardist, seed=0)
+    print(f"voronoi_stardist: {labels_voronoi_stardist.nunique()} clusters")
+    cluster_embedding(adata_voronoi_stardist, seed=0).to_csv(
+        TABLES_DIR / "embedding_voronoi_stardist.csv"
+    )
+
+    agreement_voronoi_stardist = cell_type_agreement(
+        labels_10x, labels_voronoi_stardist, matches_voronoi_stardist
+    )
+    agreement_voronoi_stardist["confusion"].to_csv(
+        TABLES_DIR / "cell_type_confusion_10x_voronoi_stardist.csv"
+    )
+    print(f"ARI = {agreement_voronoi_stardist['ari']:.4f}, n_matched = {agreement_voronoi_stardist['n_matched']}")
+
+    labels_voronoi_stardist_aligned = match_cluster_labels(
+        labels_10x, labels_voronoi_stardist, matches_voronoi_stardist
+    )
+    disagreement_voronoi_stardist = disagreement_table(
+        matches_voronoi_stardist, labels_10x, labels_voronoi_stardist_aligned, adata_10x
+    )
+    disagreement_voronoi_stardist.to_csv(
+        TABLES_DIR / "disagreement_table_10x_voronoi_stardist.csv", index=False
+    )
+    spatial_voronoi_stardist = disagreement_spatial_structure(
+        disagreement_voronoi_stardist, n_perm=9999, seed=0
+    )
+    with open(TABLES_DIR / "disagreement_spatial_10x_voronoi_stardist.json", "w") as f:
+        json.dump(spatial_voronoi_stardist, f, indent=2)
+    print(spatial_voronoi_stardist)
 
 
 if __name__ == "__main__":

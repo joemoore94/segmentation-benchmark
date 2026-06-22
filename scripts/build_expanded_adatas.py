@@ -110,6 +110,15 @@ def main() -> None:
     capture = n_tx / 3_392_051
     print(f"  {adata_vor_mesmer.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
 
+    print("\n=== Voronoi (StarDist centroids) ===")
+    adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
+    adata_vor_stardist = build_voronoi(adata_stardist, transcripts)
+    out = ROI_DIR / "adata_voronoi_stardist.h5ad"
+    adata_vor_stardist.write_h5ad(out)
+    n_tx = int(adata_vor_stardist.X.sum())
+    capture = n_tx / 3_392_051
+    print(f"  {adata_vor_stardist.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
+
 
 if __name__ == "__main__":
     main()
