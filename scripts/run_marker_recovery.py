@@ -31,6 +31,7 @@ from pathlib import Path
 
 import anndata as ad
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
@@ -181,8 +182,13 @@ def main() -> None:
     pivot = pivot.reindex(index=row_order, columns=col_order)
 
     # ---------------------------------------------------------------- figure
-    fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(26, 12),
-                                             gridspec_kw={"width_ratios": [1.4, 1]})
+    fig = plt.figure(figsize=(26, 13))
+    gs_outer = gridspec.GridSpec(1, 2, figure=fig,
+                                 width_ratios=[1.4, 1], wspace=0.38)
+    ax_left = fig.add_subplot(gs_outer[0])
+    gs_right = gridspec.GridSpecFromSubplotSpec(
+        3, 1, subplot_spec=gs_outer[1], hspace=0.55)
+    axes_right = [fig.add_subplot(gs_right[i]) for i in range(3)]
 
     # Left: recovery heatmap
     sns.heatmap(
@@ -192,14 +198,17 @@ def main() -> None:
         linewidths=0.4, linecolor="white",
         ax=ax_left,
         cbar_kws={"label": "Expression relative to 10x native", "shrink": 0.7},
-        annot_kws={"size": 9},
+        annot_kws={"size": 11},
     )
-    ax_left.set_title("Marker gene recovery relative to 10x native\n(matched cells, 10x-native cell type labels)",
-                      fontweight="bold", fontsize=12)
+    ax_left.set_title(
+        "Marker gene recovery relative to 10x native\n"
+        "(matched cells, 10x-native cell type labels)",
+        fontweight="bold", fontsize=13)
     ax_left.set_xlabel("")
     ax_left.set_ylabel("")
-    ax_left.tick_params(axis="x", rotation=30, labelsize=10)
-    ax_left.tick_params(axis="y", labelsize=9)
+    ax_left.tick_params(axis="x", rotation=35, labelsize=11)
+    ax_left.tick_params(axis="y", labelsize=11)
+    plt.setp(ax_left.get_xticklabels(), ha="right")
 
     # Cell type group dividers
     marker_counts = [len(v) for v in CELL_TYPE_MARKERS.values()]
@@ -207,30 +216,31 @@ def main() -> None:
     for c in cumulative[:-1]:
         ax_left.axhline(c, color="black", linewidth=1.5)
 
-    # Right: absolute expression for 3 highlight markers
+    # Right: absolute expression for 3 highlight markers (one panel each)
     methods_all = ["10x native"] + [l for _, l, _ in COMPARISONS]
     colors_all  = ["#55A868"] + [c for _, _, c in COMPARISONS]
-
     x = np.arange(len(methods_all))
+
     for i, (ct, marker) in enumerate(zip(HIGHLIGHT_CELLTYPES, HIGHLIGHT_MARKERS)):
-        ax_sub = ax_right.inset_axes([0, (2 - i) / 3 + 0.02, 1, 1/3 - 0.04])
+        ax_sub = axes_right[i]
         vals = [df_all[(df_all["method"] == m) & (df_all["cell_type"] == ct) &
                        (df_all["marker"] == marker)]["mean_lognorm"].values
                 for m in methods_all]
         vals_flat = [v[0] if len(v) > 0 else np.nan for v in vals]
-        ax_sub.bar(x, vals_flat, color=colors_all, edgecolor="white", alpha=0.85)
+        ax_sub.bar(x, vals_flat, color=colors_all, edgecolor="white", alpha=0.88)
         ax_sub.set_xticks(x)
-        ax_sub.set_xticklabels(methods_all if i == 2 else [], rotation=30, ha="right", fontsize=9)
-        ax_sub.set_title(f"{marker} ({ct})", fontweight="bold", fontsize=10)
-        ax_sub.set_ylabel("Mean log-norm", fontsize=9)
-    ax_right.axis("off")
-    ax_right.set_title("Selected marker expression per method", fontweight="bold", fontsize=12)
+        if i == 2:
+            ax_sub.set_xticklabels(methods_all, rotation=35, ha="right", fontsize=11)
+        else:
+            ax_sub.set_xticklabels([], fontsize=11)
+        ax_sub.set_title(f"{marker}  ·  {ct}", fontweight="bold", fontsize=12)
+        ax_sub.set_ylabel("Mean log-norm", fontsize=11)
+        ax_sub.tick_params(axis="y", labelsize=11)
 
     fig.suptitle(
         "Does segmentation method affect recovery of canonical cell-type marker genes?",
-        fontsize=13, fontweight="bold",
+        fontsize=14, fontweight="bold",
     )
-    fig.tight_layout()
     fig.savefig(FIGURES / "marker_recovery.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
     print("Saved marker_recovery.png")

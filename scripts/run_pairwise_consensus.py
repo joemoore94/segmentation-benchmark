@@ -113,7 +113,8 @@ def main() -> None:
     print(ari_df.round(3).to_string())
 
     # ---------------------------------------------------------------- figure
-    fig, ax = plt.subplots(figsize=(14, 11))
+    sns.set_theme(style="whitegrid", context="poster")
+    fig, ax = plt.subplots(figsize=(15, 13))
 
     diag_mask = np.eye(n, dtype=bool)
     off_diag = ari_matrix[~diag_mask]
@@ -128,7 +129,7 @@ def main() -> None:
         linewidths=0.5, linecolor="white",
         ax=ax,
         cbar_kws={"label": "ARI", "shrink": 0.8},
-        annot_kws={"size": 11, "weight": "bold"},
+        annot_kws={"size": 13, "weight": "bold"},
     )
 
     # Diagonal cells: grey fill + dash
@@ -136,32 +137,32 @@ def main() -> None:
         ax.add_patch(plt.Rectangle((k, k), 1, 1, fill=True,
                                    color="#dddddd", lw=0, zorder=3))
         ax.text(k + 0.5, k + 0.5, "—", ha="center", va="center",
-                fontsize=12, color="#888888", zorder=4)
+                fontsize=14, color="#888888", zorder=4)
 
-    # Family colour strips along both axes (small rectangles just outside the heatmap)
-    strip_w = 0.35
-    for k, label in enumerate(method_labels):
-        color = FAMILY_COLORS[FAMILY[label]]
-        # left strip (y-axis side)
-        ax.add_patch(plt.Rectangle((-strip_w - 0.05, n - k - 1), strip_w, 1.0,
-                                   clip_on=False, transform=ax.transData,
-                                   color=color, lw=0))
-        # bottom strip (x-axis side)
-        ax.add_patch(plt.Rectangle((k, -strip_w - 0.05), 1.0, strip_w,
-                                   clip_on=False, transform=ax.transData,
-                                   color=color, lw=0))
+    # Colour tick labels by family (no patches that cover the labels)
+    ax.set_xticklabels(method_labels, rotation=35, ha="right", fontsize=13)
+    ax.set_yticklabels(method_labels, rotation=0, fontsize=13)
+    for tick in ax.get_xticklabels():
+        label_text = tick.get_text()
+        if label_text in FAMILY:
+            tick.set_color(FAMILY_COLORS[FAMILY[label_text]])
+            tick.set_fontweight("bold")
+    for tick in ax.get_yticklabels():
+        label_text = tick.get_text()
+        if label_text in FAMILY:
+            tick.set_color(FAMILY_COLORS[FAMILY[label_text]])
+            tick.set_fontweight("bold")
 
-    ax.set_xticklabels(method_labels, rotation=30, ha="right", fontsize=11)
-    ax.set_yticklabels(method_labels, rotation=0, fontsize=11)
     ax.set_title(
         "Pairwise ARI between all segmentation methods\n"
         "(Leiden resolution 1.0, nearest-centroid matching ≤ 10 µm)",
-        fontweight="bold", fontsize=13,
+        fontweight="bold", fontsize=14,
     )
 
     handles = [mpatches.Patch(color=c, label=f) for f, c in FAMILY_COLORS.items()]
     ax.legend(handles=handles, loc="upper right",
-              bbox_to_anchor=(1.38, 1.0), fontsize=10, title="Family")
+              bbox_to_anchor=(1.35, 1.02), fontsize=12, title="Family",
+              title_fontsize=12)
 
     fig.tight_layout()
     fig.savefig(FIGURES / "pairwise_consensus.png", dpi=150, bbox_inches="tight")

@@ -127,8 +127,8 @@ def main() -> None:
     ax_ct.invert_yaxis()
     handles = [mpatches.Patch(color=CELLTYPE_COLORS[ct], label=ct)
                for ct in CELLTYPE_COLORS]
-    ax_ct.legend(handles=handles, fontsize=7, loc="upper right",
-                 title="Cell type", title_fontsize=8, markerscale=2)
+    ax_ct.legend(handles=handles, fontsize=10, loc="upper right",
+                 title="Cell type", title_fontsize=10, markerscale=2)
 
     # ---------------------------------------------------------------- Panel B: average disagree rate
     avg_vals = avg_rate.reindex(ct_sorted).fillna(0) * 100
@@ -137,10 +137,10 @@ def main() -> None:
     ax_avg.axvline(50, color="black", linewidth=0.8, linestyle="--", alpha=0.35)
     ax_avg.set_xlabel("Disagree rate (%)")
     ax_avg.set_title("Average disagree rate by cell type\n(all methods)", fontweight="bold")
-    ax_avg.tick_params(axis="y", labelsize=9)
+    ax_avg.tick_params(axis="y", labelsize=12)
     for val, ct in zip(avg_vals.values, ct_sorted):
         if val > 2:
-            ax_avg.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=8)
+            ax_avg.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=11)
 
     # ---------------------------------------------------------------- Method rows
     panel_letters = "CDEFGH"
@@ -167,7 +167,7 @@ def main() -> None:
         ax_sp.invert_yaxis()
         dis_rate = df["disagree"].mean() * 100
         ax_sp.text(0.02, 0.97, f"Disagree: {dis_rate:.1f}%",
-                   transform=ax_sp.transAxes, fontsize=9,
+                   transform=ax_sp.transAxes, fontsize=11,
                    va="top", ha="left",
                    bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7))
 
@@ -182,10 +182,10 @@ def main() -> None:
         ax_bar.axvline(50, color="black", linewidth=0.8, linestyle="--", alpha=0.35)
         ax_bar.set_xlabel("Disagree rate (%)")
         ax_bar.set_title("Disagree rate by cell type", fontweight="bold")
-        ax_bar.tick_params(axis="y", labelsize=9)
+        ax_bar.tick_params(axis="y", labelsize=12)
         for val, ct in zip(rates.values, ct_sorted):
             if val > 2:
-                ax_bar.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=7.5)
+                ax_bar.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=11)
 
     fig.legend(handles=[
         mpatches.Patch(color="#CCCCCC", label="Unmatched"),
