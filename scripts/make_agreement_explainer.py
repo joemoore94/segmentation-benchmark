@@ -24,19 +24,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-from segbench.constants import CELLTYPE_COLORS, CLUSTER_ANNOTATIONS
+from segbench.constants import CELLTYPE_COLORS, CLUSTER_ANNOTATIONS, COMPARISON_ORDER
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
-
-COMPARISON_ORDER = [
-    ("voronoi",          "Voronoi (CP)"),
-    ("voronoi_stardist", "Voronoi (SD)"),
-    ("voronoi_mesmer",   "Voronoi (M)"),
-    ("baysor",           "Baysor"),
-]
 
 
 def recluster_10x() -> ad.AnnData:
@@ -69,10 +62,11 @@ def main() -> None:
     bar_colors = [CELLTYPE_COLORS[ct] for ct in ct_sorted]
 
     # ---------------------------------------------------------------- layout
-    fig = plt.figure(figsize=(18, 32))
+    n_methods = len(COMPARISON_ORDER)
+    fig = plt.figure(figsize=(18, 8 + 5.4 * n_methods))
     gs = gridspec.GridSpec(
-        5, 2, figure=fig,
-        height_ratios=[3, 1.8, 1.8, 1.8, 1.8],
+        1 + n_methods, 2, figure=fig,
+        height_ratios=[3] + [1.8] * n_methods,
         hspace=0.5, wspace=0.35,
     )
     ax_ct  = fig.add_subplot(gs[0, 0])   # Panel A: cell type map
@@ -80,7 +74,7 @@ def main() -> None:
 
     method_rows = [
         (fig.add_subplot(gs[1 + i, 0]), fig.add_subplot(gs[1 + i, 1]))
-        for i in range(4)
+        for i in range(n_methods)
     ]
 
     # ---------------------------------------------------------------- Panel A: cell type map
@@ -112,7 +106,7 @@ def main() -> None:
             ax_avg.text(val + 1, ct, f"{val:.0f}%", va="center", fontsize=11)
 
     # ---------------------------------------------------------------- Method rows
-    panel_letters = "CDEF"
+    panel_letters = "CDEFGHIJKLMNOP"[:n_methods]
     for (ax_sp, ax_bar), (m, label), letter in zip(method_rows, COMPARISON_ORDER, panel_letters):
         # Load disagree table for this method
         df = pd.read_csv(TABLES / f"disagreement_table_10x_{m}.csv")

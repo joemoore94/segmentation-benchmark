@@ -1,0 +1,21 @@
+# Baysor prior config with prior_segmentation_confidence=1.0.
+# Hard lock: all transcripts inside a CellPose nucleus are fixed to that cell's
+# identity. Only extranuclear transcripts (~65% of total) use the density model.
+# This is the mathematical limit where Baysor becomes a density-based cytoplasmic
+# expansion of fixed nuclear seeds — comparing to Voronoi directly isolates
+# density-adaptive vs. geometric expansion.
+
+[data]
+x = "x_location"
+y = "y_location"
+z = "z_location"
+gene = "feature_name"
+min_molecules_per_gene = 1
+min_molecules_per_cell = 3
+exclude_genes = "NegControl*,BLANK*,antisense*"
+
+[segmentation]
+scale = 12.5
+scale_std = "25%"
+n_clusters = 4
+prior_segmentation_confidence = 1.0

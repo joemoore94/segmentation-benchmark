@@ -27,25 +27,26 @@ import scipy.sparse as sp
 import seaborn as sns
 import scanpy as sc
 from scipy.stats import pearsonr
-from segbench.constants import CLUSTER_ANNOTATIONS
+from segbench.constants import (
+    CLUSTER_ANNOTATIONS, METHOD_COLORS, METHOD_LABELS, NUCLEAR_ONLY,
+)
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
 
+_ARI_LOOKUP: dict[str, float] = {
+    "cellpose": 0.547, "stardist": 0.545, "mesmer": 0.557,
+    "voronoi": 0.630, "voronoi_stardist": 0.584, "voronoi_mesmer": 0.686,
+    "baysor": 0.305, "baysor_prior_c08": 0.000, "bidcell": 0.000, "segger": 0.000,
+}
+_ALL_COMPARISONS = list(_ARI_LOOKUP)
 COMPARISONS = [
-    ("cellpose",          "CellPose",     "#4C72B0", 0.547),
-    ("stardist",          "StarDist",     "#8172B2", 0.545),
-    ("mesmer",            "Mesmer",       "#D62728", 0.557),
-    ("voronoi",           "Voronoi (CP)", "#17BECF", 0.630),
-    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD", 0.584),
-    ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22", 0.686),
-    ("baysor",            "Baysor",       "#DD8452", 0.305),
-    ("segger",            "Segger",       "#E377C2", 0.000),  # ARI placeholder — update after Segger run
+    (k, METHOD_LABELS[k], METHOD_COLORS[k], _ARI_LOOKUP[k])
+    for k in _ALL_COMPARISONS
 ]
-
-PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]
+PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in NUCLEAR_ONLY]
 
 CELL_TYPES = [
     "Luminal epithelial", "Macrophages", "T cells", "B cells",

@@ -37,7 +37,9 @@ import pandas as pd
 import scipy.sparse as sp
 import seaborn as sns
 import scanpy as sc
-from segbench.constants import CLUSTER_ANNOTATIONS
+from segbench.constants import (
+    CLUSTER_ANNOTATIONS, METHOD_COLORS, METHOD_LABELS, NUCLEAR_ONLY,
+)
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
@@ -54,18 +56,13 @@ CELL_TYPE_MARKERS: dict[str, list[str]] = {
     "Endothelial":        ["PECAM1", "VWF"],
 }
 
-COMPARISONS = [
-    ("cellpose",          "CellPose",     "#4C72B0"),
-    ("stardist",          "StarDist",     "#8172B2"),
-    ("mesmer",            "Mesmer",       "#D62728"),
-    ("voronoi",           "Voronoi (CP)", "#17BECF"),
-    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD"),
-    ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22"),
-    ("baysor",            "Baysor",       "#DD8452"),
-    ("segger",            "Segger",       "#E377C2"),
+_ALL_COMPARISONS = [
+    "cellpose", "stardist", "mesmer",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer",
+    "baysor", "baysor_prior_c08", "bidcell", "segger",
 ]
-
-PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]
+COMPARISONS = [(k, METHOD_LABELS[k], METHOD_COLORS[k]) for k in _ALL_COMPARISONS]
+PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in NUCLEAR_ONLY]
 
 # Markers to show in the right-panel line plots (one per cell type family)
 HIGHLIGHT_MARKERS = ["GATA3", "CD3E", "LYZ"]

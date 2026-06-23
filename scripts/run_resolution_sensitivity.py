@@ -24,6 +24,7 @@ import scanpy as sc
 import seaborn as sns
 
 from segbench.compare import cell_type_agreement, cluster_cell_types
+from segbench.constants import METHOD_COLORS as _MC, METHOD_LABELS, NUCLEAR_ONLY
 from segbench.spatial import disagreement_table, morans_i
 from segbench.style import apply_style
 
@@ -33,29 +34,16 @@ FIGURES   = Path("results/figures")
 
 RESOLUTIONS = [0.5, 0.8, 1.0, 1.5, 2.0]
 
-METHODS = [
-    ("cellpose",          "CellPose"),
-    ("stardist",          "StarDist"),
-    ("mesmer",            "Mesmer"),
-    ("voronoi",           "Voronoi (CP)"),
-    ("voronoi_stardist",  "Voronoi (SD)"),
-    ("voronoi_mesmer",    "Voronoi (M)"),
-    ("baysor",            "Baysor"),
-    ("segger",            "Segger"),
+_ALL_METHODS = [
+    "cellpose", "stardist", "mesmer",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer",
+    "baysor", "baysor_prior_c08", "bidcell", "segger",
 ]
+METHODS = [(k, METHOD_LABELS[k]) for k in _ALL_METHODS]
 
-METHOD_COLORS = {
-    "CellPose":     "#4C72B0",
-    "StarDist":     "#8172B2",
-    "Mesmer":       "#D62728",
-    "Voronoi (CP)": "#17BECF",
-    "Voronoi (SD)": "#9467BD",
-    "Voronoi (M)":  "#BCBD22",
-    "Baysor":       "#DD8452",
-    "Segger":       "#E377C2",
-}
+METHOD_COLORS = {METHOD_LABELS[k]: _MC[k] for k in _ALL_METHODS}
 
-PLOT_METHODS = [m for m in METHODS if m[0] not in ("cellpose", "stardist", "mesmer")]
+PLOT_METHODS = [m for m in METHODS if m[0] not in NUCLEAR_ONLY]
 
 
 def main() -> None:

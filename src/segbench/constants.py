@@ -1,5 +1,9 @@
 """Shared constants for the segmentation benchmark."""
 
+# ---------------------------------------------------------------------------
+# Cell-type annotations
+# ---------------------------------------------------------------------------
+
 # Manual annotation based on top Wilcoxon marker genes per cluster.
 # Clusters 0, 1, 3, 8 are luminal epithelial subtypes; grouped under
 # "Luminal epithelial" for cross-method comparisons. Clusters 2 and 7 are
@@ -34,3 +38,100 @@ CELLTYPE_COLORS: dict[str, str] = {
     "Endothelial":        "#1F77B4",
     "Adipocytes":         "#8C564B",
 }
+
+# ---------------------------------------------------------------------------
+# Segmentation method metadata
+# ---------------------------------------------------------------------------
+
+METHOD_COLORS: dict[str, str] = {
+    "cellpose":         "#4C72B0",
+    "stardist":         "#8172B2",
+    "mesmer":           "#D62728",
+    "10x_native":       "#55A868",
+    "voronoi":          "#17BECF",
+    "voronoi_stardist": "#9467BD",
+    "voronoi_mesmer":   "#BCBD22",
+    "baysor":           "#DD8452",
+    "baysor_prior":     "#937860",
+    "baysor_prior_c08": "#A0522D",
+    "baysor_prior_c10": "#CD853F",
+    "bidcell":          "#E377C2",
+    "segger":           "#C49C94",
+}
+
+METHOD_LABELS: dict[str, str] = {
+    "cellpose":         "CellPose",
+    "stardist":         "StarDist",
+    "mesmer":           "Mesmer",
+    "10x_native":       "10x native",
+    "voronoi":          "Voronoi (CP)",
+    "voronoi_stardist": "Voronoi (SD)",
+    "voronoi_mesmer":   "Voronoi (M)",
+    "baysor":           "Baysor",
+    "baysor_prior":     "Baysor (prior 0.2)",
+    "baysor_prior_c08": "Baysor (prior 0.8)",
+    "baysor_prior_c10": "Baysor (prior 1.0)",
+    "bidcell":          "BIDCell",
+    "segger":           "Segger",
+}
+
+METHOD_FAMILIES: dict[str, str] = {
+    "cellpose":         "Nuclear",
+    "stardist":         "Nuclear",
+    "mesmer":           "Nuclear",
+    "10x_native":       "Reference",
+    "voronoi":          "Voronoi",
+    "voronoi_stardist": "Voronoi",
+    "voronoi_mesmer":   "Voronoi",
+    "baysor":           "Transcript-density",
+    "baysor_prior":     "Transcript-density",
+    "baysor_prior_c08": "Transcript-density",
+    "baysor_prior_c10": "Transcript-density",
+    "bidcell":          "Multimodal",
+    "segger":           "Multimodal",
+}
+
+NUCLEAR_ONLY: set[str] = {"cellpose", "stardist", "mesmer"}
+
+# Methods included in main analysis figures (past the recovery section).
+MAIN_METHODS: list[str] = [
+    "10x_native",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer",
+    "baysor", "baysor_prior_c08",
+]
+
+# Pairwise comparisons shown in multi-panel figures (2×2+ grid order).
+COMPARISON_ORDER: list[tuple[str, str]] = [
+    ("voronoi",          "Voronoi (CP)"),
+    ("voronoi_stardist", "Voronoi (SD)"),
+    ("voronoi_mesmer",   "Voronoi (M)"),
+    ("baysor",           "Baysor"),
+    ("baysor_prior_c08", "Baysor (prior 0.8)"),
+]
+
+# ---------------------------------------------------------------------------
+# Negative marker pairs for biology-grounded segmentation quality scoring
+# ---------------------------------------------------------------------------
+
+# Tier 1: high-confidence lineage exclusions — these cell types arise from
+# different developmental lineages and never co-express in normal breast tissue.
+NEGATIVE_PAIRS_TIER1: list[tuple[str, str, str, str]] = [
+    ("CD3E",   "GATA3",  "T cell",       "Luminal epithelial"),
+    ("CD3E",   "ESR1",   "T cell",       "Luminal epithelial"),
+    ("TRAC",   "KRT14",  "T cell",       "Myoepithelial"),
+    ("MS4A1",  "GATA3",  "B cell",       "Luminal epithelial"),
+    ("MS4A1",  "KRT14",  "B cell",       "Myoepithelial"),
+    ("PECAM1", "ESR1",   "Endothelial",  "Luminal epithelial"),
+    ("VWF",    "CD3E",   "Endothelial",  "T cell"),
+    ("CD14",   "ESR1",   "Macrophage",   "Luminal epithelial"),
+    ("LYZ",    "GATA3",  "Macrophage",   "Luminal epithelial"),
+    ("ADIPOQ", "CD3E",   "Adipocyte",    "T cell"),
+    ("ADIPOQ", "GATA3",  "Adipocyte",    "Luminal epithelial"),
+]
+
+# Tier 2: moderate-confidence exclusions (generally exclusive but with rare
+# biological exceptions; ACTA2+epithelial excluded due to EMT possibility).
+NEGATIVE_PAIRS_TIER2: list[tuple[str, str, str, str]] = [
+    ("LUM",  "CD3E",  "CAF",         "T cell"),
+    ("MZB1", "GATA3", "Plasma cell", "Luminal epithelial"),
+]

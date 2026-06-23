@@ -32,24 +32,23 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import mannwhitneyu
+from segbench.constants import METHOD_COLORS, METHOD_FAMILIES, METHOD_LABELS, NUCLEAR_ONLY
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
 TABLES  = Path("results/tables")
 FIGURES = Path("results/figures")
 
-COMPARISONS = [
-    ("cellpose",          "CellPose",     "#4C72B0", "Nuclear"),
-    ("stardist",          "StarDist",     "#8172B2", "Nuclear"),
-    ("mesmer",            "Mesmer",       "#D62728", "Nuclear"),
-    ("voronoi",           "Voronoi (CP)", "#17BECF", "Voronoi"),
-    ("voronoi_stardist",  "Voronoi (SD)", "#9467BD", "Voronoi"),
-    ("voronoi_mesmer",    "Voronoi (M)",  "#BCBD22", "Voronoi"),
-    ("baysor",            "Baysor",       "#DD8452", "Transcript-density"),
-    ("segger",            "Segger",       "#E377C2", "Multimodal"),
+_ALL_COMPARISONS = [
+    "cellpose", "stardist", "mesmer",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer",
+    "baysor", "baysor_prior_c08", "bidcell", "segger",
 ]
-
-PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in ("cellpose", "stardist", "mesmer")]
+COMPARISONS = [
+    (k, METHOD_LABELS[k], METHOD_COLORS[k], METHOD_FAMILIES[k])
+    for k in _ALL_COMPARISONS
+]
+PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in NUCLEAR_ONLY]
 
 N_BINS = 10
 

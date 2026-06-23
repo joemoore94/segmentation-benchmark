@@ -25,20 +25,19 @@ from pathlib import Path
 import anndata as ad
 import pandas as pd
 import scanpy as sc
+from segbench.constants import METHOD_LABELS
 
 ROI_DIR = Path("data/processed/roi")
 TABLES_DIR = Path("results/tables")
 
+_METHODS = [
+    "cellpose", "stardist", "mesmer",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer",
+    "baysor", "baysor_prior", "baysor_prior_c08", "bidcell", "segger",
+]
 COMPARISONS = {
-    "10x native vs. CellPose": "disagreement_table_10x_cellpose.csv",
-    "10x native vs. StarDist": "disagreement_table_10x_stardist.csv",
-    "10x native vs. Mesmer": "disagreement_table_10x_mesmer.csv",
-    "10x native vs. Voronoi": "disagreement_table_10x_voronoi.csv",
-    "10x native vs. Voronoi (StarDist)": "disagreement_table_10x_voronoi_stardist.csv",
-    "10x native vs. Voronoi (Mesmer)": "disagreement_table_10x_voronoi_mesmer.csv",
-    "10x native vs. Baysor": "disagreement_table_10x_baysor.csv",
-    "10x native vs. Baysor (prior)": "disagreement_table_10x_baysor_prior.csv",
-    "10x native vs. Segger": "disagreement_table_10x_segger.csv",
+    f"10x native vs. {METHOD_LABELS[k]}": f"disagreement_table_10x_{k}.csv"
+    for k in _METHODS
 }
 
 

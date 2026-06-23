@@ -1,0 +1,67 @@
+# BIDCell config for the Xenium FFPE Breast ROI (2mm x 2mm).
+# Adapted from the BIDCell example xenium.yaml for this dataset's paths.
+#
+# Prerequisites:
+#   pip install bidcell
+#   Download sc references: they ship with BIDCell in data/sc_references/
+#   or can be downloaded from the BIDCell GitHub repo.
+
+cpus: 8
+
+files:
+  data_dir: ./data/processed/roi/bidcell_out
+  fp_dapi: ./data/processed/roi/dapi.tif
+  fp_transcripts: ./data/processed/roi/transcripts.parquet
+  fp_ref: ./data/bidcell_ref/sc_breast.csv
+  fp_pos_markers: ./data/bidcell_ref/sc_breast_markers_pos.csv
+  fp_neg_markers: ./data/bidcell_ref/sc_breast_markers_neg.csv
+
+nuclei_fovs:
+  stitch_nuclei_fovs: False
+
+nuclei:
+  diameter:
+
+transcripts:
+  shift_to_origin: False
+  x_col: x_location
+  y_col: y_location
+  gene_col: feature_name
+  transcripts_to_filter:
+  - NegControlProbe_
+  - antisense_
+  - NegControlCodeword_
+  - BLANK_
+
+affine:
+  target_pix_um: 1.0
+  base_pix_x: 0.2125
+  base_pix_y: 0.2125
+  base_ts_x: 1.0
+  base_ts_y: 1.0
+  global_shift_x: 0
+  global_shift_y: 0
+
+model_params:
+  name: custom
+  patch_size: 48
+  elongated:
+  - Endothelial
+  - CAFs
+
+training_params:
+  total_epochs: 1
+  total_steps: 4000
+  ne_weight: 1.0
+  os_weight: 1.0
+  cc_weight: 1.0
+  ov_weight: 1.0
+  pos_weight: 1.0
+  neg_weight: 1.0
+
+testing_params:
+  test_epoch: 1
+  test_step: 4000
+
+experiment_dirs:
+  dir_id: last

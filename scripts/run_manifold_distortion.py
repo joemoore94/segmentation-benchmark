@@ -39,30 +39,19 @@ from segbench.style import apply_style
 ROI_DIR = Path("data/processed/roi")
 FIGURES = Path("results/figures")
 
-METHODS = [
-    ("cellpose",          "CellPose"),
-    ("stardist",          "StarDist"),
-    ("mesmer",            "Mesmer"),
-    ("voronoi",           "Voronoi (CP)"),
-    ("voronoi_stardist",  "Voronoi (SD)"),
-    ("voronoi_mesmer",    "Voronoi (M)"),
-    ("baysor",            "Baysor"),
-    ("segger",            "Segger"),
+from segbench.constants import METHOD_COLORS as _MC, METHOD_LABELS, NUCLEAR_ONLY
+
+_ALL_METHODS = [
+    "cellpose", "stardist", "mesmer",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer",
+    "baysor", "baysor_prior_c08", "bidcell", "segger",
 ]
+METHODS = [(k, METHOD_LABELS[k]) for k in _ALL_METHODS]
 
-METHOD_COLORS = {
-    "10x native":   "#55A868",
-    "CellPose":     "#4C72B0",
-    "StarDist":     "#8172B2",
-    "Mesmer":       "#D62728",
-    "Voronoi (CP)": "#17BECF",
-    "Voronoi (SD)": "#9467BD",
-    "Voronoi (M)":  "#BCBD22",
-    "Baysor":       "#DD8452",
-    "Segger":       "#E377C2",
-}
+METHOD_COLORS = {METHOD_LABELS[k]: _MC[k] for k in _ALL_METHODS}
+METHOD_COLORS["10x native"] = _MC["10x_native"]
 
-PLOT_METHODS = [m for m in METHODS if m[0] not in ("cellpose", "stardist", "mesmer")]
+PLOT_METHODS = [m for m in METHODS if m[0] not in NUCLEAR_ONLY]
 
 N_PCS     = 30
 N_SAMPLE  = 5_000   # cells per method for UMAP (full set used for density)

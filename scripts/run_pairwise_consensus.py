@@ -31,6 +31,7 @@ import pandas as pd
 import seaborn as sns
 
 from segbench.compare import cell_type_agreement, cluster_cell_types, match_cells_by_centroid
+from segbench.constants import METHOD_FAMILIES, METHOD_LABELS, NUCLEAR_ONLY
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
@@ -41,28 +42,20 @@ MAX_MATCH_DIST = 10.0
 
 # Ordered by family so the heatmap groups naturally.
 METHODS = [
-    ("10x",               "10x native",   "adata_10x.h5ad"),
-    ("cellpose",          "CellPose",     "adata_cellpose.h5ad"),
-    ("stardist",          "StarDist",     "adata_stardist.h5ad"),
-    ("mesmer",            "Mesmer",       "adata_mesmer.h5ad"),
-    ("voronoi",           "Voronoi (CP)", "adata_voronoi.h5ad"),
-    ("voronoi_stardist",  "Voronoi (SD)", "adata_voronoi_stardist.h5ad"),
-    ("voronoi_mesmer",    "Voronoi (M)",  "adata_voronoi_mesmer.h5ad"),
-    ("baysor",            "Baysor",       "adata_baysor.h5ad"),
-    ("segger",            "Segger",       "adata_segger.h5ad"),
+    ("10x_native",        "adata_10x.h5ad"),
+    ("cellpose",          "adata_cellpose.h5ad"),
+    ("stardist",          "adata_stardist.h5ad"),
+    ("mesmer",            "adata_mesmer.h5ad"),
+    ("voronoi",           "adata_voronoi.h5ad"),
+    ("voronoi_stardist",  "adata_voronoi_stardist.h5ad"),
+    ("voronoi_mesmer",    "adata_voronoi_mesmer.h5ad"),
+    ("baysor",            "adata_baysor.h5ad"),
+    ("baysor_prior_c08",  "adata_baysor_prior_c08.h5ad"),
+    ("bidcell",           "adata_bidcell.h5ad"),
+    ("segger",            "adata_segger.h5ad"),
 ]
 
-FAMILY = {
-    "10x native":   "Reference",
-    "CellPose":     "Nuclear",
-    "StarDist":     "Nuclear",
-    "Mesmer":       "Nuclear",
-    "Voronoi (CP)": "Voronoi",
-    "Voronoi (SD)": "Voronoi",
-    "Voronoi (M)":  "Voronoi",
-    "Baysor":       "Transcript-density",
-    "Segger":       "Multimodal",
-}
+PLOT_METHODS = [(k, f) for k, f in METHODS if k not in NUCLEAR_ONLY]
 
 FAMILY_COLORS = {
     "Reference":          "#55A868",
@@ -81,23 +74,25 @@ def main() -> None:
     print("Loading AnnData files...")
     adatas: dict[str, ad.AnnData] = {}
     available_methods = []
-    for key, label, fname in METHODS:
+    for key, fname in METHODS:
         path = ROI_DIR / fname
         if not path.exists():
-            print(f"  {label}: skipped (file not found)")
+            print(f"  {METHOD_LABELS[key]}: skipped (file not found)")
             continue
+        label = METHOD_LABELS[key]
         adatas[label] = ad.read_h5ad(path)
-        available_methods.append((key, label, fname))
+        available_methods.append((key, fname))
         print(f"  {label}: {adatas[label].n_obs} cells")
 
     print("\nClustering each method (Leiden resolution 1.0)...")
     labels: dict[str, pd.Series] = {}
-    for _, label, _ in available_methods:
+    for key, _ in available_methods:
+        label = METHOD_LABELS[key]
         labels[label] = cluster_cell_types(adatas[label], resolution=1.0, seed=0)
         labels[label].index = labels[label].index.astype(str)
         print(f"  {label}: {labels[label].nunique()} clusters")
 
-    method_labels = [m[1] for m in available_methods]
+    method_labels = [METHOD_LABELS[k] for k, _ in available_methods]
     n = len(method_labels)
     ari_matrix = np.full((n, n), np.nan)
     np.fill_diagonal(ari_matrix, 1.0)
@@ -125,15 +120,20 @@ def main() -> None:
     print(ari_df.round(3).to_string())
 
     # ---------------------------------------------------------------- figure
+    # Filter to non-nuclear methods for the heatmap (CSV retains all).
+    plot_labels = [METHOD_LABELS[k] for k, _ in available_methods if k not in NUCLEAR_ONLY]
+    plot_ari = ari_df.loc[plot_labels, plot_labels]
+    n_plot = len(plot_labels)
+
     apply_style()
     fig, ax = plt.subplots(figsize=(15, 13))
 
-    diag_mask = np.eye(n, dtype=bool)
-    off_diag = ari_matrix[~diag_mask]
+    diag_mask = np.eye(n_plot, dtype=bool)
+    off_diag = plot_ari.values[~diag_mask]
     vmin = np.nanmin(off_diag)
 
     sns.heatmap(
-        ari_df,
+        plot_ari,
         annot=True, fmt=".3f",
         cmap="YlOrRd",
         vmin=vmin, vmax=1.0,
@@ -144,34 +144,36 @@ def main() -> None:
         annot_kws={"size": 13, "weight": "bold"},
     )
 
-    # Diagonal cells: grey fill + dash
-    for k in range(n):
+    for k in range(n_plot):
         ax.add_patch(plt.Rectangle((k, k), 1, 1, fill=True,
                                    color="#dddddd", lw=0, zorder=3))
         ax.text(k + 0.5, k + 0.5, "—", ha="center", va="center",
                 fontsize=14, color="#888888", zorder=4)
 
-    # Colour tick labels by family (no patches that cover the labels)
-    ax.set_xticklabels(method_labels, rotation=35, ha="right", fontsize=13)
-    ax.set_yticklabels(method_labels, rotation=0, fontsize=13)
+    label_to_family = {METHOD_LABELS[k]: METHOD_FAMILIES[k]
+                       for k, _ in available_methods if k not in NUCLEAR_ONLY}
+    ax.set_xticklabels(plot_labels, rotation=35, ha="right", fontsize=13)
+    ax.set_yticklabels(plot_labels, rotation=0, fontsize=13)
     for tick in ax.get_xticklabels():
         label_text = tick.get_text()
-        if label_text in FAMILY:
-            tick.set_color(FAMILY_COLORS[FAMILY[label_text]])
+        if label_text in label_to_family:
+            tick.set_color(FAMILY_COLORS[label_to_family[label_text]])
             tick.set_fontweight("bold")
     for tick in ax.get_yticklabels():
         label_text = tick.get_text()
-        if label_text in FAMILY:
-            tick.set_color(FAMILY_COLORS[FAMILY[label_text]])
+        if label_text in label_to_family:
+            tick.set_color(FAMILY_COLORS[label_to_family[label_text]])
             tick.set_fontweight("bold")
 
     ax.set_title(
-        "Pairwise ARI between all segmentation methods\n"
+        "Pairwise ARI between segmentation methods\n"
         "(Leiden resolution 1.0, nearest-centroid matching ≤ 10 µm)",
         fontweight="bold", fontsize=14,
     )
 
-    handles = [mpatches.Patch(color=c, label=f) for f, c in FAMILY_COLORS.items()]
+    used_families = set(label_to_family.values())
+    handles = [mpatches.Patch(color=c, label=f)
+               for f, c in FAMILY_COLORS.items() if f in used_families]
     ax.legend(handles=handles, loc="upper right",
               bbox_to_anchor=(1.35, 1.02), fontsize=12, title="Family",
               title_fontsize=12)
