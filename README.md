@@ -5,18 +5,19 @@
 ## Summary
 
 | Comparison | Matched pairs | Median corr | ARI | Disagreement rate | Moran's I |
-| --- | --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: | ---: |
 | 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 |
 | 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 |
 | 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 |
-| 10x native vs. Voronoi (CellPose) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 |
-| 10x native vs. Voronoi (StarDist) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 |
-| 10x native vs. Voronoi (Mesmer) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
+| 10x native vs. Voronoi (CP) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 |
+| 10x native vs. Voronoi (SD) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 |
+| 10x native vs. Voronoi (M) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
-| 10x native vs. Baysor (prior 0.8) | 20,108 | 0.884 | 0.488 | — | — |
-| 10x native vs. Baysor (prior 1.0) | 20,308 | — | 0.501 | — | — |
+| 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | 51.9% | 0.036 |
+| 10x native vs. Baysor (CP prior 0.8) | 20,108 | 0.884 | 0.488 | 38.8% | 0.219 |
+| 10x native vs. Baysor (CP prior 1.0) | 20,308 | 0.902 | 0.501 | 33.8% | 0.111 |
 
-*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag. Dashes for the Baysor prior variants will be filled after the full downstream pipeline runs.
+*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag.
 
 Three method families emerge clearly, with a fourth hybrid family introduced by the Baysor prior variants. Nuclear methods (CellPose, StarDist, Mesmer) cluster at ARI ~0.55 with spatially structured disagreement concentrated in the luminal epithelial population. Voronoi variants reach ARI 0.63–0.69 with 100% transcript capture. Baysor without a prior reaches ARI 0.31 with near-random spatial disagreement. Adding a strong CellPose nuclear prior (PSC 0.8–1.0) lifts Baysor to ARI 0.49–0.50 — still below Voronoi, but with the lowest negative marker violation rate of any expansion method (0.31 per 1000 transcripts vs. 0.37–0.43 for Voronoi), indicating that density-adaptive expansion produces fewer cross-lineage boundary artifacts even when it agrees less with 10x native's cell calls.
 
@@ -38,12 +39,9 @@ All analysis runs on a 2mm × 2mm ROI (~23,600 cells, ~3.4M transcripts, 380-gen
 | **CellPose** | DAPI | CellPose 3.x `nuclei` model, CPU |
 | **StarDist** | DAPI | `2D_versatile_fluo` model, separate `stardist` env |
 | **Mesmer** | DAPI | DeepCell via Docker; image bundles model weights |
-| **Voronoi (CellPose)** | CellPose centroids | Nearest-centroid transcript assignment; 100% capture, no additional model |
-| **Voronoi (StarDist)** | StarDist centroids | Same assignment using StarDist centroids |
-| **Voronoi (Mesmer)** | Mesmer centroids | Same assignment using Mesmer centroids; isolates nuclear detector quality |
+| **Voronoi (CP / SD / M)** | nuclear centroids | Nearest-centroid transcript assignment using CellPose, StarDist, or Mesmer centroids; 100% transcript capture by construction |
 | **Baysor** | transcripts | Transcript-density EM (no prior), Julia 1.10, 4 tiles |
-| **Baysor (prior 0.8)** | transcripts + CellPose nuclei | Baysor with `prior_segmentation_confidence=0.8`: nuclear transcripts nearly locked to CellPose identity, cytoplasmic transcripts assigned by density |
-| **Baysor (prior 1.0)** | transcripts + CellPose nuclei | Baysor with `prior_segmentation_confidence=1.0`: nuclear transcripts hard-locked, cytoplasmic assigned by density-adaptive expansion — the mathematical limit of Baysor as a density-based expansion of fixed nuclear seeds |
+| **Baysor (prior 0.2 / 0.8 / 1.0)** | transcripts + nuclear masks | Baysor with `prior_segmentation_confidence` set to 0.2, 0.8, or 1.0; tested with CellPose, StarDist, and Mesmer nuclear priors at PSC 1.0 to isolate nuclear detector quality |
 
 Nuclear methods (CellPose, StarDist, Mesmer) capture only 35–52% of transcripts and are included in the cell/transcript recovery section but excluded from downstream figures because their low transcript capture dominates any comparison. Cells are matched by nearest centroid across methods. Leiden clustering runs independently on each method's cells; cluster labels are aligned via Hungarian algorithm before computing ARI and disagreement rate.
 
