@@ -142,6 +142,7 @@ def fig_transcripts_per_cell() -> None:
     ax.set_yticks([np.log10(v) for v in tick_vals])
     ax.set_yticklabels([str(v) for v in tick_vals])
     ax.set_ylabel("Transcripts per cell")
+    ax.set_ylim(bottom=ax.get_ylim()[0] - 0.15)
     ax.set_title("Transcripts/cell distribution (expansion methods)", fontweight="bold")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "transcripts_per_cell.png", dpi=DPI)
