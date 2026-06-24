@@ -112,14 +112,6 @@ The method ordering is stable across Leiden resolutions 0.5–2.0. Voronoi (Mesm
 
 ---
 
-## ARI decomposition: coverage vs. detection quality
-
-![ARI decomposition and three-metric comparison](results/figures/decomposition.png)
-
-The two Voronoi controls make this a clean experiment. CellPose nuclear and Voronoi (CellPose) use identical centroids; Voronoi assigns all transcripts to the nearest centroid instead of counting only those inside the nuclear mask. That change alone adds **+0.083 ARI** (0.547 → 0.630). Swapping in Mesmer's higher-quality centroids adds another **+0.056 ARI** (0.630 → 0.686). Cytoplasmic coverage is the larger contributor; centroid quality is secondary. Morphological dilation of CellPose masks reaches ARI 0.592 at 20µm but never matches Voronoi's 0.630, confirming that a fixed-radius expansion cannot substitute for full transcript assignment.
-
----
-
 ## Spatial structure of disagreement
 
 ![Disagreement mapped spatially](results/figures/disagreement_spatial_map.png)

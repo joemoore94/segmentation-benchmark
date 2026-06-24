@@ -47,65 +47,75 @@ METHOD_COLORS: dict[str, str] = {
     "cellpose":         "#4C72B0",
     "stardist":         "#8172B2",
     "mesmer":           "#D62728",
+    "10x_ranger":       "#2E8B57",
     "10x_native":       "#55A868",
     "voronoi":          "#17BECF",
     "voronoi_stardist": "#9467BD",
     "voronoi_mesmer":   "#BCBD22",
+    "voronoi_10x_ranger": "#3CB371",
     "baysor":           "#DD8452",
     "baysor_prior":     "#937860",
     "baysor_prior_c08": "#A0522D",
     "baysor_prior_c10":          "#CD853F",
     "baysor_stardist_prior_c10": "#8B4513",
-    "baysor_mesmer_prior_c10":   "#DAA520",
-    "bidcell":                   "#E377C2",
+    "baysor_mesmer_prior_c10":      "#DAA520",
+    "baysor_10x_ranger_prior_c10": "#006400",
+    "bidcell":                      "#E377C2",
     "segger":           "#C49C94",
 }
 
 METHOD_LABELS: dict[str, str] = {
     "cellpose":         "CellPose",
     "stardist":         "StarDist",
-    "mesmer":           "Mesmer",
-    "10x_native":       "10x native",
-    "voronoi":          "Voronoi (CP)",
-    "voronoi_stardist": "Voronoi (SD)",
-    "voronoi_mesmer":   "Voronoi (M)",
+    "mesmer":             "Mesmer",
+    "10x_ranger":         "10x Ranger",
+    "10x_native":         "10x native",
+    "voronoi":            "Voronoi (CP)",
+    "voronoi_stardist":   "Voronoi (SD)",
+    "voronoi_mesmer":     "Voronoi (M)",
+    "voronoi_10x_ranger": "Voronoi (10x)",
     "baysor":           "Baysor",
     "baysor_prior":     "Baysor (prior 0.2)",
     "baysor_prior_c08": "Baysor (CP prior 0.8)",
     "baysor_prior_c10":          "Baysor (CP prior 1.0)",
     "baysor_stardist_prior_c10": "Baysor (SD prior 1.0)",
-    "baysor_mesmer_prior_c10":   "Baysor (M prior 1.0)",
-    "bidcell":                   "BIDCell",
+    "baysor_mesmer_prior_c10":      "Baysor (M prior 1.0)",
+    "baysor_10x_ranger_prior_c10": "Baysor (10x prior 1.0)",
+    "bidcell":                      "BIDCell",
     "segger":           "Segger",
 }
 
 METHOD_FAMILIES: dict[str, str] = {
     "cellpose":         "Nuclear",
     "stardist":         "Nuclear",
-    "mesmer":           "Nuclear",
-    "10x_native":       "Reference",
-    "voronoi":          "Voronoi",
-    "voronoi_stardist": "Voronoi",
-    "voronoi_mesmer":   "Voronoi",
+    "mesmer":             "Nuclear",
+    "10x_ranger":         "Nuclear",
+    "10x_native":         "Reference",
+    "voronoi":            "Voronoi",
+    "voronoi_stardist":   "Voronoi",
+    "voronoi_mesmer":     "Voronoi",
+    "voronoi_10x_ranger": "Voronoi",
     "baysor":           "Transcript-density",
     "baysor_prior":     "Transcript-density",
     "baysor_prior_c08": "Transcript-density",
     "baysor_prior_c10":          "Transcript-density",
     "baysor_stardist_prior_c10": "Transcript-density",
-    "baysor_mesmer_prior_c10":   "Transcript-density",
-    "bidcell":                   "Multimodal",
+    "baysor_mesmer_prior_c10":      "Transcript-density",
+    "baysor_10x_ranger_prior_c10": "Transcript-density",
+    "bidcell":                      "Multimodal",
     "segger":           "Multimodal",
 }
 
-NUCLEAR_ONLY: set[str] = {"cellpose", "stardist", "mesmer"}
+NUCLEAR_ONLY: set[str] = {"cellpose", "stardist", "mesmer", "10x_ranger"}
 
 # Methods included in main analysis figures (past the recovery section).
 MAIN_METHODS: list[str] = [
     "10x_native",
-    "voronoi", "voronoi_stardist", "voronoi_mesmer",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer", "voronoi_10x_ranger",
     "baysor",
     "baysor_prior_c08", "baysor_prior_c10",
     "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
+    "baysor_10x_ranger_prior_c10",
 ]
 
 # Pairwise comparisons shown in multi-panel figures (2×2+ grid order).
@@ -117,7 +127,9 @@ COMPARISON_ORDER: list[tuple[str, str]] = [
     ("baysor_prior_c08", "Baysor (CP prior 0.8)"),
     ("baysor_prior_c10",          "Baysor (CP prior 1.0)"),
     ("baysor_stardist_prior_c10", "Baysor (SD prior 1.0)"),
-    ("baysor_mesmer_prior_c10",   "Baysor (M prior 1.0)"),
+    ("baysor_mesmer_prior_c10",      "Baysor (M prior 1.0)"),
+    ("voronoi_10x_ranger",           "Voronoi (10x)"),
+    ("baysor_10x_ranger_prior_c10",  "Baysor (10x prior 1.0)"),
 ]
 
 # ---------------------------------------------------------------------------

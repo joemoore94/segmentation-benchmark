@@ -24,9 +24,10 @@ from segbench.io import PIXEL_SIZE
 ROI_DIR = Path("data/processed/roi")
 
 MASK_PATHS = {
-    "cellpose": ROI_DIR / "masks_cellpose.tif",
-    "stardist": ROI_DIR / "masks_stardist.tif",
-    "mesmer":   ROI_DIR / "mesmer_out" / "mask.tif",
+    "cellpose":   ROI_DIR / "masks_cellpose.tif",
+    "stardist":   ROI_DIR / "masks_stardist.tif",
+    "mesmer":     ROI_DIR / "mesmer_out" / "mask.tif",
+    "10x_ranger": ROI_DIR / "masks_10x_ranger.tif",
 }
 
 
@@ -40,6 +41,7 @@ def main(method: str) -> None:
 
     mask_path = MASK_PATHS[method]
     masks = tifffile.imread(mask_path)
+    masks = np.squeeze(masks)
     print(f"{mask_path.name}: {masks.shape}, {masks.max()} labels")
 
     col = (transcripts["x_location"].to_numpy() / PIXEL_SIZE).astype(np.int64)
