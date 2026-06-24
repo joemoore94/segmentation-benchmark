@@ -26,7 +26,7 @@ W, H = 17, 6          # figure size in inches
 XL, XR = 0, 17        # data x range
 YB, YT = 0, 6         # data y range
 
-# x breakpoints (all in data units 0–17)
+# x breakpoints (all in data units 0-17)
 X_APPROACH_L = 0.3    # left edge of approach box
 X_APPROACH_R = 5.8    # right edge of approach box
 X_GAP1       = 6.1    # arrow start
@@ -58,7 +58,7 @@ EVAL_STEPS = [
     ("PCA\n(30 PCs)",             "#e0e0e0"),
     ("Leiden\nclustering",        "#e0e0e0"),
     ("Hungarian\nalignment",      "#e0e0e0"),
-    ("ARI  ·  Moran's I\nPearson r (pseudobulk)", "#d4edda"),
+    ("ARI  |  Moran's I\nPearson r (pseudobulk)", "#d4edda"),
 ]
 
 
@@ -149,22 +149,22 @@ def main() -> None:
     box(ax, X_APPROACH_L, X_APPROACH_R, ROWS["nuclear"], BOX_H,
         "DAPI → CellPose / StarDist / Mesmer",
         FAMILY_COLORS["nuclear"], bold=True, fontsize=10.5,
-        sublabel="nuclear masks · transcripts inside mask only (35–52% capture)")
+        sublabel="nuclear masks | transcripts inside mask only (35-52% capture)")
 
     box(ax, X_APPROACH_L, X_APPROACH_R, ROWS["voronoi"], BOX_H,
-        "Nuclear centroids → Voronoi (CellPose) · Voronoi (Mesmer)",
+        "Nuclear centroids → Voronoi (CellPose) | Voronoi (Mesmer)",
         FAMILY_COLORS["voronoi"], bold=True, fontsize=10.5,
-        sublabel="nearest-centroid transcript assignment · 100% capture")
+        sublabel="nearest-centroid transcript assignment | 100% capture")
 
     box(ax, X_APPROACH_L, X_APPROACH_R, ROWS["baysor"], BOX_H,
         "Transcripts → Baysor EM",
         FAMILY_COLORS["baysor"], bold=True, fontsize=10.5,
-        sublabel="transcript-density EM · ~99% capture · 4 tiles")
+        sublabel="transcript-density EM | ~99% capture | 4 tiles")
 
     box(ax, X_APPROACH_L, X_APPROACH_R, ROWS["ref"], BOX_H,
         "10x native (Xenium Ranger output)",
         FAMILY_COLORS["ref"], bold=True, fontsize=10.5,
-        sublabel="provided whole-cell segmentation · reference anchor")
+        sublabel="provided whole-cell segmentation | reference anchor")
 
     # -------- arrows from approach → cell×gene --------
     for row_key in ("nuclear", "voronoi", "baysor", "ref"):

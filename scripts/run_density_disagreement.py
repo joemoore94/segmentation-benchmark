@@ -59,33 +59,37 @@ def main() -> None:
     log_density = compute_log_density(adata_10x)
     log_density.to_csv(TABLES_DIR / "10x_log_density.csv")
 
-    rows = []
-    for label, fname in COMPARISONS.items():
-        if not (TABLES_DIR / fname).exists():
-            print(f"\n=== {label}: skipped (file not found) ===")
-            continue
-        disagreement = pd.read_csv(TABLES_DIR / fname)
-        disagreement["log_density"] = disagreement["id_a"].map(log_density)
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        print(f"\n{'='*60}\nCluster alignment: {matcher_name}\n{'='*60}")
+        rows = []
+        for label, fname_base in COMPARISONS.items():
+            fname = fname_base.replace(".csv", f"{suffix}.csv")
+            if not (TABLES_DIR / fname).exists():
+                print(f"\n=== {label}: skipped (file not found) ===")
+                continue
+            disagreement = pd.read_csv(TABLES_DIR / fname)
+            disagreement["log_density"] = disagreement["id_a"].map(log_density)
 
-        agree = disagreement.loc[disagreement["disagree"] == 0.0, "log_density"].dropna()
-        disagree = disagreement.loc[disagreement["disagree"] == 1.0, "log_density"].dropna()
+            agree = disagreement.loc[disagreement["disagree"] == 0.0, "log_density"].dropna()
+            disagree = disagreement.loc[disagreement["disagree"] == 1.0, "log_density"].dropna()
 
-        stat, p = mannwhitneyu(disagree, agree, alternative="two-sided")
-        row = {
-            "comparison": label,
-            "n_agree": len(agree),
-            "n_disagree": len(disagree),
-            "median_log_density_agree": agree.median(),
-            "median_log_density_disagree": disagree.median(),
-            "mannwhitney_u": stat,
-            "p_value": p,
-        }
-        rows.append(row)
-        print(f"\n=== {label}: density vs. disagreement ===")
-        print(row)
+            stat, p = mannwhitneyu(disagree, agree, alternative="two-sided")
+            row = {
+                "comparison": label,
+                "n_agree": len(agree),
+                "n_disagree": len(disagree),
+                "median_log_density_agree": agree.median(),
+                "median_log_density_disagree": disagree.median(),
+                "mannwhitney_u": stat,
+                "p_value": p,
+            }
+            rows.append(row)
+            print(f"\n=== {label} ({matcher_name}): density vs. disagreement ===")
+            print(row)
 
-    summary = pd.DataFrame(rows)
-    summary.to_csv(TABLES_DIR / "density_disagreement_summary.csv", index=False)
+        summary = pd.DataFrame(rows)
+        summary.to_csv(TABLES_DIR / f"density_disagreement_summary{suffix}.csv", index=False)
 
 
 if __name__ == "__main__":

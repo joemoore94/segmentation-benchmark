@@ -174,73 +174,91 @@ def fig_expression_correlation() -> None:
 
 
 def fig_disagreement_spatial_map() -> None:
-    pairs = [
-        (label, pd.read_csv(TABLES_DIR / f"disagreement_table_10x_{m}.csv"))
-        for m, label in _available_comparisons()
-    ]
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        matcher_label = "Hungarian (one-to-one)" if matcher_name == "hungarian" else "Argmax (many-to-one)"
+        comparisons = _available_comparisons()
+        pairs = []
+        for m, label in comparisons:
+            path = TABLES_DIR / f"disagreement_table_10x_{m}{suffix}.csv"
+            if path.exists():
+                pairs.append((label, pd.read_csv(path)))
+        if not pairs:
+            continue
 
-    fig, flat, _, _ = _make_grid(len(pairs))
-    for ax, (label, df) in zip(flat, pairs):
-        sns.scatterplot(
-            data=df, x="centroid_x", y="centroid_y",
-            hue="disagree",
-            palette={0.0: "#4C72B0", 1.0: "#C44E52"},
-            s=4, alpha=0.6, ax=ax, legend=False,
-        )
-        ax.set_xlabel("x (µm)")
-        ax.set_ylabel("y (µm)")
-        ax.set_aspect("equal")
-        ax.invert_yaxis()
-        ax.set_title(f"10x native vs. {label}", fontweight="bold")
+        fig, flat, _, _ = _make_grid(len(pairs))
+        for ax, (label, df) in zip(flat, pairs):
+            sns.scatterplot(
+                data=df, x="centroid_x", y="centroid_y",
+                hue="disagree",
+                palette={0.0: "#4C72B0", 1.0: "#C44E52"},
+                s=4, alpha=0.6, ax=ax, legend=False,
+            )
+            ax.set_xlabel("x (µm)")
+            ax.set_ylabel("y (µm)")
+            ax.set_aspect("equal")
+            ax.invert_yaxis()
+            ax.set_title(f"10x native vs. {label}", fontweight="bold")
 
-    fig.suptitle("Cell-type agreement vs. disagreement", fontweight="bold")
-    fig.legend(handles=[
-        mpatches.Patch(color="#4C72B0", label="Agree"),
-        mpatches.Patch(color="#C44E52", label="Disagree"),
-    ], loc="lower center", ncols=2, framealpha=0.9)
-    fig.tight_layout(rect=[0, 0.04, 1, 0.95])
-    fig.savefig(FIGURES_DIR / "disagreement_spatial_map.png", dpi=DPI)
-    plt.close(fig)
+        fig.suptitle(f"Cell-type agreement vs. disagreement - {matcher_label}", fontweight="bold")
+        fig.legend(handles=[
+            mpatches.Patch(color="#4C72B0", label="Agree"),
+            mpatches.Patch(color="#C44E52", label="Disagree"),
+        ], loc="lower center", ncols=2, framealpha=0.9)
+        fig.tight_layout(rect=[0, 0.04, 1, 0.95])
+        out_name = "disagreement_spatial_map.png" if not suffix else f"disagreement_spatial_map{suffix}.png"
+        fig.savefig(FIGURES_DIR / out_name, dpi=DPI)
+        plt.close(fig)
 
 
 def fig_density_vs_disagreement() -> None:
     log_density = pd.read_csv(TABLES_DIR / "10x_log_density.csv", index_col=0)["log_density"]
-    summary = pd.read_csv(TABLES_DIR / "density_disagreement_summary.csv", index_col="comparison")
 
-    pairs = [
-        (m, label, pd.read_csv(TABLES_DIR / f"disagreement_table_10x_{m}.csv"))
-        for m, label in _available_comparisons()
-    ]
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        matcher_label = "Hungarian (one-to-one)" if matcher_name == "hungarian" else "Argmax (many-to-one)"
+        summary_path = TABLES_DIR / f"density_disagreement_summary{suffix}.csv"
+        summary = pd.read_csv(summary_path, index_col="comparison") if summary_path.exists() else pd.DataFrame()
 
-    fig, flat, nrows, ncols = _make_grid(len(pairs), sharex=True, sharey=True)
-    for ax, (m, label, df) in zip(flat, pairs):
-        df = df.copy()
-        df["log_density"] = df["id_a"].map(log_density)
-        sns.kdeplot(
-            data=df, x="log_density", hue="disagree",
-            palette={0.0: "#4C72B0", 1.0: "#C44E52"}, common_norm=False,
-            fill=True, alpha=0.3, ax=ax, legend=False,
-        )
-        medians = df.groupby("disagree")["log_density"].median()
-        ax.axvline(medians[0.0], color="#4C72B0", linestyle="--")
-        ax.axvline(medians[1.0], color="#C44E52", linestyle="--")
-        csv_key = DENSITY_CSV_KEY.get(m)
-        p = summary.loc[csv_key, "p_value"] if csv_key and csv_key in summary.index else float("nan")
-        ax.set_title(f"10x native vs. {label}", fontweight="bold")
-        ax.text(0.04, 0.94, f"p = {p:.1e}", transform=ax.transAxes,
-                va="top", ha="left",
-                bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8))
-        ax.set_xlabel("Phenotypic log-density (Mellon)")
+        comparisons = _available_comparisons()
+        pairs = []
+        for m, label in comparisons:
+            path = TABLES_DIR / f"disagreement_table_10x_{m}{suffix}.csv"
+            if path.exists():
+                pairs.append((m, label, pd.read_csv(path)))
+        if not pairs:
+            continue
 
-    flat[0].set_ylabel("Density")
-    fig.suptitle("Phenotypic density vs. cell-type disagreement", fontweight="bold")
-    fig.legend(handles=[
-        mpatches.Patch(color="#4C72B0", alpha=0.5, label="Agree"),
-        mpatches.Patch(color="#C44E52", alpha=0.5, label="Disagree"),
-    ], loc="lower center", ncols=2, framealpha=0.9)
-    fig.tight_layout(rect=[0, 0.04, 1, 0.95])
-    fig.savefig(FIGURES_DIR / "density_vs_disagreement.png", dpi=DPI)
-    plt.close(fig)
+        fig, flat, nrows, ncols = _make_grid(len(pairs), sharex=True, sharey=True)
+        for ax, (m, label, df) in zip(flat, pairs):
+            df = df.copy()
+            df["log_density"] = df["id_a"].map(log_density)
+            sns.kdeplot(
+                data=df, x="log_density", hue="disagree",
+                palette={0.0: "#4C72B0", 1.0: "#C44E52"}, common_norm=False,
+                fill=True, alpha=0.3, ax=ax, legend=False,
+            )
+            medians = df.groupby("disagree")["log_density"].median()
+            ax.axvline(medians[0.0], color="#4C72B0", linestyle="--")
+            ax.axvline(medians[1.0], color="#C44E52", linestyle="--")
+            csv_key = DENSITY_CSV_KEY.get(m)
+            p = summary.loc[csv_key, "p_value"] if not summary.empty and csv_key and csv_key in summary.index else float("nan")
+            ax.set_title(f"10x native vs. {label}", fontweight="bold")
+            ax.text(0.04, 0.94, f"p = {p:.1e}", transform=ax.transAxes,
+                    va="top", ha="left",
+                    bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8))
+            ax.set_xlabel("Phenotypic log-density (Mellon)")
+
+        flat[0].set_ylabel("Density")
+        fig.suptitle(f"Phenotypic density vs. cell-type disagreement - {matcher_label}", fontweight="bold")
+        fig.legend(handles=[
+            mpatches.Patch(color="#4C72B0", alpha=0.5, label="Agree"),
+            mpatches.Patch(color="#C44E52", alpha=0.5, label="Disagree"),
+        ], loc="lower center", ncols=2, framealpha=0.9)
+        fig.tight_layout(rect=[0, 0.04, 1, 0.95])
+        out_name = "density_vs_disagreement.png" if not suffix else f"density_vs_disagreement{suffix}.png"
+        fig.savefig(FIGURES_DIR / out_name, dpi=DPI)
+        plt.close(fig)
 
 
 def fig_pca_umap() -> None:
@@ -268,71 +286,83 @@ def fig_pca_umap() -> None:
 
 
 def fig_local_morans_map() -> None:
-    pairs = [
-        (label, pd.read_csv(TABLES_DIR / f"local_morans_10x_{m}.csv"))
-        for m, label in _available_comparisons()
-        if (TABLES_DIR / f"local_morans_10x_{m}.csv").exists()
-    ]
     LISA_COLORS = {"HH": "#C44E52", "LL": "#4C72B0", "HL": "#DD8452", "LH": "#CCB974"}
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        matcher_label = "Hungarian (one-to-one)" if matcher_name == "hungarian" else "Argmax (many-to-one)"
+        pairs = [
+            (label, pd.read_csv(TABLES_DIR / f"local_morans_10x_{m}{suffix}.csv"))
+            for m, label in _available_comparisons()
+            if (TABLES_DIR / f"local_morans_10x_{m}{suffix}.csv").exists()
+        ]
+        if not pairs:
+            continue
 
-    fig, flat, _, _ = _make_grid(len(pairs))
-    for ax, (label, df) in zip(flat, pairs):
-        for cluster, color in LISA_COLORS.items():
-            sub = df[df["lisa_cluster"] == cluster]
-            ax.scatter(sub["centroid_x"], sub["centroid_y"], c=color, s=4, alpha=0.6, label=cluster)
-        ax.set_title(f"10x native vs. {label}", fontweight="bold")
-        ax.set_xlabel("x (µm)")
-        ax.set_ylabel("y (µm)")
-        ax.set_aspect("equal")
-        ax.invert_yaxis()
+        fig, flat, _, _ = _make_grid(len(pairs))
+        for ax, (label, df) in zip(flat, pairs):
+            for cluster, color in LISA_COLORS.items():
+                sub = df[df["lisa_cluster"] == cluster]
+                ax.scatter(sub["centroid_x"], sub["centroid_y"], c=color, s=4, alpha=0.6, label=cluster)
+            ax.set_title(f"10x native vs. {label}", fontweight="bold")
+            ax.set_xlabel("x (µm)")
+            ax.set_ylabel("y (µm)")
+            ax.set_aspect("equal")
+            ax.invert_yaxis()
 
-    fig.suptitle("Local Moran's I: HH = disagreement hotspot, LL = agreement coldspot",
-                 fontweight="bold")
-    fig.legend(handles=[mpatches.Patch(color=color, label=cluster)
-                        for cluster, color in LISA_COLORS.items()],
-               title="LISA cluster", loc="lower center", ncols=4, framealpha=0.9)
-    fig.tight_layout(rect=[0, 0.04, 1, 0.95])
-    fig.savefig(FIGURES_DIR / "local_morans_map.png", dpi=DPI)
-    plt.close(fig)
+        fig.suptitle(f"Local Moran's I - {matcher_label}",
+                     fontweight="bold")
+        fig.legend(handles=[mpatches.Patch(color=color, label=cluster)
+                            for cluster, color in LISA_COLORS.items()],
+                   title="LISA cluster", loc="lower center", ncols=4, framealpha=0.9)
+        fig.tight_layout(rect=[0, 0.04, 1, 0.95])
+        out_name = "local_morans_map.png" if not suffix else f"local_morans_map{suffix}.png"
+        fig.savefig(FIGURES_DIR / out_name, dpi=DPI)
+        plt.close(fig)
 
 
 def fig_de_volcano() -> None:
-    pairs = [
-        (m, label, pd.read_csv(TABLES_DIR / f"de_disagree_10x_{m}.csv"))
-        for m, label in _available_comparisons()
-        if (TABLES_DIR / f"de_disagree_10x_{m}.csv").exists()
-    ]
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        matcher_label = "Hungarian (one-to-one)" if matcher_name == "hungarian" else "Argmax (many-to-one)"
+        pairs = [
+            (m, label, pd.read_csv(TABLES_DIR / f"de_disagree_10x_{m}{suffix}.csv"))
+            for m, label in _available_comparisons()
+            if (TABLES_DIR / f"de_disagree_10x_{m}{suffix}.csv").exists()
+        ]
+        if not pairs:
+            continue
 
-    fig, flat, _, _ = _make_grid(len(pairs), sharey=True)
-    for ax, (m, label, df) in zip(flat, pairs):
-        sig = df["pvals_adj"] < 0.05
-        ax.scatter(
-            df.loc[~sig, "logfoldchanges"], -np.log10(df.loc[~sig, "pvals_adj"] + 1e-300),
-            c="#AAAAAA", s=8, alpha=0.5, label="n.s.",
-        )
-        ax.scatter(
-            df.loc[sig, "logfoldchanges"], -np.log10(df.loc[sig, "pvals_adj"] + 1e-300),
-            c="#C44E52", s=10, alpha=0.7, label="adj. p < 0.05",
-        )
-        for _, row in df[sig].nlargest(5, "scores").iterrows():
-            ax.annotate(
-                row["names"],
-                xy=(row["logfoldchanges"], -np.log10(row["pvals_adj"] + 1e-300)),
-                ha="left",
+        fig, flat, _, _ = _make_grid(len(pairs), sharey=True)
+        for ax, (m, label, df) in zip(flat, pairs):
+            sig = df["pvals_adj"] < 0.05
+            ax.scatter(
+                df.loc[~sig, "logfoldchanges"], -np.log10(df.loc[~sig, "pvals_adj"] + 1e-300),
+                c="#AAAAAA", s=8, alpha=0.5, label="n.s.",
             )
-        ax.axvline(0, color="black", linewidth=0.5)
-        ax.set_xlabel("log fold change (disagree vs. agree)")
-        ax.set_title(f"10x native vs. {label}", fontweight="bold")
+            ax.scatter(
+                df.loc[sig, "logfoldchanges"], -np.log10(df.loc[sig, "pvals_adj"] + 1e-300),
+                c="#C44E52", s=10, alpha=0.7, label="adj. p < 0.05",
+            )
+            for _, row in df[sig].nlargest(5, "scores").iterrows():
+                ax.annotate(
+                    row["names"],
+                    xy=(row["logfoldchanges"], -np.log10(row["pvals_adj"] + 1e-300)),
+                    ha="left",
+                )
+            ax.axvline(0, color="black", linewidth=0.5)
+            ax.set_xlabel("log fold change (disagree vs. agree)")
+            ax.set_title(f"10x native vs. {label}", fontweight="bold")
 
-    flat[0].set_ylabel("-log10(adj. p)")
-    fig.suptitle("DE: disagree vs. agree cells (Wilcoxon, 10x native cells)", fontweight="bold")
-    fig.legend(handles=[
-        mpatches.Patch(color="#AAAAAA", label="n.s."),
-        mpatches.Patch(color="#C44E52", label="adj. p < 0.05"),
-    ], loc="lower center", ncols=2, framealpha=0.9)
-    fig.tight_layout(rect=[0, 0.04, 1, 0.95])
-    fig.savefig(FIGURES_DIR / "de_volcano.png", dpi=DPI)
-    plt.close(fig)
+        flat[0].set_ylabel("-log10(adj. p)")
+        fig.suptitle(f"DE: disagree vs. agree cells - {matcher_label}", fontweight="bold")
+        fig.legend(handles=[
+            mpatches.Patch(color="#AAAAAA", label="n.s."),
+            mpatches.Patch(color="#C44E52", label="adj. p < 0.05"),
+        ], loc="lower center", ncols=2, framealpha=0.9)
+        fig.tight_layout(rect=[0, 0.04, 1, 0.95])
+        out_name = "de_volcano.png" if not suffix else f"de_volcano{suffix}.png"
+        fig.savefig(FIGURES_DIR / out_name, dpi=DPI)
+        plt.close(fig)
 
 
 def fig_cluster_confusion() -> None:
@@ -421,8 +451,8 @@ def fig_cluster_confusion() -> None:
     cbar.set_label("% of 10x native cluster")
 
     fig.suptitle(
-        "Cluster-level confusion matrices (row-normalised)  ·  "
-        "Red = Hungarian (one-to-one)  ·  Green dashed = argmax (many-to-one)",
+        "Cluster-level confusion matrices (row-normalised)  |  "
+        "Red = Hungarian (one-to-one)  |  Green dashed = argmax (many-to-one)",
         fontstyle="italic", fontweight="bold",
     )
     fig.subplots_adjust(left=0.07, right=0.90, top=0.95, bottom=0.03,

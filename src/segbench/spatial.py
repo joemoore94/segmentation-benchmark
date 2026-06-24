@@ -147,7 +147,7 @@ def local_morans_i_cluster(
 
     Based on the sign of the local I statistic and the attribute value.
     A simple threshold of 0 is used (no significance test); label NS (not
-    significant) is not assigned here — all cells receive one of the four
+    significant) is not assigned here - all cells receive one of the four
     quadrant labels so downstream filters can apply their own threshold.
     """
     z = values - values.mean()

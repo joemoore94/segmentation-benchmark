@@ -72,24 +72,28 @@ def main() -> None:
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
     adata_10x = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
 
-    for label, fname in COMPARISONS.items():
-        if not (TABLES_DIR / fname).exists():
-            print(f"\n=== DE: {label}: skipped (file not found) ===")
-            continue
-        print(f"\n=== DE: {label} ===")
-        disagreement = pd.read_csv(TABLES_DIR / fname)
-        n_agree = (disagreement["disagree"] == 0.0).sum()
-        n_disagree = (disagreement["disagree"] == 1.0).sum()
-        print(f"agree: {n_agree}, disagree: {n_disagree}")
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        print(f"\n{'='*60}\nCluster alignment: {matcher_name}\n{'='*60}")
+        for label, fname_base in COMPARISONS.items():
+            fname = fname_base.replace(".csv", f"{suffix}.csv")
+            if not (TABLES_DIR / fname).exists():
+                print(f"\n=== DE: {label}: skipped (file not found) ===")
+                continue
+            print(f"\n=== DE: {label} ({matcher_name}) ===")
+            disagreement = pd.read_csv(TABLES_DIR / fname)
+            n_agree = (disagreement["disagree"] == 0.0).sum()
+            n_disagree = (disagreement["disagree"] == 1.0).sum()
+            print(f"agree: {n_agree}, disagree: {n_disagree}")
 
-        result = run_de(adata_10x, disagreement, label)
+            result = run_de(adata_10x, disagreement, label)
 
-        out_name = fname.replace("disagreement_table_", "de_disagree_")
-        result.to_csv(TABLES_DIR / out_name, index=False)
+            out_name = fname.replace("disagreement_table_", "de_disagree_")
+            result.to_csv(TABLES_DIR / out_name, index=False)
 
-        top = result.nsmallest(10, "pvals_adj")[["names", "logfoldchanges", "pvals_adj", "scores"]]
-        print("Top 10 upregulated in disagree group:")
-        print(top.to_string(index=False))
+            top = result.nsmallest(10, "pvals_adj")[["names", "logfoldchanges", "pvals_adj", "scores"]]
+            print("Top 10 upregulated in disagree group:")
+            print(top.to_string(index=False))
 
 
 if __name__ == "__main__":

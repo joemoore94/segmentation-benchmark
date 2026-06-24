@@ -5,7 +5,7 @@ impossible co-expression patterns. A cell co-expressing CD3E (T cell) and
 GATA3 (luminal epithelial) is almost certainly a segmentation artifact where
 two adjacent cells' transcripts were merged into one.
 
-Unlike ARI-based metrics, this requires no single method as ground truth —
+Unlike ARI-based metrics, this requires no single method as ground truth -
 the biological exclusivity of lineage markers is the reference.
 
 Reads:  data/processed/roi/adata_*.h5ad

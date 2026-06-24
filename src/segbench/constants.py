@@ -136,7 +136,7 @@ COMPARISON_ORDER: list[tuple[str, str]] = [
 # Negative marker pairs for biology-grounded segmentation quality scoring
 # ---------------------------------------------------------------------------
 
-# Tier 1: high-confidence lineage exclusions — these cell types arise from
+# Tier 1: high-confidence lineage exclusions - these cell types arise from
 # different developmental lineages and never co-express in normal breast tissue.
 NEGATIVE_PAIRS_TIER1: list[tuple[str, str, str, str]] = [
     ("CD3E",   "GATA3",  "T cell",       "Luminal epithelial"),

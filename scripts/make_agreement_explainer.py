@@ -1,10 +1,10 @@
 """Cell type vs. agreement/disagreement: full-ROI spatial comparison.
 
 Layout (7 rows × 2 columns):
-  Row 1 — reference:
+  Row 1 - reference:
     A) 10x native cells coloured by annotated cell type.
     B) Average disagree rate by cell type across all six methods.
-  Rows 2–7 — one row per comparison method:
+  Rows 2-7 - one row per comparison method:
     Left)  Spatial agree/disagree map (10x native centroids).
     Right) Disagree rate (%) by cell type for that method.
 
@@ -54,14 +54,23 @@ def main() -> None:
     obs_full = adata.obs[["centroid_x", "centroid_y", "cell_type"]].copy()
     obs_full.index = obs_full.index.astype(str)
 
-    ct_disagree = pd.read_csv(TABLES / "celltype_disagreement.csv")
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        _build_explainer(obs_full, suffix, matcher_name)
 
-    # Cell type order: sort by average disagree rate ascending so highest is at top of barh
+
+def _build_explainer(obs_full: pd.DataFrame, suffix: str, matcher_name: str) -> None:
+    ct_path = TABLES / f"celltype_disagreement{suffix}.csv"
+    if not ct_path.exists():
+        print(f"  Missing {ct_path.name}, skipping {matcher_name} explainer")
+        return
+    ct_disagree = pd.read_csv(ct_path)
+    matcher_label = "Hungarian (one-to-one)" if matcher_name == "hungarian" else "Argmax (many-to-one)"
+
     avg_rate = ct_disagree.groupby("cell_type")["disagree_rate"].mean()
     ct_sorted = avg_rate.sort_values(ascending=True).index.tolist()
     bar_colors = [CELLTYPE_COLORS[ct] for ct in ct_sorted]
 
-    # ---------------------------------------------------------------- layout
     n_methods = len(COMPARISON_ORDER)
     fig = plt.figure(figsize=(18, 8 + 5.4 * n_methods))
     gs = gridspec.GridSpec(
@@ -108,8 +117,10 @@ def main() -> None:
     # ---------------------------------------------------------------- Method rows
     panel_letters = "CDEFGHIJKLMNOP"[:n_methods]
     for (ax_sp, ax_bar), (m, label), letter in zip(method_rows, COMPARISON_ORDER, panel_letters):
-        # Load disagree table for this method
-        df = pd.read_csv(TABLES / f"disagreement_table_10x_{m}.csv")
+        df_path = TABLES / f"disagreement_table_10x_{m}{suffix}.csv"
+        if not df_path.exists():
+            continue
+        df = pd.read_csv(df_path)
         df_indexed = df.set_index("id_a")[["disagree"]]
         df_indexed.index = df_indexed.index.astype(str)
         obs = obs_full.join(df_indexed, how="left")
@@ -156,9 +167,10 @@ def main() -> None:
         mpatches.Patch(color="#C44E52", label="Disagree"),
     ], loc="lower center", ncols=3, fontsize=11, framealpha=0.9)
     fig.subplots_adjust(top=0.99, bottom=0.04)
-    fig.savefig(FIGURES / "agreement_explainer.png", dpi=150, bbox_inches="tight")
+    out_name = "agreement_explainer.png" if not suffix else f"agreement_explainer{suffix}.png"
+    fig.savefig(FIGURES / out_name, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print("Saved agreement_explainer.png")
+    print(f"Saved {out_name}")
 
 
 if __name__ == "__main__":

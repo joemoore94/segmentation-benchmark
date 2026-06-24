@@ -197,7 +197,7 @@ def main() -> None:
 
     fig.suptitle(
         "Phenotypic landscape distortion vs. 10x native\n"
-        "Red = cell states enriched in comparison method  ·  Blue = depleted",
+        "Red = cell states enriched in comparison method  |  Blue = depleted",
         fontsize=13, fontweight="bold",
     )
     fig.tight_layout()

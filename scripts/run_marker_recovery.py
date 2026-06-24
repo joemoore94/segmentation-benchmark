@@ -162,10 +162,10 @@ def main() -> None:
     plot_labels = {l for _, l, _ in PLOT_COMPARISONS}
     df_plot = df_comp2[df_comp2["method"].isin(plot_labels)]
     df_plot = df_plot.copy()
-    df_plot["ct_marker"] = df_plot["cell_type"] + " · " + df_plot["marker"]
+    df_plot["ct_marker"] = df_plot["cell_type"] + " | " + df_plot["marker"]
     pivot = df_plot.pivot(index="ct_marker", columns="method", values="relative_recovery")
-    row_order = [f"{ct} · {m}" for ct, markers in CELL_TYPE_MARKERS.items() for m in markers
-                 if f"{ct} · {m}" in pivot.index]
+    row_order = [f"{ct} | {m}" for ct, markers in CELL_TYPE_MARKERS.items() for m in markers
+                 if f"{ct} | {m}" in pivot.index]
     col_order = [l for _, l, _ in PLOT_COMPARISONS if l in pivot.columns]
     pivot = pivot.reindex(index=row_order, columns=col_order)
 
@@ -221,7 +221,7 @@ def main() -> None:
             ax_sub.set_xticklabels(methods_all, rotation=35, ha="right", fontsize=11)
         else:
             ax_sub.set_xticklabels([], fontsize=11)
-        ax_sub.set_title(f"{marker}  ·  {ct}", fontweight="bold", fontsize=12)
+        ax_sub.set_title(f"{marker}  |  {ct}", fontweight="bold", fontsize=12)
         ax_sub.set_ylabel("Mean log-norm", fontsize=11)
         ax_sub.tick_params(axis="y", labelsize=11)
 

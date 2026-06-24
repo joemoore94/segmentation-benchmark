@@ -106,7 +106,7 @@ def fig_umap_annotated(adata: ad.AnnData) -> None:
     axes[1].set_title("Leiden cluster IDs", fontweight="bold")
     axes[1].legend(markerscale=3, ncol=2, loc="best", title="Cluster")
 
-    fig.suptitle("10x native — 23,629 cells, 2mm × 2mm ROI", fontsize=13, fontweight="bold")
+    fig.suptitle("10x native - 23,629 cells, 2mm × 2mm ROI", fontsize=13, fontweight="bold")
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / "umap_annotated.png", dpi=150)
     plt.close(fig)
@@ -117,29 +117,35 @@ def build_celltype_disagreement(adata: ad.AnnData) -> pd.DataFrame:
     # Build cell_id -> cell_type map from 10x native
     id_to_ct = adata.obs["cell_type"].to_dict()
 
-    rows = []
-    for method, label in COMPARISONS:
-        path = TABLES_DIR / f"disagreement_table_10x_{method}.csv"
-        if not path.exists():
-            print(f"  missing: {path.name}, skipping")
-            continue
-        df = pd.read_csv(path)
-        df["cell_type"] = df["id_a"].map(id_to_ct)
-        for ct in sorted(df["cell_type"].dropna().unique()):
-            sub = df[df["cell_type"] == ct]
-            n_total = len(sub)
-            n_disagree = sub["disagree"].sum()
-            rows.append({
-                "comparison": label,
-                "cell_type": ct,
-                "n_matched": n_total,
-                "n_disagree": int(n_disagree),
-                "disagree_rate": n_disagree / n_total if n_total > 0 else float("nan"),
-            })
+    _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+    all_results = {}
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        rows = []
+        for method, label in COMPARISONS:
+            path = TABLES_DIR / f"disagreement_table_10x_{method}{suffix}.csv"
+            if not path.exists():
+                print(f"  missing: {path.name}, skipping")
+                continue
+            df = pd.read_csv(path)
+            df["cell_type"] = df["id_a"].map(id_to_ct)
+            for ct in sorted(df["cell_type"].dropna().unique()):
+                sub = df[df["cell_type"] == ct]
+                n_total = len(sub)
+                n_disagree = sub["disagree"].sum()
+                rows.append({
+                    "comparison": label,
+                    "cell_type": ct,
+                    "n_matched": n_total,
+                    "n_disagree": int(n_disagree),
+                    "disagree_rate": n_disagree / n_total if n_total > 0 else float("nan"),
+                })
 
-    result = pd.DataFrame(rows)
-    result.to_csv(TABLES_DIR / "celltype_disagreement.csv", index=False)
-    return result
+        result = pd.DataFrame(rows)
+        out_name = f"celltype_disagreement{suffix}.csv"
+        result.to_csv(TABLES_DIR / out_name, index=False)
+        all_results[matcher_name] = result
+
+    return all_results.get("hungarian", pd.DataFrame())
 
 
 def fig_celltype_disagreement(df: pd.DataFrame) -> None:
@@ -167,7 +173,7 @@ def fig_celltype_disagreement(df: pd.DataFrame) -> None:
     axes[0].set_ylabel("")
     axes[0].tick_params(axis="x", rotation=30)
 
-    # Right: grouped bar chart — each group is a cell type, bars are comparisons
+    # Right: grouped bar chart - each group is a cell type, bars are comparisons
     x = np.arange(len(cell_types))
     width = 0.18
     comparison_colors = ["#17BECF", "#9467BD", "#BCBD22", "#DD8452"]

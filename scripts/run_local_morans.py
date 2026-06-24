@@ -32,28 +32,33 @@ COMPARISONS = {
     for k in _METHODS
 }
 
+_MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
+
 
 def main() -> None:
-    for label, fname in COMPARISONS.items():
-        if not (TABLES_DIR / fname).exists():
-            print(f"\n=== {label}: skipped (file not found) ===")
-            continue
-        df = pd.read_csv(TABLES_DIR / fname)
-        coords = df[["centroid_x", "centroid_y"]].to_numpy()
-        values = df["disagree"].to_numpy(dtype=float)
+    for matcher_name, suffix in _MATCHER_SUFFIXES.items():
+        print(f"\n{'='*60}\nCluster alignment: {matcher_name}\n{'='*60}")
+        for label, fname_base in COMPARISONS.items():
+            fname = fname_base.replace(".csv", f"{suffix}.csv")
+            if not (TABLES_DIR / fname).exists():
+                print(f"\n=== {label}: skipped (file not found) ===")
+                continue
+            df = pd.read_csv(TABLES_DIR / fname)
+            coords = df[["centroid_x", "centroid_y"]].to_numpy()
+            values = df["disagree"].to_numpy(dtype=float)
 
-        df["local_morans_i"] = local_morans_i(coords, values)
-        df["lisa_cluster"] = local_morans_i_cluster(coords, values)
+            df["local_morans_i"] = local_morans_i(coords, values)
+            df["lisa_cluster"] = local_morans_i_cluster(coords, values)
 
-        out_name = fname.replace("disagreement_table_", "local_morans_")
-        df.to_csv(TABLES_DIR / out_name, index=False)
+            out_name = fname.replace("disagreement_table_", "local_morans_")
+            df.to_csv(TABLES_DIR / out_name, index=False)
 
-        print(f"\n=== {label} ===")
-        print(df["lisa_cluster"].value_counts().to_string())
-        hh = (df["lisa_cluster"] == "HH").sum()
-        ll = (df["lisa_cluster"] == "LL").sum()
-        print(f"HH hotspots (disagreement clusters): {hh} ({hh / len(df):.1%})")
-        print(f"LL coldspots (agreement clusters):   {ll} ({ll / len(df):.1%})")
+            print(f"\n=== {label} ({matcher_name}) ===")
+            print(df["lisa_cluster"].value_counts().to_string())
+            hh = (df["lisa_cluster"] == "HH").sum()
+            ll = (df["lisa_cluster"] == "LL").sum()
+            print(f"HH hotspots (disagreement clusters): {hh} ({hh / len(df):.1%})")
+            print(f"LL coldspots (agreement clusters):   {ll} ({ll / len(df):.1%})")
 
 
 if __name__ == "__main__":

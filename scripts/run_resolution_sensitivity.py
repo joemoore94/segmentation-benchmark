@@ -186,7 +186,7 @@ def _plot_resolution_sensitivity(df: pd.DataFrame, matcher: str) -> None:
     ax3.legend(fontsize=10)
 
     fig.suptitle(
-        f"Leiden resolution sensitivity — {matcher_label} cluster alignment",
+        f"Leiden resolution sensitivity - {matcher_label} cluster alignment",
         fontsize=18, fontweight="bold",
     )
     fig.tight_layout()

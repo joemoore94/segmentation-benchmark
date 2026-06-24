@@ -2,7 +2,7 @@
 
 Loads whatever candidate h5ads are present in data/processed/roi/ and runs
 the same match + cluster + agreement pipeline as run_comparison.py, printing
-a summary table. Does NOT write CSVs or run spatial structure tests — this
+a summary table. Does NOT write CSVs or run spatial structure tests - this
 is an assessment pass to decide which candidates to promote to the full pipeline.
 
 Expected candidates (any subset that exists will be tested):

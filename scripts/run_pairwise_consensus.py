@@ -148,7 +148,7 @@ def main() -> None:
     for k in range(n_plot):
         ax.add_patch(plt.Rectangle((k, k), 1, 1, fill=True,
                                    color="#dddddd", lw=0, zorder=3))
-        ax.text(k + 0.5, k + 0.5, "—", ha="center", va="center",
+        ax.text(k + 0.5, k + 0.5, "-", ha="center", va="center",
                 fontsize=14, color="#888888", zorder=4)
 
     label_to_family = {METHOD_LABELS[k]: METHOD_FAMILIES[k]
