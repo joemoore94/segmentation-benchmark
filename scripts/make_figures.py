@@ -354,7 +354,12 @@ def fig_cluster_confusion() -> None:
         (m, label) for m, label in _available_comparisons()
         if (TABLES_DIR / f"cell_type_confusion_10x_{m}.csv").exists()
     ]
-    fig, flat, nrows, ncols = _make_grid(len(avail))
+    ncols = 2
+    nrows = math.ceil(len(avail) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 12, nrows * 9))
+    flat = np.array(axes).flatten()
+    for ax in flat[len(avail):]:
+        ax.set_visible(False)
 
     for ax, (method, label) in zip(flat, avail):
         path = TABLES_DIR / f"cell_type_confusion_10x_{method}.csv"
@@ -377,12 +382,14 @@ def fig_cluster_confusion() -> None:
         row_labels = [f"{c}: {ct_short.get(CLUSTER_ANNOTATIONS.get(c, ''), c)}"
                       for c in ref_ids]
 
+        x_labels = [str(c) if i % 2 == 0 else "" for i, c in enumerate(comp_ids)]
+
         sns.heatmap(
             norm.values, ax=ax,
             cmap="Blues", vmin=0, vmax=100,
             annot=np.array(annot_text), fmt="",
             annot_kws={"weight": "bold"},
-            xticklabels=comp_ids, yticklabels=row_labels,
+            xticklabels=x_labels, yticklabels=row_labels,
             linewidths=0.4, linecolor="#e0e0e0",
             cbar=False,
         )
@@ -401,7 +408,7 @@ def fig_cluster_confusion() -> None:
     from matplotlib.colors import Normalize
     sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.92, 0.08, 0.015, 0.84])
+    cbar_ax = fig.add_axes([0.93, 0.08, 0.012, 0.84])
     cbar = fig.colorbar(sm, cax=cbar_ax)
     cbar.set_label("% of 10x native cluster")
 
@@ -410,8 +417,8 @@ def fig_cluster_confusion() -> None:
         "Red border = Hungarian-matched pair",
         fontstyle="italic", fontweight="bold",
     )
-    fig.subplots_adjust(left=0.08, right=0.88, top=0.93, bottom=0.05,
-                        hspace=0.4, wspace=0.4)
+    fig.subplots_adjust(left=0.07, right=0.90, top=0.95, bottom=0.03,
+                        hspace=0.45, wspace=0.35)
     fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=DPI, bbox_inches="tight")
     plt.close(fig)
 

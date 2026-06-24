@@ -6,20 +6,16 @@
 
 | Comparison | Matched pairs | Median corr | ARI | Disagreement | Moran's I |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| **Nuclear detectors** | | | | | |
 | 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 |
 | 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 |
 | 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 |
 | 10x native vs. 10x Ranger | 23,155 | 0.822 | 0.504 | 35.0% | 0.191 |
-| **Voronoi expansion** | | | | | |
 | 10x native vs. Voronoi (CP) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 |
 | 10x native vs. Voronoi (SD) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 |
 | 10x native vs. Voronoi (M) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
 | 10x native vs. Voronoi (10x) | 23,153 | — | 0.592 | 28.3% | 0.172 |
-| **Baysor (no prior)** | | | | | |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
 | 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | 51.9% | 0.036 |
-| **Baysor PSC=1.0 (4 detectors)** | | | | | |
 | 10x native vs. Baysor (CP prior 1.0) | 20,308 | 0.902 | 0.501 | 33.8% | 0.111 |
 | 10x native vs. Baysor (SD prior 1.0) | 21,814 | 0.905 | 0.498 | 37.7% | 0.136 |
 | 10x native vs. Baysor (M prior 1.0) | 21,148 | 0.924 | 0.518 | 32.3% | 0.115 |
