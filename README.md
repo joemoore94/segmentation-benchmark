@@ -35,15 +35,16 @@ All analysis runs on a 2mm × 2mm ROI (~23,600 cells, ~3.4M transcripts, 380-gen
 
 | Method | Input | Notes |
 | --- | --- | --- |
-| **10x native** | provided | Xenium Ranger's own segmentation; used as reference anchor |
+| **10x native** | provided | Xenium Ranger's full segmentation (nuclear detection + proprietary expansion); used as reference anchor. The expansion algorithm is closed-source. |
+| **10x Ranger** | DAPI | The nuclear detection component of Xenium Ranger, extracted from `nucleus_boundaries.parquet` and rasterized into a label mask. Included alongside CellPose/StarDist/Mesmer as a fourth nuclear detector to test whether 10x's purpose-built detector outperforms general-purpose models. |
 | **CellPose** | DAPI | CellPose 3.x `nuclei` model, CPU |
 | **StarDist** | DAPI | `2D_versatile_fluo` model, separate `stardist` env |
 | **Mesmer** | DAPI | DeepCell via Docker; image bundles model weights |
-| **Voronoi (CP / SD / M)** | nuclear centroids | Nearest-centroid transcript assignment using CellPose, StarDist, or Mesmer centroids; 100% transcript capture by construction |
+| **Voronoi (CP / SD / M / 10x)** | nuclear centroids | Nearest-centroid transcript assignment using CellPose, StarDist, Mesmer, or 10x Ranger centroids; 100% transcript capture by construction |
 | **Baysor** | transcripts | Transcript-density EM (no prior), Julia 1.10, 4 tiles |
-| **Baysor (prior 0.2 / 0.8 / 1.0)** | transcripts + nuclear masks | Baysor with `prior_segmentation_confidence` set to 0.2, 0.8, or 1.0; tested with CellPose, StarDist, and Mesmer nuclear priors at PSC 1.0 to isolate nuclear detector quality |
+| **Baysor (prior 0.2 / 0.8 / 1.0)** | transcripts + nuclear masks | Baysor with `prior_segmentation_confidence` controlling the blend between density model and nuclear prior. At PSC 1.0, nuclear transcripts are hard-locked and only cytoplasmic transcripts use density-adaptive expansion. Tested with all four nuclear detectors at PSC 1.0 to isolate detector quality from expansion strategy. |
 
-Nuclear methods (CellPose, StarDist, Mesmer) capture only 35–52% of transcripts and are included in the cell/transcript recovery section but excluded from downstream figures because their low transcript capture dominates any comparison. Cells are matched by nearest centroid across methods. Leiden clustering runs independently on each method's cells; cluster labels are aligned via Hungarian algorithm before computing ARI and disagreement rate.
+Nuclear-only methods (CellPose, StarDist, Mesmer, 10x Ranger) capture only 35–52% of transcripts and are included in the cell/transcript recovery section but excluded from downstream figures because their low transcript capture dominates any comparison. Cells are matched by nearest centroid across methods. Leiden clustering runs independently on each method's cells; cluster labels are aligned via Hungarian algorithm before computing ARI and disagreement rate.
 
 ---
 
