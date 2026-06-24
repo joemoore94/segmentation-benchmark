@@ -79,21 +79,7 @@ def _make_grid(n: int, sharex: bool = False, sharey: bool = False):
     return fig, flat[:n], nrows, ncols
 
 
-def fig_cell_counts_and_sizes() -> None:
-    counts = pd.read_csv(TABLES_DIR / "cell_counts.csv", index_col="method")
-    methods = [m for m in MAIN_METHODS if m in counts.index]
-
-    FILE_KEY = {"10x_native": "10x"}
-    adatas_for_violin = {}
-    for m in methods:
-        fname = f"adata_{FILE_KEY.get(m, m)}.h5ad"
-        adatas_for_violin[m] = ad.read_h5ad(ROI_DIR / fname)
-
-    transcripts_by_method = {
-        m: np.asarray(adatas_for_violin[m].X.sum(axis=1)).ravel()
-        for m in methods
-    }
-
+def fig_nuclear_mask_sizes() -> None:
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
     adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
@@ -107,8 +93,36 @@ def fig_cell_counts_and_sizes() -> None:
     if ranger_path.exists():
         nuclear_methods.append(("10x_ranger", ad.read_h5ad(ranger_path)))
 
-    fig, axes = plt.subplots(1, 2, figsize=(22, 9))
+    fig, ax = plt.subplots(figsize=(12, 8))
+    for key, adata_nuc in nuclear_methods:
+        area_um2 = adata_nuc.obs["area"] * PIXEL_SIZE**2
+        sns.histplot(area_um2, bins=50, ax=ax,
+                     color=METHOD_COLORS[key], label=METHOD_LABELS[key], alpha=0.4)
+    ax.set_xlabel("Nucleus area (µm²)")
+    ax.set_ylabel("Count")
+    ax.set_title("Nuclear mask size comparison", fontweight="bold")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "nuclear_mask_sizes.png", dpi=DPI)
+    plt.close(fig)
 
+
+def fig_transcripts_per_cell() -> None:
+    counts = pd.read_csv(TABLES_DIR / "cell_counts.csv", index_col="method")
+    methods = [m for m in MAIN_METHODS if m in counts.index]
+
+    FILE_KEY = {"10x_native": "10x"}
+    adatas = {}
+    for m in methods:
+        fname = f"adata_{FILE_KEY.get(m, m)}.h5ad"
+        adatas[m] = ad.read_h5ad(ROI_DIR / fname)
+
+    transcripts_by_method = {
+        m: np.asarray(adatas[m].X.sum(axis=1)).ravel()
+        for m in methods
+    }
+
+    fig, ax = plt.subplots(figsize=(14, 8))
     tx_long = pd.concat(
         [pd.DataFrame({"method": METHOD_LABELS[m], "log10_tx": np.log10(transcripts_by_method[m] + 1)})
          for m in methods],
@@ -119,28 +133,18 @@ def fig_cell_counts_and_sizes() -> None:
         hue="method",
         palette={METHOD_LABELS[m]: METHOD_COLORS[m] for m in methods},
         order=[METHOD_LABELS[m] for m in methods],
-        cut=0, inner="box", legend=False, ax=axes[0],
+        cut=0, inner="box", legend=False, ax=ax,
     )
-    axes[0].set_xticks(range(len(methods)))
-    axes[0].set_xticklabels([METHOD_LABELS[m] for m in methods], rotation=40, ha="right")
-    axes[0].set_xlabel("")
+    ax.set_xticks(range(len(methods)))
+    ax.set_xticklabels([METHOD_LABELS[m] for m in methods], rotation=40, ha="right")
+    ax.set_xlabel("")
     tick_vals = [1, 10, 100, 1000]
-    axes[0].set_yticks([np.log10(v) for v in tick_vals])
-    axes[0].set_yticklabels([str(v) for v in tick_vals])
-    axes[0].set_ylabel("Transcripts per cell")
-    axes[0].set_title("Transcripts/cell distribution", fontweight="bold")
-
-    for key, adata_nuc in nuclear_methods:
-        area_um2 = adata_nuc.obs["area"] * PIXEL_SIZE**2
-        sns.histplot(area_um2, bins=50, ax=axes[1],
-                     color=METHOD_COLORS[key], label=METHOD_LABELS[key], alpha=0.4)
-    axes[1].set_xlabel("Nucleus area (µm²)")
-    axes[1].set_title("Nuclear mask size comparison", fontweight="bold")
-    axes[1].legend()
-
-    fig.suptitle("Cell and transcript recovery", fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
-    fig.savefig(FIGURES_DIR / "cell_counts_and_sizes.png", dpi=DPI)
+    ax.set_yticks([np.log10(v) for v in tick_vals])
+    ax.set_yticklabels([str(v) for v in tick_vals])
+    ax.set_ylabel("Transcripts per cell")
+    ax.set_title("Transcripts/cell distribution (expansion methods)", fontweight="bold")
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "transcripts_per_cell.png", dpi=DPI)
     plt.close(fig)
 
 
@@ -414,7 +418,8 @@ def fig_cluster_confusion() -> None:
 
 def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    fig_cell_counts_and_sizes()
+    fig_nuclear_mask_sizes()
+    fig_transcripts_per_cell()
     fig_expression_correlation()
     fig_disagreement_spatial_map()
     fig_density_vs_disagreement()

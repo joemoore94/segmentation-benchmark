@@ -50,7 +50,7 @@ Nuclear-only methods (CellPose, StarDist, Mesmer, 10x Ranger) capture only 35–
 
 ## Cell and transcript recovery
 
-**Nuclear detectors** (mask-only, no expansion):
+### Nuclear detectors
 
 | Detector | Cells | Median tx/cell | Transcript capture |
 | --- | ---: | ---: | ---: |
@@ -59,7 +59,11 @@ Nuclear-only methods (CellPose, StarDist, Mesmer, 10x Ranger) capture only 35–
 | Mesmer | 21,697 | 70 | 51.8% |
 | 10x Ranger | 23,624 | 45 | 38.0% |
 
-**Expansion methods** (nuclear seeds + transcript assignment):
+![Nuclear mask size comparison across all four detectors](results/figures/nuclear_mask_sizes.png)
+
+All four detectors operate on the same DAPI image but produce substantially different masks. Mesmer detects the largest nuclei (median ~45 µm², long tail to 200 µm²), capturing 51.8% of transcripts — nearly double CellPose's 35.4%. StarDist and 10x Ranger produce similar-sized masks but StarDist finds more nuclei (24,745 vs 23,624). 10x Ranger captures only 38% of transcripts despite detecting nearly as many cells as the 10x native whole-cell segmentation (23,624 vs 23,629), confirming that 10x native's 99% capture comes from its proprietary expansion, not from larger nuclei.
+
+### Expansion methods
 
 | Method | Cells | Median tx/cell | Transcript capture |
 | --- | ---: | ---: | ---: |
@@ -74,9 +78,9 @@ Nuclear-only methods (CellPose, StarDist, Mesmer, 10x Ranger) capture only 35–
 | Baysor (CP prior 1.0) | 30,473 | 69 | 99% |
 | Baysor (SD prior 1.0) | 34,230 | 63 | 98.9% |
 
-![Cell counts, transcripts/cell, and nucleus area by method](results/figures/cell_counts_and_sizes.png)
+![Transcripts/cell distribution across expansion methods](results/figures/transcripts_per_cell.png)
 
-Nuclear detectors capture 35–52% of transcripts, with Mesmer's larger masks recovering the most. CellPose and StarDist detect similar-sized nuclei (median ~45 tx/cell); 10x Ranger nuclei are comparable to CellPose/StarDist in transcript capture (38%) despite detecting more cells (23,624 vs 20,166), suggesting it finds smaller nuclei that CellPose misses. Voronoi expansion captures 100% by construction regardless of detector. Median transcripts per cell under Voronoi varies with detector quality: Voronoi (CP) leads at 149 tx/cell because CellPose detects fewer, larger nuclei, concentrating more transcripts per cell. Voronoi (10x) at 128 tx/cell is closest to 10x native (124), consistent with using the same nuclear seeds.
+Voronoi expansion captures 100% of transcripts by construction regardless of detector. Median transcripts per cell under Voronoi varies with detector quality: Voronoi (CP) leads at 149 tx/cell because CellPose detects fewer, larger nuclei, concentrating more transcripts per cell. Voronoi (10x) at 128 tx/cell is closest to 10x native (124), consistent with using the same nuclear seeds — the gap between them reflects 10x native's proprietary expansion assigning some transcripts differently than nearest-centroid.
 
 Baysor without a prior captures 98.6% but detects fewer cells (18,321) — the density model merges adjacent cells freely. At PSC 0.2, the prior barely changes behavior (19,061 cells, 53 tx/cell). At PSC 0.8–1.0, the hard-locked nuclear seeds prevent merging and cell count jumps to ~30,000, with median transcripts per cell rising to 67–69 from density-adaptive cytoplasmic expansion. Baysor with StarDist prior produces the highest cell count of any method (34,230) because StarDist detects the most nuclei (24,745) and the strong prior preserves all of them while adding density-based expansion.
 
