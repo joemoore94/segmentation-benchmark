@@ -40,6 +40,7 @@ TABLES    = Path("results/tables")
 FIGURES   = Path("results/figures")
 
 RESOLUTIONS = [0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.5, 2.0]
+_TICK_LABELS = {r: str(r) for r in [0.3, 0.5, 0.8, 1.0, 1.5, 2.0]}
 
 _ALL_METHODS = [
     "cellpose", "stardist", "mesmer",
@@ -150,6 +151,7 @@ def _plot_resolution_sensitivity(df: pd.DataFrame, matcher: str) -> None:
     ax.set_title("ARI across Leiden resolutions", fontweight="bold")
     ax.legend(fontsize=10)
     ax.set_xticks(RESOLUTIONS)
+    ax.set_xticklabels([_TICK_LABELS.get(r, "") for r in RESOLUTIONS])
 
     # Panel 2: Disagreement % vs resolution
     ax2 = axes[1]
@@ -164,6 +166,7 @@ def _plot_resolution_sensitivity(df: pd.DataFrame, matcher: str) -> None:
     ax2.set_ylabel("Disagreement (%)")
     ax2.set_title("Cell-type disagreement across resolutions", fontweight="bold")
     ax2.set_xticks(RESOLUTIONS)
+    ax2.set_xticklabels([_TICK_LABELS.get(r, "") for r in RESOLUTIONS])
     ax2.legend(fontsize=10)
 
     # Panel 3: Moran's I vs resolution
@@ -179,6 +182,7 @@ def _plot_resolution_sensitivity(df: pd.DataFrame, matcher: str) -> None:
     ax3.set_ylabel("Global Moran's I of disagreement")
     ax3.set_title("Spatial structure of disagreement across resolutions", fontweight="bold")
     ax3.set_xticks(RESOLUTIONS)
+    ax3.set_xticklabels([_TICK_LABELS.get(r, "") for r in RESOLUTIONS])
     ax3.legend(fontsize=10)
 
     fig.suptitle(
