@@ -99,18 +99,7 @@ def fig_cell_counts_and_sizes() -> None:
     adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
     adata_10x = adatas_for_violin.get("10x_native") or ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
 
-    fig, axes = plt.subplots(1, 3, figsize=(28, 8))
-
-    axes[0].bar(
-        [METHOD_LABELS[m] for m in methods],
-        counts.loc[methods, "n_cells"].to_numpy(),
-        color=[METHOD_COLORS[m] for m in methods],
-    )
-    axes[0].set_ylabel("Cell count")
-    axes[0].set_title("Cell count (full 2mm × 2mm ROI)", fontweight="bold")
-    axes[0].tick_params(axis="x", rotation=40)
-    for label in axes[0].get_xticklabels():
-        label.set_horizontalalignment("right")
+    fig, axes = plt.subplots(1, 2, figsize=(22, 9))
 
     tx_long = pd.concat(
         [pd.DataFrame({"method": METHOD_LABELS[m], "log10_tx": np.log10(transcripts_by_method[m] + 1)})
@@ -122,39 +111,35 @@ def fig_cell_counts_and_sizes() -> None:
         hue="method",
         palette={METHOD_LABELS[m]: METHOD_COLORS[m] for m in methods},
         order=[METHOD_LABELS[m] for m in methods],
-        cut=0, inner="box", legend=False, ax=axes[1],
+        cut=0, inner="box", legend=False, ax=axes[0],
     )
-    axes[1].set_xticks(range(len(methods)))
-    axes[1].set_xticklabels([METHOD_LABELS[m] for m in methods], rotation=40, ha="right")
-    axes[1].set_xlabel("")
+    axes[0].set_xticks(range(len(methods)))
+    axes[0].set_xticklabels([METHOD_LABELS[m] for m in methods], rotation=40, ha="right")
+    axes[0].set_xlabel("")
     tick_vals = [1, 10, 100, 1000]
-    axes[1].set_yticks([np.log10(v) for v in tick_vals])
-    axes[1].set_yticklabels([str(v) for v in tick_vals])
-    axes[1].set_ylabel("Transcripts per cell")
-    axes[1].set_title("Transcripts/cell distribution", fontweight="bold")
+    axes[0].set_yticks([np.log10(v) for v in tick_vals])
+    axes[0].set_yticklabels([str(v) for v in tick_vals])
+    axes[0].set_ylabel("Transcripts per cell")
+    axes[0].set_title("Transcripts/cell distribution", fontweight="bold")
 
     cellpose_area_um2 = adata_cellpose.obs["area"] * PIXEL_SIZE**2
     stardist_area_um2 = adata_stardist.obs["area"] * PIXEL_SIZE**2
     mesmer_area_um2 = adata_mesmer.obs["area"] * PIXEL_SIZE**2
     tenx_nucleus_area_um2 = adata_10x.obs["nucleus_area_um2"]
-    sns.histplot(cellpose_area_um2, bins=50, ax=axes[2],
+    sns.histplot(cellpose_area_um2, bins=50, ax=axes[1],
                  color=METHOD_COLORS["cellpose"], label=METHOD_LABELS["cellpose"], alpha=0.4)
-    sns.histplot(stardist_area_um2, bins=50, ax=axes[2],
+    sns.histplot(stardist_area_um2, bins=50, ax=axes[1],
                  color=METHOD_COLORS["stardist"], label=METHOD_LABELS["stardist"], alpha=0.4)
-    sns.histplot(mesmer_area_um2, bins=50, ax=axes[2],
+    sns.histplot(mesmer_area_um2, bins=50, ax=axes[1],
                  color=METHOD_COLORS["mesmer"], label=METHOD_LABELS["mesmer"], alpha=0.4)
-    sns.histplot(tenx_nucleus_area_um2, bins=50, ax=axes[2],
+    sns.histplot(tenx_nucleus_area_um2, bins=50, ax=axes[1],
                  color=METHOD_COLORS["10x_native"], label=METHOD_LABELS["10x_native"], alpha=0.4)
-    axes[2].set_xlabel("Nucleus area (µm²)")
-    axes[2].set_title("Nuclear mask size", fontweight="bold")
-    axes[2].legend()
+    axes[1].set_xlabel("Nucleus area (µm²)")
+    axes[1].set_title("Nuclear mask size comparison", fontweight="bold")
+    axes[1].legend()
 
-    fig.suptitle("Cell count and QC", fontweight="bold")
-    capture = counts.loc[methods, "transcript_capture_rate"]
-    capture_str = ", ".join(f"{METHOD_LABELS[m]} {capture[m]:.0%}" for m in methods)
-    fig.text(0.5, 0.01, f"Transcript capture: {capture_str}",
-             ha="center", style="italic")
-    fig.tight_layout(rect=(0, 0.04, 1, 0.95))
+    fig.suptitle("Cell and transcript recovery", fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(FIGURES_DIR / "cell_counts_and_sizes.png", dpi=DPI)
     plt.close(fig)
 
