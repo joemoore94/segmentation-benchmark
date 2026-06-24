@@ -163,55 +163,35 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both align
 
 10x native, nuclear-only methods, and Voronoi converge on 12-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 clusters with medians around 600, consistent with over-segmentation rather than finer biological resolution (ARI ~0.31, near-random spatial disagreement). At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes (880-1,053) approach the Voronoi range.
 
+### Cluster alignment
+
+![Confusion matrices with Hungarian and argmax alignment](results/figures/confusion_clusters.png)
+
+Each row is one 10x native cluster; columns are the comparison method's clusters. Red borders mark Hungarian (one-to-one) matched pairs; green borders mark argmax (many-to-one) matches. Voronoi methods produce clean matches under both algorithms. Baysor's 15×21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
+
 #### Disagreement by cluster alignment algorithm
 
-Hungarian (one-to-one):
-
-| Method | Clusters | Disagreement | Moran's I |
-| --- | ---: | ---: | ---: |
-| **Voronoi** | | | |
-| Voronoi (CP) | 14 | 21.9% | 0.076 |
-| Voronoi (SD) | 16 | 31.9% | 0.194 |
-| Voronoi (M) | 14 | 18.8% | 0.161 |
-| Voronoi (10x) | 14 | 28.3% | 0.172 |
-| **Baysor** | | | |
-| Baysor | 21 | 51.7% | 0.033 |
-| Baysor (CP prior 0.2) | 24 | 51.9% | 0.036 |
-| Baysor (CP prior 0.8) | 20 | 38.8% | 0.219 |
-| Baysor (CP prior 1.0) | 21 | 33.8% | 0.112 |
-| Baysor (SD prior 1.0) | 22 | 37.7% | 0.136 |
-| Baysor (M prior 1.0) | 23 | 32.3% | 0.115 |
-| Baysor (10x prior 1.0) | 22 | 34.7% | 0.208 |
-
-Argmax (many-to-one):
-
-| Method | Clusters | Disagreement | Moran's I |
-| --- | ---: | ---: | ---: |
-| **Voronoi** | | | |
-| Voronoi (CP) | 14 | 21.9% | 0.076 |
-| Voronoi (SD) | 16 | 27.7% | 0.229 |
-| Voronoi (M) | 14 | 18.8% | 0.161 |
-| Voronoi (10x) | 14 | - | - |
-| **Baysor** | | | |
-| Baysor | 21 | 43.8% | 0.079 |
-| Baysor (CP prior 0.2) | 24 | - | - |
-| Baysor (CP prior 0.8) | 20 | 37.4% | 0.234 |
-| Baysor (CP prior 1.0) | 21 | 32.1% | 0.122 |
-| Baysor (SD prior 1.0) | 22 | 32.9% | 0.170 |
-| Baysor (M prior 1.0) | 23 | 30.7% | 0.119 |
-| Baysor (10x prior 1.0) | 22 | - | - |
+| Method | Clusters | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Voronoi** | | | | | |
+| Voronoi (CP) | 14 | 21.9% | 0.076 | 21.9% | 0.076 |
+| Voronoi (SD) | 16 | 31.9% | 0.194 | 27.7% | 0.229 |
+| Voronoi (M) | 14 | 18.8% | 0.161 | 18.8% | 0.161 |
+| Voronoi (10x) | 14 | 28.3% | 0.172 | - | - |
+| **Baysor** | | | | | |
+| Baysor | 21 | 51.7% | 0.033 | 43.8% | 0.079 |
+| Baysor (CP prior 0.2) | 24 | 51.9% | 0.036 | - | - |
+| Baysor (CP prior 0.8) | 20 | 38.8% | 0.219 | 37.4% | 0.234 |
+| Baysor (CP prior 1.0) | 21 | 33.8% | 0.112 | 32.1% | 0.122 |
+| Baysor (SD prior 1.0) | 22 | 37.7% | 0.136 | 32.9% | 0.170 |
+| Baysor (M prior 1.0) | 23 | 32.3% | 0.115 | 30.7% | 0.119 |
+| Baysor (10x prior 1.0) | 22 | 34.7% | 0.208 | - | - |
 
 *Argmax values for Voronoi (10x), Baysor (CP prior 0.2), and Baysor (10x prior 1.0) will be populated on next pipeline run.*
 
 Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
 
 ![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
-
-### Cluster alignment
-
-![Confusion matrices with Hungarian and argmax alignment](results/figures/confusion_clusters.png)
-
-Each row is one 10x native cluster; columns are the comparison method's clusters. Red borders mark Hungarian (one-to-one) matched pairs; green borders mark argmax (many-to-one) matches. Voronoi methods produce clean matches under both algorithms. Baysor's 15×21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 
