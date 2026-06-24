@@ -54,8 +54,10 @@ METHOD_COLORS: dict[str, str] = {
     "baysor":           "#DD8452",
     "baysor_prior":     "#937860",
     "baysor_prior_c08": "#A0522D",
-    "baysor_prior_c10": "#CD853F",
-    "bidcell":          "#E377C2",
+    "baysor_prior_c10":          "#CD853F",
+    "baysor_stardist_prior_c10": "#8B4513",
+    "baysor_mesmer_prior_c10":   "#DAA520",
+    "bidcell":                   "#E377C2",
     "segger":           "#C49C94",
 }
 
@@ -69,9 +71,11 @@ METHOD_LABELS: dict[str, str] = {
     "voronoi_mesmer":   "Voronoi (M)",
     "baysor":           "Baysor",
     "baysor_prior":     "Baysor (prior 0.2)",
-    "baysor_prior_c08": "Baysor (prior 0.8)",
-    "baysor_prior_c10": "Baysor (prior 1.0)",
-    "bidcell":          "BIDCell",
+    "baysor_prior_c08": "Baysor (CP prior 0.8)",
+    "baysor_prior_c10":          "Baysor (CP prior 1.0)",
+    "baysor_stardist_prior_c10": "Baysor (SD prior 1.0)",
+    "baysor_mesmer_prior_c10":   "Baysor (M prior 1.0)",
+    "bidcell":                   "BIDCell",
     "segger":           "Segger",
 }
 
@@ -86,8 +90,10 @@ METHOD_FAMILIES: dict[str, str] = {
     "baysor":           "Transcript-density",
     "baysor_prior":     "Transcript-density",
     "baysor_prior_c08": "Transcript-density",
-    "baysor_prior_c10": "Transcript-density",
-    "bidcell":          "Multimodal",
+    "baysor_prior_c10":          "Transcript-density",
+    "baysor_stardist_prior_c10": "Transcript-density",
+    "baysor_mesmer_prior_c10":   "Transcript-density",
+    "bidcell":                   "Multimodal",
     "segger":           "Multimodal",
 }
 
@@ -97,7 +103,9 @@ NUCLEAR_ONLY: set[str] = {"cellpose", "stardist", "mesmer"}
 MAIN_METHODS: list[str] = [
     "10x_native",
     "voronoi", "voronoi_stardist", "voronoi_mesmer",
-    "baysor", "baysor_prior_c08",
+    "baysor",
+    "baysor_prior_c08", "baysor_prior_c10",
+    "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
 ]
 
 # Pairwise comparisons shown in multi-panel figures (2×2+ grid order).
@@ -106,7 +114,10 @@ COMPARISON_ORDER: list[tuple[str, str]] = [
     ("voronoi_stardist", "Voronoi (SD)"),
     ("voronoi_mesmer",   "Voronoi (M)"),
     ("baysor",           "Baysor"),
-    ("baysor_prior_c08", "Baysor (prior 0.8)"),
+    ("baysor_prior_c08", "Baysor (CP prior 0.8)"),
+    ("baysor_prior_c10",          "Baysor (CP prior 1.0)"),
+    ("baysor_stardist_prior_c10", "Baysor (SD prior 1.0)"),
+    ("baysor_mesmer_prior_c10",   "Baysor (M prior 1.0)"),
 ]
 
 # ---------------------------------------------------------------------------

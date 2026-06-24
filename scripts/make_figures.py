@@ -47,6 +47,7 @@ DENSITY_CSV_KEY = {
     "voronoi_mesmer":   "10x native vs. Voronoi (Mesmer)",
     "baysor":           "10x native vs. Baysor",
     "baysor_prior_c08": "10x native vs. Baysor (prior 0.8)",
+    "baysor_prior_c10": "10x native vs. Baysor (prior 1.0)",
 }
 
 apply_style()

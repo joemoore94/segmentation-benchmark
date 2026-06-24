@@ -60,10 +60,17 @@ def main() -> None:
         "voronoi_stardist": adata_voronoi_stardist,
     }
 
-    segger_path = ROI_DIR / "adata_segger.h5ad"
-    if segger_path.exists():
-        adata_segger = ad.read_h5ad(segger_path)
-        adatas["segger"] = adata_segger
+    for optional_key, optional_file in [
+        ("baysor_prior_c08",          "adata_baysor_prior_c08.h5ad"),
+        ("baysor_prior_c10",          "adata_baysor_prior_c10.h5ad"),
+        ("baysor_stardist_prior_c10", "adata_baysor_stardist_prior_c10.h5ad"),
+        ("baysor_mesmer_prior_c10",   "adata_baysor_mesmer_prior_c10.h5ad"),
+        ("bidcell",                   "adata_bidcell.h5ad"),
+        ("segger",                    "adata_segger.h5ad"),
+    ]:
+        p = ROI_DIR / optional_file
+        if p.exists():
+            adatas[optional_key] = ad.read_h5ad(p)
 
     counts = cell_count_summary(adatas)
     counts["transcript_capture_rate"] = counts["total_transcripts"] / TOTAL_TRANSCRIPTS_FULL_ROI
@@ -343,189 +350,51 @@ def main() -> None:
         json.dump(spatial_voronoi_stardist, f, indent=2)
     print(spatial_voronoi_stardist)
 
-    # 10x native vs. Baysor (prior c=0.8), if available
-    baysor_c08_path = ROI_DIR / "adata_baysor_prior_c08.h5ad"
-    if baysor_c08_path.exists():
-        adata_baysor_c08 = ad.read_h5ad(baysor_c08_path)
-        adatas["baysor_prior_c08"] = adata_baysor_c08
-        matches_baysor_c08 = match_cells_by_centroid(
-            adata_10x, adata_baysor_c08, max_dist=MAX_MATCH_DIST
-        )
-        matches_baysor_c08.to_csv(TABLES_DIR / "matches_10x_baysor_prior_c08.csv", index=False)
-        print(f"\n=== 10x native vs. Baysor (prior c=0.8) ({len(matches_baysor_c08)} pairs) ===")
+    # Generic comparison loop for optional methods
+    from segbench.constants import METHOD_LABELS
+    optional_methods = [
+        "baysor_prior_c08", "baysor_prior_c10",
+        "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
+        "bidcell", "segger",
+    ]
+    for method_key in optional_methods:
+        if method_key not in adatas:
+            print(f"\n=== {METHOD_LABELS.get(method_key, method_key)}: skipped (not found) ===")
+            continue
 
-        corr_baysor_c08 = expression_correlation(adata_10x, adata_baysor_c08, matches_baysor_c08)
-        corr_baysor_c08.to_csv(
-            TABLES_DIR / "expression_correlation_10x_baysor_prior_c08.csv", index=False
-        )
-        print(corr_baysor_c08["correlation"].describe())
+        label = METHOD_LABELS.get(method_key, method_key)
+        adata_m = adatas[method_key]
+        print(f"\n=== 10x native vs. {label} ===")
 
-        print("\n=== Clustering cell types (Baysor prior c=0.8) ===")
-        labels_baysor_c08 = cluster_cell_types(adata_baysor_c08, seed=0)
-        print(f"baysor_prior_c08: {labels_baysor_c08.nunique()} clusters")
-        cluster_embedding(adata_baysor_c08, seed=0).to_csv(
-            TABLES_DIR / "embedding_baysor_prior_c08.csv"
-        )
+        matches = match_cells_by_centroid(adata_10x, adata_m, max_dist=MAX_MATCH_DIST)
+        matches.to_csv(TABLES_DIR / f"matches_10x_{method_key}.csv", index=False)
+        print(f"  {len(matches)} matched pairs")
 
-        agreement_baysor_c08 = cell_type_agreement(
-            labels_10x, labels_baysor_c08, matches_baysor_c08
-        )
-        agreement_baysor_c08["confusion"].to_csv(
-            TABLES_DIR / "cell_type_confusion_10x_baysor_prior_c08.csv"
-        )
-        print(f"ARI = {agreement_baysor_c08['ari']:.4f}, n_matched = {agreement_baysor_c08['n_matched']}")
+        corr = expression_correlation(adata_10x, adata_m, matches)
+        corr.to_csv(TABLES_DIR / f"expression_correlation_10x_{method_key}.csv", index=False)
+        print(f"  median correlation: {corr['correlation'].median():.3f}")
 
-        labels_baysor_c08_aligned = match_cluster_labels(
-            labels_10x, labels_baysor_c08, matches_baysor_c08
-        )
-        disagreement_baysor_c08 = disagreement_table(
-            matches_baysor_c08, labels_10x, labels_baysor_c08_aligned, adata_10x
-        )
-        disagreement_baysor_c08.to_csv(
-            TABLES_DIR / "disagreement_table_10x_baysor_prior_c08.csv", index=False
-        )
-        spatial_baysor_c08 = disagreement_spatial_structure(
-            disagreement_baysor_c08, n_perm=9999, seed=0
-        )
-        with open(TABLES_DIR / "disagreement_spatial_10x_baysor_prior_c08.json", "w") as f:
-            json.dump(spatial_baysor_c08, f, indent=2)
-        print(spatial_baysor_c08)
-    else:
-        print("\n=== Baysor (prior c=0.8): skipped (file not found) ===")
-
-    # 10x native vs. Baysor (prior c=1.0), if available
-    baysor_c10_path = ROI_DIR / "adata_baysor_prior_c10.h5ad"
-    if baysor_c10_path.exists():
-        adata_baysor_c10 = ad.read_h5ad(baysor_c10_path)
-        adatas["baysor_prior_c10"] = adata_baysor_c10
-        matches_baysor_c10 = match_cells_by_centroid(
-            adata_10x, adata_baysor_c10, max_dist=MAX_MATCH_DIST
-        )
-        matches_baysor_c10.to_csv(TABLES_DIR / "matches_10x_baysor_prior_c10.csv", index=False)
-        print(f"\n=== 10x native vs. Baysor (prior c=1.0) ({len(matches_baysor_c10)} pairs) ===")
-
-        corr_baysor_c10 = expression_correlation(adata_10x, adata_baysor_c10, matches_baysor_c10)
-        corr_baysor_c10.to_csv(
-            TABLES_DIR / "expression_correlation_10x_baysor_prior_c10.csv", index=False
-        )
-        print(corr_baysor_c10["correlation"].describe())
-
-        print("\n=== Clustering cell types (Baysor prior c=1.0) ===")
-        labels_baysor_c10 = cluster_cell_types(adata_baysor_c10, seed=0)
-        print(f"baysor_prior_c10: {labels_baysor_c10.nunique()} clusters")
-        cluster_embedding(adata_baysor_c10, seed=0).to_csv(
-            TABLES_DIR / "embedding_baysor_prior_c10.csv"
+        labels_m = cluster_cell_types(adata_m, seed=0)
+        print(f"  {labels_m.nunique()} clusters")
+        cluster_embedding(adata_m, seed=0).to_csv(
+            TABLES_DIR / f"embedding_{method_key}.csv"
         )
 
-        agreement_baysor_c10 = cell_type_agreement(
-            labels_10x, labels_baysor_c10, matches_baysor_c10
+        agreement = cell_type_agreement(labels_10x, labels_m, matches)
+        agreement["confusion"].to_csv(
+            TABLES_DIR / f"cell_type_confusion_10x_{method_key}.csv"
         )
-        agreement_baysor_c10["confusion"].to_csv(
-            TABLES_DIR / "cell_type_confusion_10x_baysor_prior_c10.csv"
-        )
-        print(f"ARI = {agreement_baysor_c10['ari']:.4f}, n_matched = {agreement_baysor_c10['n_matched']}")
+        print(f"  ARI = {agreement['ari']:.4f}, n_matched = {agreement['n_matched']}")
 
-        labels_baysor_c10_aligned = match_cluster_labels(
-            labels_10x, labels_baysor_c10, matches_baysor_c10
+        labels_aligned = match_cluster_labels(labels_10x, labels_m, matches)
+        disagree = disagreement_table(matches, labels_10x, labels_aligned, adata_10x)
+        disagree.to_csv(
+            TABLES_DIR / f"disagreement_table_10x_{method_key}.csv", index=False
         )
-        disagreement_baysor_c10 = disagreement_table(
-            matches_baysor_c10, labels_10x, labels_baysor_c10_aligned, adata_10x
-        )
-        disagreement_baysor_c10.to_csv(
-            TABLES_DIR / "disagreement_table_10x_baysor_prior_c10.csv", index=False
-        )
-        spatial_baysor_c10 = disagreement_spatial_structure(
-            disagreement_baysor_c10, n_perm=9999, seed=0
-        )
-        with open(TABLES_DIR / "disagreement_spatial_10x_baysor_prior_c10.json", "w") as f:
-            json.dump(spatial_baysor_c10, f, indent=2)
-        print(spatial_baysor_c10)
-    else:
-        print("\n=== Baysor (prior c=1.0): skipped (file not found) ===")
-
-    # 10x native vs. BIDCell (multimodal, if available)
-    bidcell_path = ROI_DIR / "adata_bidcell.h5ad"
-    if bidcell_path.exists():
-        adata_bidcell = ad.read_h5ad(bidcell_path)
-        adatas["bidcell"] = adata_bidcell
-        matches_bidcell = match_cells_by_centroid(
-            adata_10x, adata_bidcell, max_dist=MAX_MATCH_DIST
-        )
-        matches_bidcell.to_csv(TABLES_DIR / "matches_10x_bidcell.csv", index=False)
-        print(f"\n=== 10x native vs. BIDCell ({len(matches_bidcell)} pairs) ===")
-
-        corr_bidcell = expression_correlation(adata_10x, adata_bidcell, matches_bidcell)
-        corr_bidcell.to_csv(
-            TABLES_DIR / "expression_correlation_10x_bidcell.csv", index=False
-        )
-        print(corr_bidcell["correlation"].describe())
-
-        print("\n=== Clustering cell types (BIDCell) ===")
-        labels_bidcell = cluster_cell_types(adata_bidcell, seed=0)
-        print(f"bidcell: {labels_bidcell.nunique()} clusters")
-        cluster_embedding(adata_bidcell, seed=0).to_csv(
-            TABLES_DIR / "embedding_bidcell.csv"
-        )
-
-        agreement_bidcell = cell_type_agreement(
-            labels_10x, labels_bidcell, matches_bidcell
-        )
-        agreement_bidcell["confusion"].to_csv(
-            TABLES_DIR / "cell_type_confusion_10x_bidcell.csv"
-        )
-        print(f"ARI = {agreement_bidcell['ari']:.4f}, n_matched = {agreement_bidcell['n_matched']}")
-
-        labels_bidcell_aligned = match_cluster_labels(
-            labels_10x, labels_bidcell, matches_bidcell
-        )
-        disagreement_bidcell = disagreement_table(
-            matches_bidcell, labels_10x, labels_bidcell_aligned, adata_10x
-        )
-        disagreement_bidcell.to_csv(
-            TABLES_DIR / "disagreement_table_10x_bidcell.csv", index=False
-        )
-        spatial_bidcell = disagreement_spatial_structure(
-            disagreement_bidcell, n_perm=9999, seed=0
-        )
-        with open(TABLES_DIR / "disagreement_spatial_10x_bidcell.json", "w") as f:
-            json.dump(spatial_bidcell, f, indent=2)
-        print(spatial_bidcell)
-    else:
-        print("\n=== BIDCell: skipped (adata_bidcell.h5ad not found) ===")
-
-    # 10x native vs. Segger (GNN multimodal, if available)
-    if "segger" in adatas:
-        adata_segger = adatas["segger"]
-        matches_segger = match_cells_by_centroid(
-            adata_10x, adata_segger, max_dist=MAX_MATCH_DIST
-        )
-        matches_segger.to_csv(TABLES_DIR / "matches_10x_segger.csv", index=False)
-        print(f"\n=== 10x native vs. Segger ({len(matches_segger)} pairs) ===")
-
-        corr_segger = expression_correlation(adata_10x, adata_segger, matches_segger)
-        corr_segger.to_csv(TABLES_DIR / "expression_correlation_10x_segger.csv", index=False)
-        print(corr_segger["correlation"].describe())
-
-        print("\n=== Clustering cell types (Segger) ===")
-        labels_segger = cluster_cell_types(adata_segger, seed=0)
-        print(f"segger: {labels_segger.nunique()} clusters")
-        cluster_embedding(adata_segger, seed=0).to_csv(TABLES_DIR / "embedding_segger.csv")
-
-        agreement_segger = cell_type_agreement(labels_10x, labels_segger, matches_segger)
-        agreement_segger["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_segger.csv")
-        print(f"ARI = {agreement_segger['ari']:.4f}, n_matched = {agreement_segger['n_matched']}")
-
-        labels_segger_aligned = match_cluster_labels(labels_10x, labels_segger, matches_segger)
-        disagreement_segger = disagreement_table(
-            matches_segger, labels_10x, labels_segger_aligned, adata_10x
-        )
-        disagreement_segger.to_csv(TABLES_DIR / "disagreement_table_10x_segger.csv", index=False)
-        spatial_segger = disagreement_spatial_structure(disagreement_segger, n_perm=9999, seed=0)
-        with open(TABLES_DIR / "disagreement_spatial_10x_segger.json", "w") as f:
-            json.dump(spatial_segger, f, indent=2)
-        print(spatial_segger)
-    else:
-        print("\n=== Segger: skipped (adata_segger.h5ad not found) ===")
+        spatial = disagreement_spatial_structure(disagree, n_perm=9999, seed=0)
+        with open(TABLES_DIR / f"disagreement_spatial_10x_{method_key}.json", "w") as f:
+            json.dump(spatial, f, indent=2)
+        print(f"  Moran's I = {spatial.get('morans_i', 'N/A')}")
 
 
 if __name__ == "__main__":

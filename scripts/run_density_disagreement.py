@@ -33,7 +33,7 @@ TABLES_DIR = Path("results/tables")
 _METHODS = [
     "cellpose", "stardist", "mesmer",
     "voronoi", "voronoi_stardist", "voronoi_mesmer",
-    "baysor", "baysor_prior", "baysor_prior_c08", "bidcell", "segger",
+    "baysor", "baysor_prior", "baysor_prior_c08", "baysor_prior_c10", "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10", "bidcell", "segger",
 ]
 COMPARISONS = {
     f"10x native vs. {METHOD_LABELS[k]}": f"disagreement_table_10x_{k}.csv"

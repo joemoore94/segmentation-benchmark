@@ -51,6 +51,7 @@ METHODS = [
     ("voronoi_mesmer",    "adata_voronoi_mesmer.h5ad"),
     ("baysor",            "adata_baysor.h5ad"),
     ("baysor_prior_c08",  "adata_baysor_prior_c08.h5ad"),
+    ("baysor_prior_c10",  "adata_baysor_prior_c10.h5ad"),
     ("bidcell",           "adata_bidcell.h5ad"),
     ("segger",            "adata_segger.h5ad"),
 ]

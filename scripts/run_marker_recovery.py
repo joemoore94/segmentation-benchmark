@@ -59,7 +59,7 @@ CELL_TYPE_MARKERS: dict[str, list[str]] = {
 _ALL_COMPARISONS = [
     "cellpose", "stardist", "mesmer",
     "voronoi", "voronoi_stardist", "voronoi_mesmer",
-    "baysor", "baysor_prior_c08", "bidcell", "segger",
+    "baysor", "baysor_prior_c08", "baysor_prior_c10", "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10", "bidcell", "segger",
 ]
 COMPARISONS = [(k, METHOD_LABELS[k], METHOD_COLORS[k]) for k in _ALL_COMPARISONS]
 PLOT_COMPARISONS = [c for c in COMPARISONS if c[0] not in NUCLEAR_ONLY]

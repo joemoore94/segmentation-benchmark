@@ -39,7 +39,9 @@ FIGURES = Path("results/figures")
 _ARI_LOOKUP: dict[str, float] = {
     "cellpose": 0.547, "stardist": 0.545, "mesmer": 0.557,
     "voronoi": 0.630, "voronoi_stardist": 0.584, "voronoi_mesmer": 0.686,
-    "baysor": 0.305, "baysor_prior_c08": 0.000, "bidcell": 0.000, "segger": 0.000,
+    "baysor": 0.305, "baysor_prior_c08": 0.488, "baysor_prior_c10": 0.501,
+    "baysor_stardist_prior_c10": 0.000, "baysor_mesmer_prior_c10": 0.000,
+    "bidcell": 0.000, "segger": 0.000,
 }
 _ALL_COMPARISONS = list(_ARI_LOOKUP)
 COMPARISONS = [

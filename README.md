@@ -13,12 +13,14 @@
 | 10x native vs. Voronoi (StarDist) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 |
 | 10x native vs. Voronoi (Mesmer) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
+| 10x native vs. Baysor (prior 0.8) | 20,108 | 0.884 | 0.488 | — | — |
+| 10x native vs. Baysor (prior 1.0) | 20,308 | — | 0.501 | — | — |
 
-*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag.
+*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag. Dashes for the Baysor prior variants will be filled after the full downstream pipeline runs.
 
-Three method families emerge clearly. Nuclear methods (CellPose, StarDist, Mesmer) cluster at ARI ~0.55 with spatially structured disagreement concentrated in the luminal epithelial and likely malignant population. Voronoi variants reach ARI 0.63–0.69 with 100% transcript capture. Baysor reaches ARI 0.31 with near-random spatial disagreement. All metrics measure concordance with the 10x-native reference, not biological ground truth; transcript-density methods like Baysor may define genuinely different cell boundaries rather than incorrect ones.
+Three method families emerge clearly, with a fourth hybrid family introduced by the Baysor prior variants. Nuclear methods (CellPose, StarDist, Mesmer) cluster at ARI ~0.55 with spatially structured disagreement concentrated in the luminal epithelial population. Voronoi variants reach ARI 0.63–0.69 with 100% transcript capture. Baysor without a prior reaches ARI 0.31 with near-random spatial disagreement. Adding a strong CellPose nuclear prior (PSC 0.8–1.0) lifts Baysor to ARI 0.49–0.50 — still below Voronoi, but with the lowest negative marker violation rate of any expansion method (0.31 per 1000 transcripts vs. 0.37–0.43 for Voronoi), indicating that density-adaptive expansion produces fewer cross-lineage boundary artifacts even when it agrees less with 10x native's cell calls.
 
-Because the three nuclear methods behave so similarly, most figures show only the Voronoi variants and Baysor. Nuclear method metrics are retained in all tables for completeness.
+Nuclear methods capture too few transcripts for meaningful downstream comparison and are excluded from figures past the recovery section. Their metrics are retained in all tables.
 
 <!-- Project 2 (label-transfer-benchmark): uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability. Add link once repo is public. -->
 
@@ -39,23 +41,25 @@ All analysis runs on a 2mm × 2mm ROI (~23,600 cells, ~3.4M transcripts, 380-gen
 | **Voronoi (CellPose)** | CellPose centroids | Nearest-centroid transcript assignment; 100% capture, no additional model |
 | **Voronoi (StarDist)** | StarDist centroids | Same assignment using StarDist centroids |
 | **Voronoi (Mesmer)** | Mesmer centroids | Same assignment using Mesmer centroids; isolates nuclear detector quality |
-| **Baysor** | transcripts | Transcript-density EM, Julia 1.10, 4 tiles |
+| **Baysor** | transcripts | Transcript-density EM (no prior), Julia 1.10, 4 tiles |
+| **Baysor (prior 0.8)** | transcripts + CellPose nuclei | Baysor with `prior_segmentation_confidence=0.8`: nuclear transcripts nearly locked to CellPose identity, cytoplasmic transcripts assigned by density |
+| **Baysor (prior 1.0)** | transcripts + CellPose nuclei | Baysor with `prior_segmentation_confidence=1.0`: nuclear transcripts hard-locked, cytoplasmic assigned by density-adaptive expansion — the mathematical limit of Baysor as a density-based expansion of fixed nuclear seeds |
 
-Cells are matched by nearest centroid across methods. Leiden clustering runs independently on each method's cells; cluster labels are aligned via Hungarian algorithm (one-to-one relabelling that maximises overlap with 10x native) before computing ARI and disagreement rate.
+Nuclear methods (CellPose, StarDist, Mesmer) capture only 35–52% of transcripts and are included in the cell/transcript recovery section but excluded from downstream figures because their low transcript capture dominates any comparison. Cells are matched by nearest centroid across methods. Leiden clustering runs independently on each method's cells; cluster labels are aligned via Hungarian algorithm before computing ARI and disagreement rate.
 
 ---
 
 ## Cell and transcript recovery
 
-| | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (SD) | Voronoi (M) | Baysor | 10x native |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Cells | 20,166 | 24,745 | 21,697 | 20,166 | 24,745 | 21,697 | 18,321 | 23,629 |
-| Median tx/cell | 49 | 45 | 70 | 149 | 122 | 142 | 53 | 124 |
-| Transcript capture | 35.4% | 40.8% | 51.8% | 100% | 100% | 100% | 98.6% | 99.0% |
+| | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (SD) | Voronoi (M) | Baysor | Baysor (0.8) | Baysor (1.0) | 10x native |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Cells | 20,166 | 24,745 | 21,697 | 20,166 | 24,745 | 21,697 | 18,321 | 29,771 | 30,473 | 23,629 |
+| Median tx/cell | 49 | 45 | 70 | 149 | 122 | 142 | 53 | 67 | 69 | 124 |
+| Transcript capture | 35.4% | 40.8% | 51.8% | 100% | 100% | 100% | 98.6% | 99% | 99% | 99.0% |
 
 ![Cell counts, transcripts/cell, and nucleus area by method](results/figures/cell_counts_and_sizes.png)
 
-Nuclear-only methods capture 35–52% of transcripts; Mesmer's larger nuclear masks recover more without leaving nuclear-only mode. Voronoi variants capture 100% by construction. Baysor and 10x native both approach 99%.
+Nuclear-only methods capture 35–52% of transcripts; Mesmer's larger nuclear masks recover more without leaving nuclear-only mode. Voronoi variants capture 100% by construction. Baysor without a prior captures 98.6% but detects fewer cells (18,321). Adding a strong CellPose nuclear prior (PSC 0.8 or 1.0) increases cell count to ~30,000 — more than any other method — because the fixed nuclear seeds prevent Baysor from merging adjacent cells. Median transcripts per cell for the prior variants (67–69) falls between nuclear-only methods and Voronoi, reflecting the density-adaptive expansion that captures cytoplasmic transcripts without the geometric completeness of Voronoi assignment.
 
 ---
 
@@ -242,7 +246,7 @@ segmentation-benchmark/
 │   └── processed/           # cropped ROI + derived files (gitignored)
 ├── notebooks/
 ├── src/segbench/
-│   ├── constants.py         # shared CLUSTER_ANNOTATIONS and CELLTYPE_COLORS
+│   ├── constants.py         # method metadata, cell-type annotations, negative marker pairs
 │   ├── io.py                # load Xenium bundle, ROI cropping
 │   ├── segmentation/        # per-method wrappers (CellPose, StarDist, Mesmer, Baysor)
 │   ├── quantify.py          # transcript aggregation -> per-cell AnnData

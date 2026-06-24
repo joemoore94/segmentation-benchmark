@@ -44,7 +44,7 @@ from segbench.constants import METHOD_COLORS as _MC, METHOD_LABELS, NUCLEAR_ONLY
 _ALL_METHODS = [
     "cellpose", "stardist", "mesmer",
     "voronoi", "voronoi_stardist", "voronoi_mesmer",
-    "baysor", "baysor_prior_c08", "bidcell", "segger",
+    "baysor", "baysor_prior_c08", "baysor_prior_c10", "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10", "bidcell", "segger",
 ]
 METHODS = [(k, METHOD_LABELS[k]) for k in _ALL_METHODS]
 
