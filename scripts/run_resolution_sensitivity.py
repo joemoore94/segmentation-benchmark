@@ -135,7 +135,7 @@ def _plot_resolution_sensitivity(df: pd.DataFrame, matcher: str) -> None:
     matcher_label = "Hungarian (one-to-one)" if matcher == "hungarian" else "Argmax (many-to-one)"
     sub_df = df[df["matcher"] == matcher]
 
-    fig, axes = plt.subplots(1, 3, figsize=(30, 9))
+    fig, axes = plt.subplots(3, 1, figsize=(14, 24))
 
     # Panel 1: ARI vs resolution
     ax = axes[0]
@@ -187,7 +187,7 @@ def _plot_resolution_sensitivity(df: pd.DataFrame, matcher: str) -> None:
 
     fig.suptitle(
         f"Leiden resolution sensitivity — {matcher_label} cluster alignment",
-        fontsize=13, fontweight="bold",
+        fontsize=18, fontweight="bold",
     )
     fig.tight_layout()
     fig.savefig(FIGURES / f"resolution_sensitivity_{matcher}.png", dpi=150, bbox_inches="tight")
