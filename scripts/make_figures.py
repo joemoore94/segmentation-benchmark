@@ -97,7 +97,15 @@ def fig_cell_counts_and_sizes() -> None:
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
     adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
-    adata_10x = adatas_for_violin.get("10x_native") or ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
+
+    nuclear_methods = [
+        ("cellpose", adata_cellpose),
+        ("stardist", adata_stardist),
+        ("mesmer",   adata_mesmer),
+    ]
+    ranger_path = ROI_DIR / "adata_10x_ranger.h5ad"
+    if ranger_path.exists():
+        nuclear_methods.append(("10x_ranger", ad.read_h5ad(ranger_path)))
 
     fig, axes = plt.subplots(1, 2, figsize=(22, 9))
 
@@ -122,18 +130,10 @@ def fig_cell_counts_and_sizes() -> None:
     axes[0].set_ylabel("Transcripts per cell")
     axes[0].set_title("Transcripts/cell distribution", fontweight="bold")
 
-    cellpose_area_um2 = adata_cellpose.obs["area"] * PIXEL_SIZE**2
-    stardist_area_um2 = adata_stardist.obs["area"] * PIXEL_SIZE**2
-    mesmer_area_um2 = adata_mesmer.obs["area"] * PIXEL_SIZE**2
-    tenx_nucleus_area_um2 = adata_10x.obs["nucleus_area_um2"]
-    sns.histplot(cellpose_area_um2, bins=50, ax=axes[1],
-                 color=METHOD_COLORS["cellpose"], label=METHOD_LABELS["cellpose"], alpha=0.4)
-    sns.histplot(stardist_area_um2, bins=50, ax=axes[1],
-                 color=METHOD_COLORS["stardist"], label=METHOD_LABELS["stardist"], alpha=0.4)
-    sns.histplot(mesmer_area_um2, bins=50, ax=axes[1],
-                 color=METHOD_COLORS["mesmer"], label=METHOD_LABELS["mesmer"], alpha=0.4)
-    sns.histplot(tenx_nucleus_area_um2, bins=50, ax=axes[1],
-                 color=METHOD_COLORS["10x_native"], label=METHOD_LABELS["10x_native"], alpha=0.4)
+    for key, adata_nuc in nuclear_methods:
+        area_um2 = adata_nuc.obs["area"] * PIXEL_SIZE**2
+        sns.histplot(area_um2, bins=50, ax=axes[1],
+                     color=METHOD_COLORS[key], label=METHOD_LABELS[key], alpha=0.4)
     axes[1].set_xlabel("Nucleus area (µm²)")
     axes[1].set_title("Nuclear mask size comparison", fontweight="bold")
     axes[1].legend()
