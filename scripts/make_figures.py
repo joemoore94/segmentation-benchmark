@@ -386,81 +386,88 @@ def fig_cluster_confusion() -> None:
         if (TABLES_DIR / f"cell_type_confusion_10x_{m}.csv").exists()
     ]
 
-    matchers = [
-        ("hungarian", "Hungarian (one-to-one)", "red",
-         lambda vals: set(zip(*[x.tolist() for x in linear_sum_assignment(-vals)]))),
-        ("argmax", "Argmax (many-to-one)", "#2ca02c",
-         lambda vals: {(int(vals[:, c].argmax()), c) for c in range(vals.shape[1])}),
-    ]
+    hungarian_fn = lambda vals: set(zip(*[x.tolist() for x in linear_sum_assignment(-vals)]))
+    argmax_fn = lambda vals: {(int(vals[:, c].argmax()), c) for c in range(vals.shape[1])}
 
-    for matcher_key, matcher_label, border_color, match_fn in matchers:
-        ncols = 2
-        nrows = math.ceil(len(avail) / ncols)
-        fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 12, nrows * 9))
-        flat = np.array(axes).flatten()
-        for ax in flat[len(avail):]:
-            ax.set_visible(False)
+    ncols = 2
+    nrows = math.ceil(len(avail) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 12, nrows * 9))
+    flat = np.array(axes).flatten()
+    for ax in flat[len(avail):]:
+        ax.set_visible(False)
 
-        for ax, (method, label) in zip(flat, avail):
-            path = TABLES_DIR / f"cell_type_confusion_10x_{method}.csv"
-            raw = pd.read_csv(path, index_col="label_a")
-            raw.index = raw.index.astype(str)
-            raw.columns = raw.columns.astype(str)
+    for ax, (method, label) in zip(flat, avail):
+        path = TABLES_DIR / f"cell_type_confusion_10x_{method}.csv"
+        raw = pd.read_csv(path, index_col="label_a")
+        raw.index = raw.index.astype(str)
+        raw.columns = raw.columns.astype(str)
 
-            ref_ids = sorted(raw.index, key=int)
-            comp_ids = sorted(raw.columns, key=int)
-            raw = raw.loc[ref_ids, comp_ids]
+        ref_ids = sorted(raw.index, key=int)
+        comp_ids = sorted(raw.columns, key=int)
+        raw = raw.loc[ref_ids, comp_ids]
 
-            vals = raw.to_numpy()
-            matched = match_fn(vals)
+        vals = raw.to_numpy()
+        hungarian_matched = hungarian_fn(vals)
+        argmax_matched = argmax_fn(vals)
 
-            row_sums = raw.sum(axis=1).replace(0, np.nan)
-            norm = raw.div(row_sums, axis=0).fillna(0) * 100
+        row_sums = raw.sum(axis=1).replace(0, np.nan)
+        norm = raw.div(row_sums, axis=0).fillna(0) * 100
 
-            annot_text = norm.map(lambda v: f"{v:.0f}" if v >= 5 else "")
+        annot_text = norm.map(lambda v: f"{v:.0f}" if v >= 5 else "")
 
-            row_labels = [f"{c}: {ct_short.get(CLUSTER_ANNOTATIONS.get(c, ''), c)}"
-                          for c in ref_ids]
+        row_labels = [f"{c}: {ct_short.get(CLUSTER_ANNOTATIONS.get(c, ''), c)}"
+                      for c in ref_ids]
 
-            x_labels = [str(c) if i % 2 == 0 else "" for i, c in enumerate(comp_ids)]
+        x_labels = [str(c) if i % 2 == 0 else "" for i, c in enumerate(comp_ids)]
 
-            sns.heatmap(
-                norm.values, ax=ax,
-                cmap="Blues", vmin=0, vmax=100,
-                annot=np.array(annot_text), fmt="",
-                annot_kws={"weight": "bold"},
-                xticklabels=x_labels, yticklabels=row_labels,
-                linewidths=0.4, linecolor="#e0e0e0",
-                cbar=False,
-            )
-
-            for r, c in matched:
-                ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
-                                       edgecolor=border_color, linewidth=2.5))
-
-            ax.set_title(f"{label}  ({len(comp_ids)} clusters)", fontweight="bold")
-            ax.set_xlabel(f"{label} cluster")
-            ax.set_ylabel("")
-            ax.tick_params(axis="x", rotation=0)
-            ax.tick_params(axis="y", rotation=0)
-
-        from matplotlib.cm import ScalarMappable
-        from matplotlib.colors import Normalize
-        sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
-        sm.set_array([])
-        cbar_ax = fig.add_axes([0.93, 0.08, 0.012, 0.84])
-        cbar = fig.colorbar(sm, cax=cbar_ax)
-        cbar.set_label("% of 10x native cluster")
-
-        fig.suptitle(
-            f"Cluster-level confusion matrices (row-normalised) - {matcher_label}",
-            fontstyle="italic", fontweight="bold",
+        sns.heatmap(
+            norm.values, ax=ax,
+            cmap="Blues", vmin=0, vmax=100,
+            annot=np.array(annot_text), fmt="",
+            annot_kws={"weight": "bold"},
+            xticklabels=x_labels, yticklabels=row_labels,
+            linewidths=0.4, linecolor="#e0e0e0",
+            cbar=False,
         )
-        fig.subplots_adjust(left=0.07, right=0.90, top=0.95, bottom=0.03,
-                            hspace=0.45, wspace=0.35)
-        suffix = "" if matcher_key == "hungarian" else "_argmax"
-        fig.savefig(FIGURES_DIR / f"confusion_clusters{suffix}.png", dpi=DPI, bbox_inches="tight")
-        plt.close(fig)
+
+        for r, c in hungarian_matched:
+            ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
+                                   edgecolor="red", linewidth=2.5))
+        for r, c in argmax_matched:
+            ax.add_patch(Rectangle((c + 0.08, r + 0.08), 0.84, 0.84, fill=False,
+                                   edgecolor="#2ca02c", linewidth=2.0))
+
+        ax.set_title(f"{label}  ({len(comp_ids)} clusters)", fontweight="bold")
+        ax.set_xlabel(f"{label} cluster")
+        ax.set_ylabel("")
+        ax.tick_params(axis="x", rotation=0)
+        ax.tick_params(axis="y", rotation=0)
+
+    from matplotlib.cm import ScalarMappable
+    from matplotlib.colors import Normalize
+    sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
+    sm.set_array([])
+    cbar_ax = fig.add_axes([0.93, 0.08, 0.012, 0.84])
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar.set_label("% of 10x native cluster")
+
+    legend_handles = [
+        mpatches.Patch(edgecolor="red", facecolor="none", linewidth=2.5,
+                       label="Hungarian (one-to-one)"),
+        mpatches.Patch(edgecolor="#2ca02c", facecolor="none", linewidth=2.0,
+                       label="Argmax (many-to-one)"),
+    ]
+    fig.legend(handles=legend_handles, loc="lower center", ncol=2,
+               frameon=True, fontsize=12, bbox_to_anchor=(0.48, 0.005))
+
+    fig.suptitle(
+        "Cluster-level confusion matrices (row-normalised)",
+        fontstyle="italic", fontweight="bold",
+    )
+    fig.subplots_adjust(left=0.07, right=0.90, top=0.95, bottom=0.04,
+                        hspace=0.45, wspace=0.35)
+    fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=DPI, bbox_inches="tight")
+    plt.close(fig)
 
 
 def main() -> None:
