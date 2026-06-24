@@ -122,7 +122,7 @@ def fig_transcripts_per_cell() -> None:
         for m in methods
     }
 
-    fig, ax = plt.subplots(figsize=(14, 8))
+    fig, ax = plt.subplots(figsize=(max(14, 2.5 * len(methods)), 8))
     tx_long = pd.concat(
         [pd.DataFrame({"method": METHOD_LABELS[m], "log10_tx": np.log10(transcripts_by_method[m] + 1)})
          for m in methods],

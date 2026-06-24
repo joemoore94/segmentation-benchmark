@@ -64,9 +64,12 @@ def main() -> None:
         ("baysor_prior_c08",          "adata_baysor_prior_c08.h5ad"),
         ("baysor_prior_c10",          "adata_baysor_prior_c10.h5ad"),
         ("baysor_stardist_prior_c10", "adata_baysor_stardist_prior_c10.h5ad"),
-        ("baysor_mesmer_prior_c10",   "adata_baysor_mesmer_prior_c10.h5ad"),
-        ("bidcell",                   "adata_bidcell.h5ad"),
-        ("segger",                    "adata_segger.h5ad"),
+        ("baysor_mesmer_prior_c10",      "adata_baysor_mesmer_prior_c10.h5ad"),
+        ("baysor_10x_ranger_prior_c10", "adata_baysor_10x_ranger_prior_c10.h5ad"),
+        ("voronoi_10x_ranger",          "adata_voronoi_10x_ranger.h5ad"),
+        ("10x_ranger",                  "adata_10x_ranger.h5ad"),
+        ("bidcell",                      "adata_bidcell.h5ad"),
+        ("segger",                       "adata_segger.h5ad"),
     ]:
         p = ROI_DIR / optional_file
         if p.exists():
@@ -355,6 +358,8 @@ def main() -> None:
     optional_methods = [
         "baysor_prior_c08", "baysor_prior_c10",
         "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
+        "baysor_10x_ranger_prior_c10",
+        "voronoi_10x_ranger", "10x_ranger",
         "bidcell", "segger",
     ]
     for method_key in optional_methods:

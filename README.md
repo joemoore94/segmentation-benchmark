@@ -77,12 +77,14 @@ All four detectors operate on the same DAPI image but produce substantially diff
 | Baysor (CP prior 0.8) | 29,771 | 67 | 99% |
 | Baysor (CP prior 1.0) | 30,473 | 69 | 99% |
 | Baysor (SD prior 1.0) | 34,230 | 63 | 98.9% |
+| Baysor (M prior 1.0) | 31,764 | 74 | 98.9% |
+| Baysor (10x prior 1.0) | 33,113 | 65 | 98.9% |
 
 ![Transcripts/cell distribution across expansion methods](results/figures/transcripts_per_cell.png)
 
 Voronoi expansion captures 100% of transcripts by construction regardless of detector. Median transcripts per cell under Voronoi varies with detector quality: Voronoi (CP) leads at 149 tx/cell because CellPose detects fewer, larger nuclei, concentrating more transcripts per cell. Voronoi (10x) at 128 tx/cell is closest to 10x native (124), consistent with using the same nuclear seeds — the gap between them reflects 10x native's proprietary expansion assigning some transcripts differently than nearest-centroid.
 
-Baysor without a prior captures 98.6% but detects fewer cells (18,321) — the density model merges adjacent cells freely. At PSC 0.2, the prior barely changes behavior (19,061 cells, 53 tx/cell). At PSC 0.8–1.0, the hard-locked nuclear seeds prevent merging and cell count jumps to ~30,000, with median transcripts per cell rising to 67–69 from density-adaptive cytoplasmic expansion. Baysor with StarDist prior produces the highest cell count of any method (34,230) because StarDist detects the most nuclei (24,745) and the strong prior preserves all of them while adding density-based expansion.
+Baysor without a prior captures 98.6% but detects fewer cells (18,321) — the density model merges adjacent cells freely. At PSC 0.2, the prior barely changes behavior (19,061 cells, 53 tx/cell). At PSC 0.8–1.0, the hard-locked nuclear seeds prevent merging and cell count jumps to ~30,000+. The four PSC=1.0 variants reveal how detector choice propagates through density-adaptive expansion: Baysor (SD prior) produces the most cells (34,230) because StarDist detects the most nuclei, while Baysor (M prior) has the highest median tx/cell (74) because Mesmer's larger nuclei anchor more cytoplasmic transcripts per cell. Baysor (10x prior) at 33,113 cells and 65 tx/cell falls between the two, and Baysor (CP prior) at 30,473 cells and 69 tx/cell reflects CellPose's more conservative nuclear detection. All four achieve ~99% transcript capture — the expansion strategy saturates regardless of which detector seeds it.
 
 ---
 
