@@ -55,6 +55,7 @@ _ALL_METHODS = [
     ("voronoi_mesmer",    "adata_voronoi_mesmer.h5ad"),
     ("baysor",            "adata_baysor.h5ad"),
     ("baysor_prior_c08",  "adata_baysor_prior_c08.h5ad"),
+    ("baysor_prior_c10",  "adata_baysor_prior_c10.h5ad"),
     ("bidcell",           "adata_bidcell.h5ad"),
     ("segger",            "adata_segger.h5ad"),
 ]
@@ -180,10 +181,9 @@ def main() -> None:
     plot_detail = detail_df[~detail_df["method"].isin(nuclear_labels)].copy()
 
     apply_style()
-    fig = plt.figure(figsize=(22, 8))
-    gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1.5, 1], wspace=0.35)
+    fig = plt.figure(figsize=(30, 10))
+    gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1.5, 1], wspace=0.4)
 
-    # Panel A: violation rate bar chart
     ax_a = fig.add_subplot(gs[0])
     order = plot_summary.sort_values("tier1_violation_rate", ascending=True)
     colors = [METHOD_COLORS.get(k, "#999999") for k in order["method_key"]]
@@ -191,9 +191,8 @@ def main() -> None:
     ax_a.set_yticks(range(len(order)))
     ax_a.set_yticklabels(order["method"])
     ax_a.set_xlabel("Cells with Tier 1 violation (%)")
-    ax_a.set_title("Negative marker violation rate")
+    ax_a.set_title("Violation rate", fontweight="bold")
 
-    # Panel B: per-pair × per-method heatmap
     ax_b = fig.add_subplot(gs[1])
     tier1_pairs = [f"{a}+{b}" for a, b, _, _ in NEGATIVE_PAIRS_TIER1]
     heatmap_data = plot_detail[plot_detail["pair"].isin(tier1_pairs)].pivot_table(
@@ -208,32 +207,32 @@ def main() -> None:
         ax=ax_b, cbar_kws={"label": "Violation rate (%)"},
         linewidths=0.5, linecolor="white",
     )
-    ax_b.set_title("Per-pair violation rate (%)")
+    ax_b.set_title("Per-pair violation rate (%)", fontweight="bold")
     ax_b.set_xlabel("")
     ax_b.set_ylabel("")
 
-    # Panel C: violation rate vs. median transcripts/cell
     ax_c = fig.add_subplot(gs[2])
     for _, row in plot_summary.iterrows():
         ax_c.scatter(
             row["median_tx_per_cell"],
             row["tier1_violation_rate"] * 100,
             color=METHOD_COLORS.get(row["method_key"], "#999999"),
-            s=120, zorder=5, edgecolors="white", linewidth=1.5,
+            s=160, zorder=5, edgecolors="white", linewidth=1.5,
         )
         ax_c.annotate(
             row["method"], (row["median_tx_per_cell"], row["tier1_violation_rate"] * 100),
-            textcoords="offset points", xytext=(8, 0), fontsize=10,
+            textcoords="offset points", xytext=(10, 0),
         )
     ax_c.set_xlabel("Median transcripts per cell")
     ax_c.set_ylabel("Cells with Tier 1 violation (%)")
-    ax_c.set_title("Violation vs. transcript capture")
+    ax_c.set_title("Violation vs. transcript capture", fontweight="bold")
 
     fig.suptitle(
         "Negative marker analysis: biology-grounded segmentation quality",
-        fontweight="bold", y=1.02,
+        fontweight="bold",
     )
-    fig.savefig(FIGURES / "negative_marker.png", dpi=150, bbox_inches="tight")
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.savefig(FIGURES / "negative_marker.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
     print(f"\nSaved {FIGURES / 'negative_marker.png'}")
 
