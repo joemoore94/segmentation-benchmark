@@ -51,11 +51,19 @@ Nuclear methods (CellPose, StarDist, Mesmer) capture only 35–52% of transcript
 
 ## Cell and transcript recovery
 
-| | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (SD) | Voronoi (M) | Baysor | Baysor (0.8) | Baysor (1.0) | 10x native |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Cells | 20,166 | 24,745 | 21,697 | 20,166 | 24,745 | 21,697 | 18,321 | 29,771 | 30,473 | 23,629 |
-| Median tx/cell | 49 | 45 | 70 | 149 | 122 | 142 | 53 | 67 | 69 | 124 |
-| Transcript capture | 35.4% | 40.8% | 51.8% | 100% | 100% | 100% | 98.6% | 99% | 99% | 99.0% |
+| Method | Cells | Median tx/cell | Transcript capture |
+| --- | ---: | ---: | ---: |
+| 10x native | 23,629 | 124 | 99.0% |
+| CellPose | 20,166 | 49 | 35.4% |
+| StarDist | 24,745 | 45 | 40.8% |
+| Mesmer | 21,697 | 70 | 51.8% |
+| Voronoi (CP) | 20,166 | 149 | 100% |
+| Voronoi (SD) | 24,745 | 122 | 100% |
+| Voronoi (M) | 21,697 | 142 | 100% |
+| Baysor | 18,321 | 53 | 98.6% |
+| Baysor (CP prior 0.2) | 19,061 | 53 | 98.7% |
+| Baysor (CP prior 0.8) | 29,771 | 67 | 99% |
+| Baysor (CP prior 1.0) | 30,473 | 69 | 99% |
 
 ![Cell counts, transcripts/cell, and nucleus area by method](results/figures/cell_counts_and_sizes.png)
 
