@@ -372,8 +372,11 @@ def fig_cluster_confusion() -> None:
         comp_ids = sorted(raw.columns, key=int)
         raw = raw.loc[ref_ids, comp_ids]
 
-        row_ind, col_ind = linear_sum_assignment(-raw.to_numpy())
-        matched = set(zip(row_ind.tolist(), col_ind.tolist()))
+        vals = raw.to_numpy()
+        row_ind, col_ind = linear_sum_assignment(-vals)
+        hungarian = set(zip(row_ind.tolist(), col_ind.tolist()))
+
+        argmax = {(int(vals[:, c].argmax()), c) for c in range(vals.shape[1])}
 
         row_sums = raw.sum(axis=1).replace(0, np.nan)
         norm = raw.div(row_sums, axis=0).fillna(0) * 100
@@ -395,9 +398,13 @@ def fig_cluster_confusion() -> None:
             cbar=False,
         )
 
-        for r, c in matched:
+        for r, c in hungarian:
             ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
                                    edgecolor="red", linewidth=2.5))
+        for r, c in argmax - hungarian:
+            ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
+                                   edgecolor="#2ca02c", linewidth=2.5,
+                                   linestyle="--"))
 
         ax.set_title(f"{label}  ({len(comp_ids)} clusters)", fontweight="bold")
         ax.set_xlabel(f"{label} cluster")
@@ -415,7 +422,7 @@ def fig_cluster_confusion() -> None:
 
     fig.suptitle(
         "Cluster-level confusion matrices (row-normalised)  ·  "
-        "Red border = Hungarian-matched pair",
+        "Red = Hungarian (one-to-one)  ·  Green dashed = argmax (many-to-one)",
         fontstyle="italic", fontweight="bold",
     )
     fig.subplots_adjust(left=0.07, right=0.90, top=0.95, bottom=0.03,

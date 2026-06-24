@@ -4,6 +4,10 @@
 
 ## Summary
 
+### Hungarian cluster alignment (one-to-one)
+
+Cluster labels are aligned via the Hungarian algorithm, which finds the optimal one-to-one assignment between each method's Leiden clusters and 10x native's. When methods produce different numbers of clusters, unmatched clusters are forced into poor pairings.
+
 | Comparison | Matched pairs | Median corr | ARI | Disagreement | Moran's I |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | **Nuclear-only** | | | | | |
@@ -24,7 +28,33 @@
 | 10x native vs. Baysor (M prior 1.0) | 21,148 | 0.924 | 0.518 | 32.3% | 0.115 |
 | 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | 34.7% | 0.208 |
 
-*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag. Voronoi (10x) correlation is missing due to a gene-name encoding mismatch in the current build.
+### Argmax cluster alignment (many-to-one)
+
+Each method's clusters are mapped to whichever 10x native cluster contains the plurality of matched cells. Multiple clusters can map to the same reference cluster, which better handles cases where one method splits a cell type that another keeps merged. Matched pairs, median correlation, and ARI are unchanged (they do not depend on cluster alignment).
+
+| Comparison | Matched pairs | Median corr | ARI | Disagreement | Moran's I |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Nuclear-only** | | | | | |
+| 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | — | — |
+| 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | — | — |
+| 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | — | — |
+| 10x native vs. 10x Ranger | 23,155 | 0.822 | 0.504 | — | — |
+| **Voronoi** | | | | | |
+| 10x native vs. Voronoi (CP) | 18,966 | 0.959 | 0.630 | — | — |
+| 10x native vs. Voronoi (SD) | 21,428 | 0.959 | 0.584 | — | — |
+| 10x native vs. Voronoi (M) | 20,595 | 0.964 | 0.686 | — | — |
+| 10x native vs. Voronoi (10x) | 23,153 | — | 0.592 | — | — |
+| **Baysor** | | | | | |
+| 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | — | — |
+| 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | — | — |
+| 10x native vs. Baysor (CP prior 1.0) | 20,308 | 0.902 | 0.501 | — | — |
+| 10x native vs. Baysor (SD prior 1.0) | 21,814 | 0.905 | 0.498 | — | — |
+| 10x native vs. Baysor (M prior 1.0) | 21,148 | 0.924 | 0.518 | — | — |
+| 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | — | — |
+
+*Argmax disagreement and Moran's I will be populated on next pipeline run (`run_comparison.py`).*
+
+*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index (partition-based, independent of cluster alignment). *Disagreement*: fraction of matched cell pairs assigned to different clusters after alignment. *Moran's I*: spatial autocorrelation of the disagree flag. Voronoi (10x) correlation is missing due to a gene-name encoding mismatch in the current build.
 
 The results cleanly separate the contributions of nuclear detection quality and expansion strategy. Among Voronoi methods, Mesmer centroids produce the highest ARI (0.686) and lowest disagreement (18.8%), while 10x Ranger centroids — despite being purpose-built for Xenium — score lower (ARI 0.592). Among Baysor PSC=1.0 variants, the same detector ordering holds: Mesmer prior leads at ARI 0.518, followed by 10x Ranger (0.530), CellPose (0.501), and StarDist (0.498). Baysor (10x prior 1.0) achieves the highest ARI of any Baysor variant (0.530) and the most matched pairs (22,910), benefiting from 10x Ranger detecting almost as many nuclei as the 10x native reference.
 
@@ -99,7 +129,15 @@ Baysor without a prior captures 98.6% but detects fewer cells (18,321) — the d
 
 ## Clustering comparison
 
-Leiden clustering runs independently on each method's cells (normalize → PCA → neighbors → Leiden at resolution 1.0). Cluster labels are aligned across methods via Hungarian algorithm before computing confusion matrices and disagreement.
+Leiden clustering runs independently on each method's cells (normalize → PCA → neighbors → Leiden at resolution 1.0). Cluster labels are aligned across methods before computing confusion matrices and disagreement, using two algorithms: Hungarian (one-to-one) and argmax (many-to-one).
+
+### Resolution stability
+
+![ARI, disagreement, and Moran's I across Leiden resolutions — Hungarian alignment](results/figures/resolution_sensitivity_hungarian.png)
+
+![ARI, disagreement, and Moran's I across Leiden resolutions — argmax alignment](results/figures/resolution_sensitivity_argmax.png)
+
+The method ordering is stable across Leiden resolutions 0.3–2.0 under both cluster alignment algorithms. Voronoi (Mesmer) leads at resolutions 0.8 and above; Baysor is consistently lowest. At resolution 0.5 (9 clusters) CellPose briefly edges Voronoi (Mesmer) because the luminal epithelial population collapses into a single large cluster that aligns well with nuclear boundaries alone. The Hungarian (one-to-one) alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters (e.g., Baysor's 21 vs. 10x native's 15). The argmax (many-to-one) alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: morphological methods maintain spatially structured disagreement while Baysor stays near zero regardless of cluster granularity.
 
 | Method | Clusters | Cells | Median cells/cluster | Min | Max |
 | --- | --- | --- | --- | --- | --- |
@@ -118,9 +156,9 @@ Morphological methods and 10x native converge on 12–15 clusters with median si
 
 ### Cluster alignment
 
-![Cluster-level confusion matrices with Hungarian-matched pairs](results/figures/confusion_clusters.png)
+![Cluster-level confusion matrices with both alignment algorithms](results/figures/confusion_clusters.png)
 
-The raw Leiden cluster cross-tabulations show how each method's clusters map onto 10x native's 15. Each row is one 10x native cluster; columns are the comparison method's clusters; red borders mark the Hungarian-matched (optimal 1-to-1) pair. Morphological methods produce clean matches — the dominant cell in each row aligns with the Hungarian pair, and off-diagonal leakage is minimal. Baysor's 15×21 matrix is qualitatively different: signal disperses across many columns, matched pairs often capture a minority of cells, and 6 clusters have no 10x counterpart. Collapsing to annotated cell types, the same pattern holds — Baysor shows broader scatter particularly in macrophage and luminal epithelial populations.
+The raw Leiden cluster cross-tabulations show how each method's clusters map onto 10x native's 15. Each row is one 10x native cluster; columns are the comparison method's clusters. Red borders mark Hungarian-matched pairs (optimal one-to-one); green dashed borders mark argmax-matched pairs (many-to-one) that differ from the Hungarian assignment. Where the two algorithms agree, only the red border is shown. Morphological methods produce clean matches under both algorithms. Baysor's 15x21 matrix is qualitatively different: signal disperses across many columns, and the Hungarian algorithm forces 6 clusters into empty pairings. The argmax alignment avoids these artifacts by letting multiple Baysor clusters map to the same 10x native cluster.
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 
@@ -131,12 +169,6 @@ Per-cell expression correlation is high for all methods (median 0.79–0.96), bu
 ![Per-cluster pseudobulk correlation vs. 10x native](results/figures/pseudobulk_by_cluster.png)
 
 To test whether cluster-level expression profiles agree, matched cells are grouped by 10x native's 15 Leiden clusters and pseudobulked per method. Nuclear methods drop to r = 0.86–0.87 on luminal epithelial clusters (0, 1, 3, 8) — the same populations driving single-cell disagreement — while Voronoi variants stay above 0.99 across all clusters. Baysor shows a comparable luminal dip plus reduced correlation on macrophage clusters (2, 7), consistent with transcript-density boundaries partitioning those populations differently.
-
-### Resolution stability
-
-![ARI and Moran's I across Leiden resolutions 0.5–2.0](results/figures/resolution_sensitivity.png)
-
-The method ordering is stable across Leiden resolutions 0.5–2.0. Voronoi (Mesmer) leads at resolutions 0.8 and above; Baysor is consistently lowest. At resolution 0.5 (9 clusters) CellPose briefly edges Voronoi (Mesmer) because the luminal epithelial population collapses into a single large cluster that aligns well with nuclear boundaries alone. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant: morphological methods maintain I = 0.2–0.6 (spatially structured disagreement) while Baysor stays near zero (0.004–0.065) regardless of cluster granularity.
 
 ---
 

@@ -25,6 +25,7 @@ from segbench.compare import (
     expression_correlation,
     match_cells_by_centroid,
     match_cluster_labels,
+    match_cluster_labels_argmax,
     size_summary,
 )
 from segbench.spatial import disagreement_spatial_structure, disagreement_table
@@ -34,6 +35,19 @@ TABLES_DIR = Path("results/tables")
 
 MAX_MATCH_DIST = 10.0
 TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
+
+
+def _save_disagreement(method_key, matches, labels_10x, labels_comp, adata_10x):
+    """Save disagreement tables for both Hungarian and argmax cluster alignment."""
+    for suffix, matcher_fn in [("", match_cluster_labels), ("_argmax", match_cluster_labels_argmax)]:
+        labels_aligned = matcher_fn(labels_10x, labels_comp, matches)
+        dt = disagreement_table(matches, labels_10x, labels_aligned, adata_10x)
+        dt.to_csv(TABLES_DIR / f"disagreement_table_10x_{method_key}{suffix}.csv", index=False)
+        spatial = disagreement_spatial_structure(dt, n_perm=9999, seed=0)
+        with open(TABLES_DIR / f"disagreement_spatial_10x_{method_key}{suffix}.json", "w") as f:
+            json.dump(spatial, f, indent=2)
+        tag = "hungarian" if not suffix else "argmax"
+        print(f"  [{tag}] disagree={dt['disagree'].mean():.3f}  Moran's I={spatial.get('morans_i', 'N/A')}")
 
 
 def main() -> None:
@@ -109,15 +123,7 @@ def main() -> None:
     agreement_cellpose["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_cellpose.csv")
     print(f"ARI = {agreement_cellpose['ari']:.4f}, n_matched = {agreement_cellpose['n_matched']}")
 
-    labels_cellpose_aligned = match_cluster_labels(labels_10x, labels_cellpose, matches_cellpose)
-    disagreement_cellpose = disagreement_table(
-        matches_cellpose, labels_10x, labels_cellpose_aligned, adata_10x
-    )
-    disagreement_cellpose.to_csv(TABLES_DIR / "disagreement_table_10x_cellpose.csv", index=False)
-    spatial_cellpose = disagreement_spatial_structure(disagreement_cellpose, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_10x_cellpose.json", "w") as f:
-        json.dump(spatial_cellpose, f, indent=2)
-    print(spatial_cellpose)
+    _save_disagreement("cellpose", matches_cellpose, labels_10x, labels_cellpose, adata_10x)
 
     # 10x native vs. Baysor
     matches_baysor = match_cells_by_centroid(adata_10x, adata_baysor, max_dist=MAX_MATCH_DIST)
@@ -137,15 +143,7 @@ def main() -> None:
     agreement_baysor["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_baysor.csv")
     print(f"ARI = {agreement_baysor['ari']:.4f}, n_matched = {agreement_baysor['n_matched']}")
 
-    labels_baysor_aligned = match_cluster_labels(labels_10x, labels_baysor, matches_baysor)
-    disagreement_baysor = disagreement_table(
-        matches_baysor, labels_10x, labels_baysor_aligned, adata_10x
-    )
-    disagreement_baysor.to_csv(TABLES_DIR / "disagreement_table_10x_baysor.csv", index=False)
-    spatial_baysor = disagreement_spatial_structure(disagreement_baysor, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_10x_baysor.json", "w") as f:
-        json.dump(spatial_baysor, f, indent=2)
-    print(spatial_baysor)
+    _save_disagreement("baysor", matches_baysor, labels_10x, labels_baysor, adata_10x)
 
     # 10x native vs. StarDist
     matches_stardist = match_cells_by_centroid(adata_10x, adata_stardist, max_dist=MAX_MATCH_DIST)
@@ -165,15 +163,7 @@ def main() -> None:
     agreement_stardist["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_stardist.csv")
     print(f"ARI = {agreement_stardist['ari']:.4f}, n_matched = {agreement_stardist['n_matched']}")
 
-    labels_stardist_aligned = match_cluster_labels(labels_10x, labels_stardist, matches_stardist)
-    disagreement_stardist = disagreement_table(
-        matches_stardist, labels_10x, labels_stardist_aligned, adata_10x
-    )
-    disagreement_stardist.to_csv(TABLES_DIR / "disagreement_table_10x_stardist.csv", index=False)
-    spatial_stardist = disagreement_spatial_structure(disagreement_stardist, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_10x_stardist.json", "w") as f:
-        json.dump(spatial_stardist, f, indent=2)
-    print(spatial_stardist)
+    _save_disagreement("stardist", matches_stardist, labels_10x, labels_stardist, adata_10x)
 
     # 10x native vs. Baysor (CellPose prior)
     matches_baysor_prior = match_cells_by_centroid(
@@ -197,21 +187,7 @@ def main() -> None:
     )
     print(f"ARI = {agreement_baysor_prior['ari']:.4f}, n_matched = {agreement_baysor_prior['n_matched']}")
 
-    labels_baysor_prior_aligned = match_cluster_labels(
-        labels_10x, labels_baysor_prior, matches_baysor_prior
-    )
-    disagreement_baysor_prior = disagreement_table(
-        matches_baysor_prior, labels_10x, labels_baysor_prior_aligned, adata_10x
-    )
-    disagreement_baysor_prior.to_csv(
-        TABLES_DIR / "disagreement_table_10x_baysor_prior.csv", index=False
-    )
-    spatial_baysor_prior = disagreement_spatial_structure(
-        disagreement_baysor_prior, n_perm=9999, seed=0
-    )
-    with open(TABLES_DIR / "disagreement_spatial_10x_baysor_prior.json", "w") as f:
-        json.dump(spatial_baysor_prior, f, indent=2)
-    print(spatial_baysor_prior)
+    _save_disagreement("baysor_prior", matches_baysor_prior, labels_10x, labels_baysor_prior, adata_10x)
 
     # 10x native vs. Voronoi (CellPose nuclei, nearest-centroid transcript assignment)
     matches_voronoi = match_cells_by_centroid(adata_10x, adata_voronoi, max_dist=MAX_MATCH_DIST)
@@ -231,15 +207,7 @@ def main() -> None:
     agreement_voronoi["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_voronoi.csv")
     print(f"ARI = {agreement_voronoi['ari']:.4f}, n_matched = {agreement_voronoi['n_matched']}")
 
-    labels_voronoi_aligned = match_cluster_labels(labels_10x, labels_voronoi, matches_voronoi)
-    disagreement_voronoi = disagreement_table(
-        matches_voronoi, labels_10x, labels_voronoi_aligned, adata_10x
-    )
-    disagreement_voronoi.to_csv(TABLES_DIR / "disagreement_table_10x_voronoi.csv", index=False)
-    spatial_voronoi = disagreement_spatial_structure(disagreement_voronoi, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_10x_voronoi.json", "w") as f:
-        json.dump(spatial_voronoi, f, indent=2)
-    print(spatial_voronoi)
+    _save_disagreement("voronoi", matches_voronoi, labels_10x, labels_voronoi, adata_10x)
 
     # 10x native vs. Mesmer
     matches_mesmer = match_cells_by_centroid(adata_10x, adata_mesmer, max_dist=MAX_MATCH_DIST)
@@ -259,15 +227,7 @@ def main() -> None:
     agreement_mesmer["confusion"].to_csv(TABLES_DIR / "cell_type_confusion_10x_mesmer.csv")
     print(f"ARI = {agreement_mesmer['ari']:.4f}, n_matched = {agreement_mesmer['n_matched']}")
 
-    labels_mesmer_aligned = match_cluster_labels(labels_10x, labels_mesmer, matches_mesmer)
-    disagreement_mesmer = disagreement_table(
-        matches_mesmer, labels_10x, labels_mesmer_aligned, adata_10x
-    )
-    disagreement_mesmer.to_csv(TABLES_DIR / "disagreement_table_10x_mesmer.csv", index=False)
-    spatial_mesmer = disagreement_spatial_structure(disagreement_mesmer, n_perm=9999, seed=0)
-    with open(TABLES_DIR / "disagreement_spatial_10x_mesmer.json", "w") as f:
-        json.dump(spatial_mesmer, f, indent=2)
-    print(spatial_mesmer)
+    _save_disagreement("mesmer", matches_mesmer, labels_10x, labels_mesmer, adata_10x)
 
     # 10x native vs. Voronoi (Mesmer centroids)
     matches_voronoi_mesmer = match_cells_by_centroid(
@@ -295,21 +255,7 @@ def main() -> None:
     )
     print(f"ARI = {agreement_voronoi_mesmer['ari']:.4f}, n_matched = {agreement_voronoi_mesmer['n_matched']}")
 
-    labels_voronoi_mesmer_aligned = match_cluster_labels(
-        labels_10x, labels_voronoi_mesmer, matches_voronoi_mesmer
-    )
-    disagreement_voronoi_mesmer = disagreement_table(
-        matches_voronoi_mesmer, labels_10x, labels_voronoi_mesmer_aligned, adata_10x
-    )
-    disagreement_voronoi_mesmer.to_csv(
-        TABLES_DIR / "disagreement_table_10x_voronoi_mesmer.csv", index=False
-    )
-    spatial_voronoi_mesmer = disagreement_spatial_structure(
-        disagreement_voronoi_mesmer, n_perm=9999, seed=0
-    )
-    with open(TABLES_DIR / "disagreement_spatial_10x_voronoi_mesmer.json", "w") as f:
-        json.dump(spatial_voronoi_mesmer, f, indent=2)
-    print(spatial_voronoi_mesmer)
+    _save_disagreement("voronoi_mesmer", matches_voronoi_mesmer, labels_10x, labels_voronoi_mesmer, adata_10x)
 
     # 10x native vs. Voronoi (StarDist centroids)
     matches_voronoi_stardist = match_cells_by_centroid(
@@ -337,21 +283,7 @@ def main() -> None:
     )
     print(f"ARI = {agreement_voronoi_stardist['ari']:.4f}, n_matched = {agreement_voronoi_stardist['n_matched']}")
 
-    labels_voronoi_stardist_aligned = match_cluster_labels(
-        labels_10x, labels_voronoi_stardist, matches_voronoi_stardist
-    )
-    disagreement_voronoi_stardist = disagreement_table(
-        matches_voronoi_stardist, labels_10x, labels_voronoi_stardist_aligned, adata_10x
-    )
-    disagreement_voronoi_stardist.to_csv(
-        TABLES_DIR / "disagreement_table_10x_voronoi_stardist.csv", index=False
-    )
-    spatial_voronoi_stardist = disagreement_spatial_structure(
-        disagreement_voronoi_stardist, n_perm=9999, seed=0
-    )
-    with open(TABLES_DIR / "disagreement_spatial_10x_voronoi_stardist.json", "w") as f:
-        json.dump(spatial_voronoi_stardist, f, indent=2)
-    print(spatial_voronoi_stardist)
+    _save_disagreement("voronoi_stardist", matches_voronoi_stardist, labels_10x, labels_voronoi_stardist, adata_10x)
 
     # Generic comparison loop for optional methods
     from segbench.constants import METHOD_LABELS
@@ -391,15 +323,7 @@ def main() -> None:
         )
         print(f"  ARI = {agreement['ari']:.4f}, n_matched = {agreement['n_matched']}")
 
-        labels_aligned = match_cluster_labels(labels_10x, labels_m, matches)
-        disagree = disagreement_table(matches, labels_10x, labels_aligned, adata_10x)
-        disagree.to_csv(
-            TABLES_DIR / f"disagreement_table_10x_{method_key}.csv", index=False
-        )
-        spatial = disagreement_spatial_structure(disagree, n_perm=9999, seed=0)
-        with open(TABLES_DIR / f"disagreement_spatial_10x_{method_key}.json", "w") as f:
-            json.dump(spatial, f, indent=2)
-        print(f"  Moran's I = {spatial.get('morans_i', 'N/A')}")
+        _save_disagreement(method_key, matches, labels_10x, labels_m, adata_10x)
 
 
 if __name__ == "__main__":

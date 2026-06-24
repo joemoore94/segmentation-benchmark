@@ -237,18 +237,11 @@ def cell_type_agreement(
 def match_cluster_labels(
     labels_a: pd.Series, labels_b: pd.Series, matches: pd.DataFrame
 ) -> pd.Series:
-    """Relabel ``labels_b``'s clusters onto ``labels_a``'s cluster vocabulary.
+    """Relabel ``labels_b``'s clusters onto ``labels_a``'s vocabulary (one-to-one).
 
-    Independent per-method clusterings (e.g. two separate
-    :func:`cluster_cell_types` runs) assign arbitrary cluster ids, so
-    "cluster 3" in method A has no relationship to "cluster 3" in method B.
-    This finds a one-to-one assignment between A's and B's clusters that
-    maximizes overlap (the Hungarian algorithm on the ``label_a`` x
-    ``label_b`` contingency table over ``matches``), then renames B's
-    clusters to their matched A cluster name. B clusters with no counterpart
-    (e.g. if B has more clusters than A) are renamed ``"b_only_<original>"``.
-
-    Returns ``labels_b`` with values renamed accordingly (same index).
+    Uses the Hungarian algorithm on the contingency table to find the
+    one-to-one assignment that maximizes overlap.  B clusters with no
+    counterpart are renamed ``"b_only_<original>"``.
     """
     label_a = matches["id_a"].map(labels_a)
     label_b = matches["id_b"].map(labels_b)
@@ -257,6 +250,29 @@ def match_cluster_labels(
 
     row_ind, col_ind = linear_sum_assignment(-confusion.to_numpy())
     rename = {confusion.columns[c]: confusion.index[r] for r, c in zip(row_ind, col_ind)}
+
+    for name in labels_b.unique():
+        rename.setdefault(name, f"b_only_{name}")
+
+    return labels_b.map(rename)
+
+
+def match_cluster_labels_argmax(
+    labels_a: pd.Series, labels_b: pd.Series, matches: pd.DataFrame
+) -> pd.Series:
+    """Relabel ``labels_b``'s clusters onto ``labels_a``'s vocabulary (many-to-one).
+
+    Each B cluster is mapped to whichever A cluster contains the plurality
+    of its matched cells.  Multiple B clusters can map to the same A cluster,
+    which is appropriate when one method splits a cell type that another
+    method keeps merged.
+    """
+    label_a = matches["id_a"].map(labels_a)
+    label_b = matches["id_b"].map(labels_b)
+    valid = label_a.notna() & label_b.notna()
+    confusion = pd.crosstab(label_a[valid], label_b[valid])
+
+    rename = {col: confusion[col].idxmax() for col in confusion.columns}
 
     for name in labels_b.unique():
         rename.setdefault(name, f"b_only_{name}")
