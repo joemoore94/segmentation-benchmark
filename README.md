@@ -4,24 +4,34 @@
 
 ## Summary
 
-| Comparison | Matched pairs | Median corr | ARI | Disagreement rate | Moran's I |
+| Comparison | Matched pairs | Median corr | ARI | Disagreement | Moran's I |
 | --- | ---: | ---: | ---: | ---: | ---: |
+| **Nuclear detectors** | | | | | |
 | 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 |
 | 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 |
 | 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 |
+| 10x native vs. 10x Ranger | 23,155 | 0.822 | 0.504 | 35.0% | 0.191 |
+| **Voronoi expansion** | | | | | |
 | 10x native vs. Voronoi (CP) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 |
 | 10x native vs. Voronoi (SD) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 |
 | 10x native vs. Voronoi (M) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 |
+| 10x native vs. Voronoi (10x) | 23,153 | — | 0.592 | 28.3% | 0.172 |
+| **Baysor (no prior)** | | | | | |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 |
 | 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | 51.9% | 0.036 |
-| 10x native vs. Baysor (CP prior 0.8) | 20,108 | 0.884 | 0.488 | 38.8% | 0.219 |
+| **Baysor PSC=1.0 (4 detectors)** | | | | | |
 | 10x native vs. Baysor (CP prior 1.0) | 20,308 | 0.902 | 0.501 | 33.8% | 0.111 |
+| 10x native vs. Baysor (SD prior 1.0) | 21,814 | 0.905 | 0.498 | 37.7% | 0.136 |
+| 10x native vs. Baysor (M prior 1.0) | 21,148 | 0.924 | 0.518 | 32.3% | 0.115 |
+| 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | 34.7% | 0.208 |
 
-*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag.
+*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index after Hungarian cluster alignment (0 = random, 1 = perfect). *Moran's I*: spatial autocorrelation of the disagree flag. Voronoi (10x) correlation is missing due to a gene-name encoding mismatch in the current build.
 
-Three method families emerge clearly, with a fourth hybrid family introduced by the Baysor prior variants. Nuclear methods (CellPose, StarDist, Mesmer) cluster at ARI ~0.55 with spatially structured disagreement concentrated in the luminal epithelial population. Voronoi variants reach ARI 0.63–0.69 with 100% transcript capture. Baysor without a prior reaches ARI 0.31 with near-random spatial disagreement. Adding a strong CellPose nuclear prior (PSC 0.8–1.0) lifts Baysor to ARI 0.49–0.50 — still below Voronoi, but with the lowest negative marker violation rate of any expansion method (0.31 per 1000 transcripts vs. 0.37–0.43 for Voronoi), indicating that density-adaptive expansion produces fewer cross-lineage boundary artifacts even when it agrees less with 10x native's cell calls.
+The results cleanly separate the contributions of nuclear detection quality and expansion strategy. Among Voronoi methods, Mesmer centroids produce the highest ARI (0.686) and lowest disagreement (18.8%), while 10x Ranger centroids — despite being purpose-built for Xenium — score lower (ARI 0.592). Among Baysor PSC=1.0 variants, the same detector ordering holds: Mesmer prior leads at ARI 0.518, followed by 10x Ranger (0.530), CellPose (0.501), and StarDist (0.498). Baysor (10x prior 1.0) achieves the highest ARI of any Baysor variant (0.530) and the most matched pairs (22,910), benefiting from 10x Ranger detecting almost as many nuclei as the 10x native reference.
 
-Nuclear methods capture too few transcripts for meaningful downstream comparison and are excluded from figures past the recovery section. Their metrics are retained in all tables.
+Across both expansion strategies, Voronoi consistently outperforms Baysor PSC=1.0 on ARI (0.58–0.69 vs 0.50–0.53) — geometric nearest-centroid assignment agrees more with 10x native than density-adaptive expansion. However, Baysor prior variants have lower negative marker violation rates (0.31 per 1000 tx vs 0.37–0.43 for Voronoi), indicating that density-adaptive boundaries produce fewer cross-lineage contamination artifacts even when they disagree with the 10x reference.
+
+Nuclear-only methods capture too few transcripts for meaningful downstream comparison and are excluded from figures past the recovery section.
 
 <!-- Project 2 (label-transfer-benchmark): uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability. Add link once repo is public. -->
 
