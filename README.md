@@ -150,19 +150,55 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both clust
 | Voronoi (M) | 14 | 21,697 | 1,557 | 192 | 3,262 |
 | Baysor | 21 | 18,321 | 609 | 86 | 3,070 |
 
-Morphological methods and 10x native converge on 12-15 clusters with median sizes above 1,000 cells. Baysor produces 21 clusters with a median of 609 - smaller, more fragmented populations consistent with over-segmentation rather than finer biological resolution (its ARI of 0.31 and near-random spatial disagreement support this; see resolution stability below).
+Morphological methods and 10x native converge on 12-15 clusters with median sizes above 1,000 cells. Baysor produces 21 clusters with a median of 609, consistent with over-segmentation rather than finer biological resolution (its ARI of 0.31 and near-random spatial disagreement support this; see resolution stability above).
+
+#### Disagreement by cluster alignment algorithm
+
+Hungarian (one-to-one):
+
+| Method | Clusters | Disagreement | Moran's I |
+| --- | ---: | ---: | ---: |
+| Voronoi (CP) | 14 | 21.9% | 0.076 |
+| Voronoi (SD) | 16 | 31.9% | 0.194 |
+| Voronoi (M) | 14 | 18.8% | 0.161 |
+| Baysor | 21 | 51.7% | 0.033 |
+| Baysor (CP prior 0.8) | 20 | 38.8% | 0.219 |
+| Baysor (CP prior 1.0) | 21 | 33.8% | 0.112 |
+| Baysor (SD prior 1.0) | 22 | 37.7% | 0.136 |
+| Baysor (M prior 1.0) | 23 | 32.3% | 0.115 |
+
+Argmax (many-to-one):
+
+| Method | Clusters | Disagreement | Moran's I |
+| --- | ---: | ---: | ---: |
+| Voronoi (CP) | 14 | 21.9% | 0.076 |
+| Voronoi (SD) | 16 | 27.7% | 0.229 |
+| Voronoi (M) | 14 | 18.8% | 0.161 |
+| Baysor | 21 | 43.8% | 0.079 |
+| Baysor (CP prior 0.8) | 20 | 37.4% | 0.234 |
+| Baysor (CP prior 1.0) | 21 | 32.1% | 0.122 |
+| Baysor (SD prior 1.0) | 22 | 32.9% | 0.170 |
+| Baysor (M prior 1.0) | 23 | 30.7% | 0.119 |
+
+Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
 
 ![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
 
 ### Cluster alignment
 
-![Cluster-level confusion matrices with both alignment algorithms](results/figures/confusion_clusters.png)
+#### Hungarian (one-to-one)
 
-The raw Leiden cluster cross-tabulations show how each method's clusters map onto 10x native's 15. Each row is one 10x native cluster; columns are the comparison method's clusters. Red borders mark Hungarian-matched pairs (optimal one-to-one); green dashed borders mark argmax-matched pairs (many-to-one) that differ from the Hungarian assignment. Where the two algorithms agree, only the red border is shown. Morphological methods produce clean matches under both algorithms. Baysor's 15x21 matrix is qualitatively different: signal disperses across many columns, and the Hungarian algorithm forces 6 clusters into empty pairings. The argmax alignment avoids these artifacts by letting multiple Baysor clusters map to the same 10x native cluster.
+![Confusion matrices, Hungarian alignment](results/figures/confusion_clusters.png)
+
+#### Argmax (many-to-one)
+
+![Confusion matrices, argmax alignment](results/figures/confusion_clusters_argmax.png)
+
+Each row is one 10x native cluster; columns are the comparison method's clusters; colored borders mark matched pairs. Morphological methods produce clean matches under both algorithms. Baysor's 15x21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 
-Per-cell expression correlation is high for all methods (median 0.79-0.96), but cluster-label agreement tells a different story. Nuclear methods (ARI ~0.55) and Voronoi methods (ARI 0.63-0.69) disagree with 10x native on roughly 20-34% of matched cells; Baysor disagrees on more than half.
+Per-cell expression correlation is high for all methods (median 0.79-0.96), but cluster-label agreement tells a different story. Under Hungarian alignment, Voronoi methods disagree with 10x native on 19-32% of matched cells; Baysor disagrees on 52%. Under argmax, Baysor drops to 44% but remains the highest.
 
 ### Per-cluster pseudobulk
 
