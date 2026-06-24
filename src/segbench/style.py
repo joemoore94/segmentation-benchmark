@@ -21,15 +21,15 @@ def apply_style(scatter: bool = False) -> None:
         grid background is distracting.  All other figures use ``whitegrid``.
     """
     style = "white" if scatter else "whitegrid"
-    sns.set_theme(style=style, context="talk", font_scale=1.3)
+    sns.set_theme(style=style, context="talk", font_scale=1.6)
     mpl.rcParams.update({
-        "axes.titlesize":       20,
-        "axes.labelsize":       18,
-        "axes.titlepad":        12,
-        "xtick.labelsize":      16,
-        "ytick.labelsize":      16,
-        "legend.fontsize":      16,
-        "legend.title_fontsize": 16,
-        "figure.titlesize":     22,
-        "font.size":            16,
+        "axes.titlesize":       26,
+        "axes.labelsize":       24,
+        "axes.titlepad":        14,
+        "xtick.labelsize":      20,
+        "ytick.labelsize":      20,
+        "legend.fontsize":      20,
+        "legend.title_fontsize": 20,
+        "figure.titlesize":     28,
+        "font.size":            20,
     })

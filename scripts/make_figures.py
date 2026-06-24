@@ -93,7 +93,7 @@ def fig_nuclear_mask_sizes() -> None:
     if ranger_path.exists():
         nuclear_methods.append(("10x_ranger", ad.read_h5ad(ranger_path)))
 
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(14, 10))
     for key, adata_nuc in nuclear_methods:
         area_um2 = adata_nuc.obs["area"] * PIXEL_SIZE**2
         sns.histplot(area_um2, bins=50, ax=ax,
@@ -122,7 +122,7 @@ def fig_transcripts_per_cell() -> None:
         for m in methods
     }
 
-    fig, ax = plt.subplots(figsize=(max(14, 2.5 * len(methods)), 8))
+    fig, ax = plt.subplots(figsize=(max(14, 2 * len(methods)), 10))
     tx_long = pd.concat(
         [pd.DataFrame({"method": METHOD_LABELS[m], "log10_tx": np.log10(transcripts_by_method[m] + 1)})
          for m in methods],
