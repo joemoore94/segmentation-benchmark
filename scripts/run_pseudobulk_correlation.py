@@ -250,9 +250,13 @@ def main() -> None:
         vmin=0.90, vmax=1.0,
         linewidths=0.4, linecolor="white",
         ax=ax_cl,
-        cbar_kws={"label": "Pseudobulk Pearson r (log CPM)", "shrink": 0.7},
+        cbar=False,
         annot_kws={"size": 9, "weight": "bold"},
     )
+    sm = plt.cm.ScalarMappable(cmap="YlOrRd", norm=plt.Normalize(vmin=0.90, vmax=1.0))
+    cbar = fig2.colorbar(sm, ax=ax_cl, orientation="horizontal",
+                         fraction=0.04, pad=0.18, aspect=40)
+    cbar.set_label("Pseudobulk Pearson r (log CPM)")
     ax_cl.set_title(
         "Per-cluster pseudobulk Pearson correlation vs. 10x native\n"
         "(matched cells grouped by 10x Leiden cluster, log CPM, shared genes)",
