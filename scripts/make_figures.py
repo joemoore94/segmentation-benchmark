@@ -430,12 +430,13 @@ def fig_cluster_confusion() -> None:
             cbar=False,
         )
 
+        for r, c in argmax_matched:
+            ax.add_patch(Rectangle((c + 0.05, r + 0.05), 0.9, 0.9, fill=False,
+                                   edgecolor="#2ca02c", linewidth=2.5,
+                                   linestyle=(0, (4, 2))))
         for r, c in hungarian_matched:
             ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
                                    edgecolor="red", linewidth=2.5))
-        for r, c in argmax_matched:
-            ax.add_patch(Rectangle((c + 0.08, r + 0.08), 0.84, 0.84, fill=False,
-                                   edgecolor="#2ca02c", linewidth=2.0))
 
         ax.set_title(f"{label}  ({len(comp_ids)} clusters)", fontweight="bold")
         ax.set_xlabel(f"{label} cluster")
@@ -452,13 +453,14 @@ def fig_cluster_confusion() -> None:
     cbar.set_label("% of 10x native cluster")
 
     legend_handles = [
-        mpatches.Patch(edgecolor="red", facecolor="none", linewidth=2.5,
+        mpatches.Patch(edgecolor="red", facecolor="none", linewidth=3,
                        label="Hungarian (one-to-one)"),
-        mpatches.Patch(edgecolor="#2ca02c", facecolor="none", linewidth=2.0,
-                       label="Argmax (many-to-one)"),
+        mpatches.Patch(edgecolor="#2ca02c", facecolor="none", linewidth=3,
+                       linestyle=(0, (4, 2)), label="Argmax (many-to-one)"),
     ]
     fig.legend(handles=legend_handles, loc="lower center", ncol=2,
-               frameon=True, fontsize=12, bbox_to_anchor=(0.48, 0.005))
+               frameon=True, fontsize=16, bbox_to_anchor=(0.48, -0.005),
+               handlelength=3, handleheight=2)
 
     fig.suptitle(
         "Cluster-level confusion matrices (row-normalised)",
