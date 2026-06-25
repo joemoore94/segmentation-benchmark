@@ -150,26 +150,50 @@ def fig_transcripts_per_cell() -> None:
 
 
 def fig_expression_correlation() -> None:
-    pairs = [
-        (m, label, pd.read_csv(TABLES_DIR / f"expression_correlation_10x_{m}.csv"))
-        for m, label in _available_comparisons()
-    ]
+    rows = []
+    for m, label in _available_comparisons():
+        corr = pd.read_csv(TABLES_DIR / f"expression_correlation_10x_{m}.csv")
+        vals = corr["correlation"].dropna()
+        for v in vals:
+            rows.append({"method": m, "label": label, "correlation": v})
+    df = pd.DataFrame(rows)
 
-    fig, flat, nrows, ncols = _make_grid(len(pairs), sharey=True)
-    for ax, (m, label, corr) in zip(flat, pairs):
-        median = corr["correlation"].median()
-        sns.histplot(corr["correlation"].dropna(), bins=40, ax=ax, color=METHOD_COLORS[m])
-        ax.axvline(median, color="black", linestyle="--")
-        ax.text(0.04, 0.94, f"median = {median:.3f}", transform=ax.transAxes,
-                va="top", ha="left",
-                bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8))
-        ax.set_xlabel("Pearson correlation")
-        ax.set_title(f"10x native vs. {label}", fontweight="bold")
+    medians = df.groupby("method")["correlation"].median().sort_values(ascending=False)
+    order = [m for m in medians.index]
+    labels = [METHOD_LABELS[m] for m in order]
+    colors = [METHOD_COLORS[m] for m in order]
 
-    flat[0].set_ylabel("Number of pairs")
-    fig.suptitle("Per-cell expression agreement vs. 10x native", fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
-    fig.savefig(FIGURES_DIR / "expression_correlation.png", dpi=DPI)
+    fig, ax = plt.subplots(figsize=(PANEL_W, max(PANEL_H, 0.7 * len(order) + 2)))
+    sns.violinplot(
+        data=df, y="method", x="correlation", hue="method", order=order,
+        hue_order=order, palette=dict(zip(order, colors)),
+        inner=None, linewidth=0.8, cut=0, legend=False, ax=ax,
+    )
+    sns.boxplot(
+        data=df, y="method", x="correlation", order=order,
+        width=0.15, fliersize=0, linewidth=1.2,
+        boxprops=dict(facecolor="white", zorder=3),
+        medianprops=dict(color="black", linewidth=1.5),
+        whiskerprops=dict(color="black"), capprops=dict(color="black"),
+        ax=ax,
+    )
+    ax.set_yticks(range(len(labels)))
+    ax.set_yticklabels(labels)
+    ax.set_xlabel("Pearson correlation with 10x native")
+    ax.set_ylabel("")
+    ax.set_title("Per-cell expression agreement vs. 10x native", fontweight="bold")
+
+    for i, m in enumerate(order):
+        med = medians[m]
+        ax.annotate(f"{med:.3f}", xy=(med, i), xytext=(6, 0),
+                    textcoords="offset points", va="center", ha="left",
+                    fontsize=8, fontweight="bold",
+                    bbox=dict(boxstyle="round,pad=0.15", fc="white",
+                              ec="none", alpha=0.75))
+
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "expression_correlation.png", dpi=DPI,
+                bbox_inches="tight")
     plt.close(fig)
 
 
