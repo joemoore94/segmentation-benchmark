@@ -115,13 +115,47 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both align
 
 10x native and Voronoi methods converge on 14-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 smaller clusters, consistent with over-segmentation. At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes approach the Voronoi range.
 
-![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
+UMAP embeddings colored by aligned cluster labels illustrate how the alignment algorithm reshapes cluster identity. Baysor without a prior shows the starkest contrast: Hungarian forces 6 of its 21 clusters into empty pairings, leaving large regions unmatched (gray), while argmax lets multiple Baysor clusters map to the same reference cluster, producing coherent coloring across the manifold.
+
+| Baysor (Hungarian) | Baysor (argmax) |
+|:---:|:---:|
+| ![Baysor Hungarian](results/figures/umap/umap_baysor_hungarian.png) | ![Baysor argmax](results/figures/umap/umap_baysor_argmax.png) |
+
+<details>
+<summary>All individual UMAP plots</summary>
+
+**Reference**
+
+![10x native](results/figures/umap/umap_10x_native.png)
+
+**Voronoi**
+
+| Method | Hungarian | Argmax |
+|---|---|---|
+| Voronoi (CP) | ![](results/figures/umap/umap_voronoi_hungarian.png) | ![](results/figures/umap/umap_voronoi_argmax.png) |
+| Voronoi (SD) | ![](results/figures/umap/umap_voronoi_stardist_hungarian.png) | ![](results/figures/umap/umap_voronoi_stardist_argmax.png) |
+| Voronoi (M) | ![](results/figures/umap/umap_voronoi_mesmer_hungarian.png) | ![](results/figures/umap/umap_voronoi_mesmer_argmax.png) |
+| Voronoi (10x) | ![](results/figures/umap/umap_voronoi_10x_ranger_hungarian.png) | ![](results/figures/umap/umap_voronoi_10x_ranger_argmax.png) |
+
+**Baysor**
+
+| Method | Hungarian | Argmax |
+|---|---|---|
+| Baysor | ![](results/figures/umap/umap_baysor_hungarian.png) | ![](results/figures/umap/umap_baysor_argmax.png) |
+| Baysor (CP prior 0.2) | ![](results/figures/umap/umap_baysor_prior_hungarian.png) | ![](results/figures/umap/umap_baysor_prior_argmax.png) |
+| Baysor (CP prior 0.8) | ![](results/figures/umap/umap_baysor_prior_c08_hungarian.png) | ![](results/figures/umap/umap_baysor_prior_c08_argmax.png) |
+| Baysor (CP prior 1.0) | ![](results/figures/umap/umap_baysor_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_prior_c10_argmax.png) |
+| Baysor (SD prior 1.0) | ![](results/figures/umap/umap_baysor_stardist_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_stardist_prior_c10_argmax.png) |
+| Baysor (M prior 1.0) | ![](results/figures/umap/umap_baysor_mesmer_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_mesmer_prior_c10_argmax.png) |
+| Baysor (10x prior 1.0) | ![](results/figures/umap/umap_baysor_10x_ranger_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_10x_ranger_prior_c10_argmax.png) |
+
+</details>
 
 ### Cluster alignment
 
 ![Confusion matrices with Hungarian and argmax alignment](results/figures/confusion_clusters.png)
 
-Each row is one 10x native cluster; columns are the comparison method's clusters. Red borders mark Hungarian (one-to-one) matched pairs; green borders mark argmax (many-to-one) matches. Voronoi methods produce clean matches under both algorithms. Baysor's 15×21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
+Each row is one 10x native cluster; columns are the comparison method's clusters. Red cells mark Hungarian (one-to-one) matched pairs, blue cells mark argmax (many-to-one) matches, and purple cells mark pairs selected by both algorithms. Voronoi methods produce clean matches under both algorithms. Baysor's 15×21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
 
 #### Clustering agreement vs. 10x native
 

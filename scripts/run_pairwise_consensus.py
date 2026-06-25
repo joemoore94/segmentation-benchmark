@@ -11,7 +11,6 @@ symmetric 7×7 consensus matrix ordered by method family.
 Reads:  data/processed/roi/adata_*.h5ad
 Writes: results/figures/pairwise_consensus.png
         results/tables/pairwise_ari.csv
-        results/tables/pairwise_ari_matrix.csv
 
 Usage::
 
@@ -116,72 +115,70 @@ def main() -> None:
     df = pd.DataFrame(rows)
     df.to_csv(TABLES / "pairwise_ari.csv", index=False)
     ari_df = pd.DataFrame(ari_matrix, index=method_labels, columns=method_labels)
-    ari_df.to_csv(TABLES / "pairwise_ari_matrix.csv")
     print("\nPairwise ARI matrix:")
     print(ari_df.round(3).to_string())
 
     # ---------------------------------------------------------------- figure
-    # Filter to non-nuclear methods for the heatmap (CSV retains all).
+    # Filter to non-nuclear methods for the clustermap (CSV retains all).
     plot_labels = [METHOD_LABELS[k] for k, _ in available_methods if k not in NUCLEAR_ONLY]
     plot_ari = ari_df.loc[plot_labels, plot_labels]
     n_plot = len(plot_labels)
 
     apply_style()
-    fig, ax = plt.subplots(figsize=(15, 13))
 
     diag_mask = np.eye(n_plot, dtype=bool)
     off_diag = plot_ari.values[~diag_mask]
     vmin = np.nanmin(off_diag)
 
-    sns.heatmap(
+    # Prepare family colors for tick labels
+    label_to_family = {METHOD_LABELS[k]: METHOD_FAMILIES[k]
+                       for k, _ in available_methods if k not in NUCLEAR_ONLY}
+
+    # Build clustermap with family-colored tick labels
+    g = sns.clustermap(
         plot_ari,
         annot=True, fmt=".3f",
         cmap="YlOrRd",
         vmin=vmin, vmax=1.0,
         mask=diag_mask,
         linewidths=0.5, linecolor="white",
-        ax=ax,
-        cbar_kws={"label": "ARI", "shrink": 0.8},
+        figsize=(15, 13),
+        cbar_kws={"label": "ARI"},
         annot_kws={"size": 13, "weight": "bold"},
+        method="average",
+        metric="euclidean",
     )
 
-    for k in range(n_plot):
-        ax.add_patch(plt.Rectangle((k, k), 1, 1, fill=True,
-                                   color="#dddddd", lw=0, zorder=3))
-        ax.text(k + 0.5, k + 0.5, "-", ha="center", va="center",
-                fontsize=14, color="#888888", zorder=4)
-
-    label_to_family = {METHOD_LABELS[k]: METHOD_FAMILIES[k]
-                       for k, _ in available_methods if k not in NUCLEAR_ONLY}
-    ax.set_xticklabels(plot_labels, rotation=35, ha="right", fontsize=13)
-    ax.set_yticklabels(plot_labels, rotation=0, fontsize=13)
-    for tick in ax.get_xticklabels():
+    # Color tick labels by method family
+    ax_heatmap = g.ax_heatmap
+    ax_heatmap.set_xticklabels(ax_heatmap.get_xticklabels(), rotation=35, ha="right", fontsize=13)
+    ax_heatmap.set_yticklabels(ax_heatmap.get_yticklabels(), rotation=0, fontsize=13)
+    for tick in ax_heatmap.get_xticklabels():
         label_text = tick.get_text()
         if label_text in label_to_family:
             tick.set_color(FAMILY_COLORS[label_to_family[label_text]])
             tick.set_fontweight("bold")
-    for tick in ax.get_yticklabels():
+    for tick in ax_heatmap.get_yticklabels():
         label_text = tick.get_text()
         if label_text in label_to_family:
             tick.set_color(FAMILY_COLORS[label_to_family[label_text]])
             tick.set_fontweight("bold")
 
-    ax.set_title(
+    g.fig.suptitle(
         "Pairwise ARI between segmentation methods\n"
         "(Leiden resolution 1.0, nearest-centroid matching ≤ 10 µm)",
-        fontweight="bold", fontsize=14,
+        fontweight="bold", fontsize=14, y=1.02,
     )
 
     used_families = set(label_to_family.values())
     handles = [mpatches.Patch(color=c, label=f)
                for f, c in FAMILY_COLORS.items() if f in used_families]
-    ax.legend(handles=handles, loc="upper right",
-              bbox_to_anchor=(1.35, 1.02), fontsize=12, title="Family",
-              title_fontsize=12)
+    ax_heatmap.legend(handles=handles, loc="upper right",
+                      bbox_to_anchor=(1.35, 1.02), fontsize=12, title="Family",
+                      title_fontsize=12)
 
-    fig.tight_layout()
-    fig.savefig(FIGURES / "pairwise_consensus.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    g.savefig(FIGURES / "pairwise_consensus.png", dpi=150, bbox_inches="tight")
+    plt.close(g.fig)
     print("Saved pairwise_consensus.png")
 
 

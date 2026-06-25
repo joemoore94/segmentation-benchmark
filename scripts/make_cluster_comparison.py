@@ -1,8 +1,7 @@
 """Compare Hungarian vs argmax cluster alignment across segmentation methods.
 
-Two-panel figure: per-method disagreement rate under each alignment strategy
-(left, grouped bar chart) and the difference (argmax minus Hungarian) per
-method (right, diverging bar chart).
+Grouped bar chart showing per-method disagreement rate under each alignment
+strategy (Hungarian one-to-one vs argmax many-to-one).
 
 Reads:  results/tables/disagreement_table_10x_*.csv
 Writes: results/figures/cluster_comparison.png
@@ -73,26 +72,19 @@ def main() -> None:
     df = pd.DataFrame(rows)
     method_order = df["method"].tolist()
 
-    families = df.set_index("method")["family"].reindex(method_order)
-    bar_colors = [FAMILY_COLORS[f] for f in families]
+    fig, ax = plt.subplots(figsize=(18, 12))
 
-    fig, (ax_left, ax_right) = plt.subplots(
-        1, 2, figsize=(28, 10),
-        gridspec_kw={"width_ratios": [1.8, 1]},
-    )
-
-    # --- Left panel: grouped bars, Hungarian vs argmax ---
     y_pos = np.arange(len(method_order))
     bar_h = 0.35
 
     vals_hungarian = df["hungarian"].values * 100
     vals_argmax = df["argmax"].values * 100
 
-    bars_h = ax_left.barh(
+    bars_h = ax.barh(
         y_pos - bar_h / 2, vals_hungarian, bar_h,
         label="Hungarian (1-to-1)", color="#4C72B0", edgecolor="white", linewidth=0.5,
     )
-    bars_a = ax_left.barh(
+    bars_a = ax.barh(
         y_pos + bar_h / 2, vals_argmax, bar_h,
         label="Argmax (many-to-1)", color="#DD8452", edgecolor="white", linewidth=0.5,
     )
@@ -100,42 +92,15 @@ def main() -> None:
     for bar_set in [bars_h, bars_a]:
         for bar in bar_set:
             w = bar.get_width()
-            ax_left.text(w + 0.3, bar.get_y() + bar.get_height() / 2,
-                         f"{w:.1f}", va="center", fontsize=14)
+            ax.text(w + 0.3, bar.get_y() + bar.get_height() / 2,
+                    f"{w:.1f}", va="center", fontsize=16)
 
-    ax_left.set_yticks(y_pos)
-    ax_left.set_yticklabels(method_order)
-    ax_left.set_xlabel("Disagreement rate (%)")
-    ax_left.set_title("Hungarian vs argmax alignment", fontweight="bold")
-    ax_left.invert_yaxis()
-    ax_left.legend(loc="lower right", fontsize=18)
-    ax_left.set_xlim(0, max(vals_hungarian.max(), vals_argmax.max()) + 5)
-
-    # --- Right panel: difference (argmax - hungarian) ---
-    diff = vals_argmax - vals_hungarian
-    diff_colors = ["#2CA02C" if d < 0 else "#D62728" for d in diff]
-
-    ax_right.barh(y_pos, diff, 0.6, color=diff_colors, edgecolor="white", linewidth=0.5)
-    for i, d in enumerate(diff):
-        ha = "left" if d >= 0 else "right"
-        offset = 0.3 if d >= 0 else -0.3
-        ax_right.text(d + offset, i, f"{d:+.1f}", va="center", ha=ha, fontsize=14)
-
-    ax_right.set_yticks(y_pos)
-    ax_right.set_yticklabels([])
-    ax_right.set_xlabel("Difference (pp)")
-    ax_right.set_title("Argmax − Hungarian", fontweight="bold")
-    ax_right.axvline(0, color="black", linewidth=0.8, linestyle="-")
-    ax_right.invert_yaxis()
-
-    from matplotlib.patches import Patch
-    ax_right.legend(
-        handles=[
-            Patch(facecolor="#2CA02C", label="Argmax lower"),
-            Patch(facecolor="#D62728", label="Argmax higher"),
-        ],
-        loc="lower right", fontsize=16,
-    )
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(method_order)
+    ax.set_xlabel("Disagreement rate (%)")
+    ax.invert_yaxis()
+    ax.legend(loc="lower right", fontsize=20)
+    ax.set_xlim(0, max(vals_hungarian.max(), vals_argmax.max()) + 5)
 
     fig.suptitle(
         "Cluster alignment strategy: Hungarian vs argmax disagreement",

@@ -165,15 +165,21 @@ def main() -> None:
                       f"({row['violation_rate']:.4f})")
 
     summary_df = pd.DataFrame(summary_rows)
-    summary_df.to_csv(TABLES / "negative_marker_summary.csv", index=False)
+    summary_out = summary_df[[
+        "method",
+        "n_cells",
+        "median_tx_per_cell",
+        "tier1_violation_rate",
+        "tier1_violations",
+        "violations_per_1000tx",
+    ]]
+    summary_out.to_csv(TABLES / "negative_marker_summary.csv", index=False)
 
     detail_df = pd.concat(detail_rows, ignore_index=True)
     detail_df.to_csv(TABLES / "negative_marker_violations.csv", index=False)
 
     print("\n=== Summary ===")
-    print(summary_df[["method", "n_cells", "median_tx_per_cell",
-                       "tier1_violation_rate", "violations_per_1000tx"]]
-          .to_string(index=False))
+    print(summary_out.to_string(index=False))
 
     # ---------------------------------------------------------------- figure
     plot_summary = summary_df[~summary_df["method_key"].isin(NUCLEAR_ONLY)].copy()

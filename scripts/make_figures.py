@@ -261,28 +261,72 @@ def fig_density_vs_disagreement() -> None:
         plt.close(fig)
 
 
-def fig_pca_umap() -> None:
-    methods = [m for m in MAIN_METHODS if m != "10x_native"] + ["10x_native"]
-    methods = [m for m in methods if (TABLES_DIR / f"embedding_{m}.csv").exists()]
-    embeddings = {m: pd.read_csv(TABLES_DIR / f"embedding_{m}.csv", index_col=0) for m in methods}
+def _save_single_umap(
+    emb: pd.DataFrame,
+    color_labels: pd.Series,
+    palette: dict[str, object],
+    title: str,
+    out_path: Path,
+) -> None:
+    apply_style(scatter=True)
 
-    fig, flat, _, _ = _make_grid(len(methods))
-    for ax, method in zip(flat, methods):
-        emb = embeddings[method]
-        n_clusters = emb["leiden"].nunique()
-        palette = sns.color_palette("tab20", n_clusters)
-        sns.scatterplot(
-            data=emb, x="UMAP1", y="UMAP2", hue="leiden", palette=palette,
-            s=12, alpha=0.6, ax=ax, legend=False,
+    present = sorted(
+        [k for k in color_labels.unique() if k != "unmatched"],
+        key=lambda x: (0, int(x)) if str(x).lstrip("-").isdigit() else (1, str(x)),
+    )
+    if "unmatched" in color_labels.values:
+        present.append("unmatched")
+    pal = {k: palette.get(k, "#AAAAAA") for k in present}
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    for label_val in present:
+        mask = color_labels == label_val
+        alpha = 0.15 if label_val == "unmatched" else 0.6
+        s = 6 if label_val == "unmatched" else 12
+        ax.scatter(
+            emb.loc[mask, "UMAP1"], emb.loc[mask, "UMAP2"],
+            c=[pal[label_val]], s=s, alpha=alpha, label=label_val, rasterized=True,
         )
-        ax.set_title(f"{METHOD_LABELS[method]} ({n_clusters} clusters)", fontweight="bold")
-        ax.set_xlabel("UMAP1")
-        ax.set_ylabel("UMAP2")
-
-    fig.suptitle("Per-method Leiden clustering (UMAP)", fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
-    fig.savefig(FIGURES_DIR / "pca_umap_clusters.png", dpi=DPI)
+    ax.set_title(title, fontweight="bold")
+    ax.set_xlabel("UMAP1")
+    ax.set_ylabel("UMAP2")
+    ax.legend(markerscale=2, fontsize=7, ncol=3, loc="lower right",
+              framealpha=0.8, handletextpad=0.3, columnspacing=0.8)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=DPI, bbox_inches="tight")
     plt.close(fig)
+
+
+def fig_pca_umap() -> None:
+    umap_dir = FIGURES_DIR / "umap"
+    umap_dir.mkdir(parents=True, exist_ok=True)
+
+    methods = [m for m in MAIN_METHODS if m != "10x_native"]
+    methods = [m for m in methods if (TABLES_DIR / f"embedding_{m}.csv").exists()]
+
+    emb_ref = pd.read_csv(TABLES_DIR / "embedding_10x_native.csv", index_col=0)
+    n_ref = emb_ref["leiden"].nunique()
+    palette = {str(c): sns.color_palette("tab20", n_ref)[c] for c in range(n_ref)}
+    palette["unmatched"] = "#DDDDDD"
+
+    _save_single_umap(emb_ref, emb_ref["leiden"].astype(str), palette,
+                       "10x native", umap_dir / "umap_10x_native.png")
+
+    for method in methods:
+        emb = pd.read_csv(TABLES_DIR / f"embedding_{method}.csv", index_col=0)
+        label = METHOD_LABELS[method]
+
+        for alg, suffix in [("hungarian", ""), ("argmax", "_argmax")]:
+            dt_path = TABLES_DIR / f"disagreement_table_10x_{method}{suffix}.csv"
+            if not dt_path.exists():
+                continue
+            dt = pd.read_csv(dt_path)
+            aligned = dt.set_index("id_b")["label_b"].astype(str)
+            color_col = emb.index.astype(str).to_series().map(aligned).fillna("unmatched")
+            out = umap_dir / f"umap_{method}_{alg}.png"
+            _save_single_umap(emb, color_col, palette, f"{label} ({alg})", out)
+
+    print(f"  Individual UMAPs saved to {umap_dir}/")
 
 
 def fig_local_morans_map() -> None:
@@ -421,22 +465,33 @@ def fig_cluster_confusion() -> None:
         x_labels = [str(c) if i % 2 == 0 else "" for i, c in enumerate(comp_ids)]
 
         sns.heatmap(
-            norm.values, ax=ax,
-            cmap="Blues", vmin=0, vmax=100,
+            np.zeros_like(norm.values), ax=ax,
+            cmap="Greys", vmin=0, vmax=1,
             annot=np.array(annot_text), fmt="",
             annot_kws={"weight": "bold"},
             xticklabels=x_labels, yticklabels=row_labels,
             linewidths=0.4, linecolor="#e0e0e0",
             cbar=False,
+            square=True,
         )
 
-        for r, c in argmax_matched:
-            ax.add_patch(Rectangle((c + 0.05, r + 0.05), 0.9, 0.9, fill=False,
-                                   edgecolor="#2ca02c", linewidth=2.5,
-                                   linestyle=(0, (4, 2))))
-        for r, c in hungarian_matched:
-            ax.add_patch(Rectangle((c, r), 1, 1, fill=False,
-                                   edgecolor="red", linewidth=2.5))
+        matched = set(argmax_matched) | set(hungarian_matched)
+        for r in range(norm.shape[0]):
+            for c in range(norm.shape[1]):
+                if (r, c) in matched or norm.values[r, c] < 1:
+                    continue
+                alpha = np.clip(norm.values[r, c] / 100, 0.03, 0.3)
+                ax.add_patch(Rectangle((c, r), 1, 1, fill=True,
+                                       facecolor="#888888", alpha=alpha,
+                                       linewidth=0))
+
+        for r, c in sorted(matched):
+            both = (r, c) in argmax_matched and (r, c) in hungarian_matched
+            color = "purple" if both else "red" if (r, c) in hungarian_matched else "royalblue"
+            alpha = np.clip(norm.values[r, c] / 100, 0.08, 0.9)
+            ax.add_patch(Rectangle((c, r), 1, 1, fill=True,
+                                   facecolor=color, edgecolor=color,
+                                   alpha=alpha, linewidth=1.5))
 
         ax.set_title(f"{label}  ({len(comp_ids)} clusters)", fontweight="bold")
         ax.set_xlabel(f"{label} cluster")
@@ -444,21 +499,12 @@ def fig_cluster_confusion() -> None:
         ax.tick_params(axis="x", rotation=0)
         ax.tick_params(axis="y", rotation=0)
 
-    from matplotlib.cm import ScalarMappable
-    from matplotlib.colors import Normalize
-    sm = ScalarMappable(cmap="Blues", norm=Normalize(vmin=0, vmax=100))
-    sm.set_array([])
-    cbar_ax = fig.add_axes([0.93, 0.08, 0.012, 0.84])
-    cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.set_label("% of 10x native cluster")
-
     legend_handles = [
-        mpatches.Patch(edgecolor="red", facecolor="none", linewidth=3,
-                       label="Hungarian (one-to-one)"),
-        mpatches.Patch(edgecolor="#2ca02c", facecolor="none", linewidth=3,
-                       linestyle=(0, (4, 2)), label="Argmax (many-to-one)"),
+        mpatches.Patch(edgecolor="red", facecolor="red", alpha=0.5, label="Hungarian (one-to-one)"),
+        mpatches.Patch(edgecolor="royalblue", facecolor="royalblue", alpha=0.5, label="Argmax (many-to-one)"),
+        mpatches.Patch(edgecolor="purple", facecolor="purple", alpha=0.5, label="Overlap (both match)"),
     ]
-    fig.legend(handles=legend_handles, loc="lower center", ncol=2,
+    fig.legend(handles=legend_handles, loc="lower center", ncol=3,
                frameon=True, fontsize=16, bbox_to_anchor=(0.48, -0.005),
                handlelength=3, handleheight=2)
 
@@ -466,7 +512,7 @@ def fig_cluster_confusion() -> None:
         "Cluster-level confusion matrices (row-normalised)",
         fontstyle="italic", fontweight="bold",
     )
-    fig.subplots_adjust(left=0.07, right=0.90, top=0.95, bottom=0.04,
+    fig.subplots_adjust(left=0.07, right=0.97, top=0.95, bottom=0.04,
                         hspace=0.45, wspace=0.35)
     fig.savefig(FIGURES_DIR / "confusion_clusters.png", dpi=DPI, bbox_inches="tight")
     plt.close(fig)
