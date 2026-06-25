@@ -111,29 +111,29 @@ Leiden clustering runs independently on each method's cells (normalize → PCA �
 
 The method ordering is stable across Leiden resolutions 0.3-2.0 under both alignment algorithms. Voronoi (Mesmer) leads at most resolutions (0.3, 0.6, 0.8-1.2); at resolutions 0.5 and 0.7, Voronoi (StarDist) briefly takes the lead, and at 1.5+ StarDist's higher cell count gives it a durable advantage as finer clustering demands more cells per cluster. Baysor without a prior is consistently lowest. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
 
-| Method | Clusters | Cells | Median cells/cluster | Min | Max | Disagree (argmax) | Moran's I (argmax) |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 10x native | 15 | 23,629 | 1,333 | 199 | 3,314 | | |
-| **Nuclear-only** | | | | | | | |
-| CellPose | 13 | 20,166 | 1,080 | 105 | 3,658 | 30.5% | 0.189 |
-| StarDist | 12 | 24,745 | 1,512 | 457 | 4,771 | 33.4% | 0.221 |
-| Mesmer | 15 | 21,697 | 1,400 | 32 | 2,906 | 27.4% | 0.098 |
-| 10x Ranger | 13 | 23,624 | 1,352 | 188 | 4,103 | 34.5% | 0.203 |
-| **Voronoi** | | | | | | | |
-| Voronoi (CP) | 14 | 20,166 | 1,134 | 213 | 3,092 | 21.9% | 0.076 |
-| Voronoi (SD) | 16 | 24,743 | 1,394 | 24 | 5,000 | 27.7% | 0.229 |
-| Voronoi (M) | 14 | 21,697 | 1,557 | 192 | 3,262 | 18.8% | 0.161 |
-| Voronoi (10x) | 14 | 23,622 | 1,374 | 244 | 4,038 | 25.8% | 0.168 |
-| **Baysor** | | | | | | | |
-| Baysor | 21 | 18,321 | 609 | 86 | 3,070 | 43.8% | 0.079 |
-| Baysor (CP prior 0.2) | 24 | 19,061 | 608 | 52 | 2,193 | 39.2% | 0.086 |
-| Baysor (CP prior 0.8) | 20 | 29,771 | 932 | 204 | 4,971 | 37.4% | 0.234 |
-| Baysor (CP prior 1.0) | 21 | 30,473 | 1,053 | 228 | 4,310 | 32.1% | 0.122 |
-| Baysor (SD prior 1.0) | 22 | 34,230 | 989 | 163 | 5,006 | 32.9% | 0.170 |
-| Baysor (M prior 1.0) | 23 | 31,764 | 880 | 31 | 3,711 | 30.7% | 0.119 |
-| Baysor (10x prior 1.0) | 22 | 33,113 | 898 | 250 | 5,046 | 33.1% | 0.204 |
+| Method | Clusters | Cells | Median cells/cluster | Min cells/cluster | Max cells/cluster |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 10x native | 15 | 23,629 | 1,333 | 199 | 3,314 |
+| **Nuclear-only** | | | | | |
+| CellPose | 13 | 20,166 | 1,080 | 105 | 3,658 |
+| StarDist | 12 | 24,745 | 1,512 | 457 | 4,771 |
+| Mesmer | 15 | 21,697 | 1,400 | 32 | 2,906 |
+| 10x Ranger | 13 | 23,624 | 1,352 | 188 | 4,103 |
+| **Voronoi** | | | | | |
+| Voronoi (CP) | 14 | 20,166 | 1,134 | 213 | 3,092 |
+| Voronoi (SD) | 16 | 24,743 | 1,394 | 24 | 5,000 |
+| Voronoi (M) | 14 | 21,697 | 1,557 | 192 | 3,262 |
+| Voronoi (10x) | 14 | 23,622 | 1,374 | 244 | 4,038 |
+| **Baysor** | | | | | |
+| Baysor | 21 | 18,321 | 609 | 86 | 3,070 |
+| Baysor (CP prior 0.2) | 24 | 19,061 | 608 | 52 | 2,193 |
+| Baysor (CP prior 0.8) | 20 | 29,771 | 932 | 204 | 4,971 |
+| Baysor (CP prior 1.0) | 21 | 30,473 | 1,053 | 228 | 4,310 |
+| Baysor (SD prior 1.0) | 22 | 34,230 | 989 | 163 | 5,006 |
+| Baysor (M prior 1.0) | 23 | 31,764 | 880 | 31 | 3,711 |
+| Baysor (10x prior 1.0) | 22 | 33,113 | 898 | 250 | 5,046 |
 
-10x native, nuclear-only methods, and Voronoi converge on 12-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 clusters with medians around 600, consistent with over-segmentation rather than finer biological resolution (ARI ~0.31, near-random spatial disagreement). At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes (880-1,053) approach the Voronoi range.
+10x native, nuclear-only methods, and Voronoi converge on 12-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 clusters with medians around 600, consistent with over-segmentation. At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes (880-1,053) approach the Voronoi range.
 
 ### Cluster alignment
 
@@ -141,25 +141,30 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both align
 
 Each row is one 10x native cluster; columns are the comparison method's clusters. Red borders mark Hungarian (one-to-one) matched pairs; green borders mark argmax (many-to-one) matches. Voronoi methods produce clean matches under both algorithms. Baysor's 15×21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
 
-#### Disagreement by cluster alignment algorithm
+#### Clustering agreement vs. 10x native
 
-| Method | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
-| --- | ---: | ---: | ---: | ---: |
-| **Voronoi** | | | | |
-| Voronoi (CP) | 21.9% | 0.076 | 21.9% | 0.076 |
-| Voronoi (SD) | 31.9% | 0.194 | 27.7% | 0.229 |
-| Voronoi (M) | 18.8% | 0.161 | 18.8% | 0.161 |
-| Voronoi (10x) | 28.3% | 0.172 | 25.8% | 0.168 |
-| **Baysor** | | | | |
-| Baysor | 51.7% | 0.033 | 43.8% | 0.079 |
-| Baysor (CP prior 0.2) | 51.9% | 0.036 | 39.2% | 0.086 |
-| Baysor (CP prior 0.8) | 38.8% | 0.219 | 37.4% | 0.234 |
-| Baysor (CP prior 1.0) | 33.8% | 0.112 | 32.1% | 0.122 |
-| Baysor (SD prior 1.0) | 37.7% | 0.136 | 32.9% | 0.170 |
-| Baysor (M prior 1.0) | 32.3% | 0.115 | 30.7% | 0.119 |
-| Baysor (10x prior 1.0) | 34.7% | 0.208 | 33.1% | 0.204 |
+| Method | ARI | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Nuclear-only** | | | | | |
+| CellPose | 0.547 | 30.8% | 0.178 | 30.5% | 0.189 |
+| StarDist | 0.545 | 33.5% | 0.215 | 33.4% | 0.221 |
+| Mesmer | 0.557 | 27.9% | 0.090 | 27.4% | 0.098 |
+| 10x Ranger | 0.504 | 35.0% | 0.191 | 34.5% | 0.203 |
+| **Voronoi** | | | | | |
+| Voronoi (CP) | 0.630 | 21.9% | 0.076 | 21.9% | 0.076 |
+| Voronoi (SD) | 0.584 | 31.9% | 0.194 | 27.7% | 0.229 |
+| Voronoi (M) | 0.686 | 18.8% | 0.161 | 18.8% | 0.161 |
+| Voronoi (10x) | 0.592 | 28.3% | 0.172 | 25.8% | 0.168 |
+| **Baysor** | | | | | |
+| Baysor | 0.305 | 51.7% | 0.033 | 43.8% | 0.079 |
+| Baysor (CP prior 0.2) | 0.318 | 51.9% | 0.036 | 39.2% | 0.086 |
+| Baysor (CP prior 0.8) | 0.488 | 38.8% | 0.219 | 37.4% | 0.234 |
+| Baysor (CP prior 1.0) | 0.501 | 33.8% | 0.112 | 32.1% | 0.122 |
+| Baysor (SD prior 1.0) | 0.498 | 37.7% | 0.136 | 32.9% | 0.170 |
+| Baysor (M prior 1.0) | 0.518 | 32.3% | 0.115 | 30.7% | 0.119 |
+| Baysor (10x prior 1.0) | 0.530 | 34.7% | 0.208 | 33.1% | 0.204 |
 
-Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
+Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading. Nuclear-only methods cluster at ARI 0.504-0.557, and Baysor without a prior is lowest at 0.305. Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
 
 ![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
 
