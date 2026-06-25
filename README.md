@@ -111,29 +111,9 @@ Leiden clustering runs independently on each method's cells (normalize â†’ PCA â
 
 The method ordering is stable across Leiden resolutions 0.3-2.0 under both alignment algorithms. Voronoi (Mesmer) leads at most resolutions (0.3, 0.6, 0.8-1.2); at resolutions 0.5 and 0.7, Voronoi (StarDist) briefly takes the lead, and at 1.5+ StarDist's higher cell count gives it a durable advantage as finer clustering demands more cells per cluster. Baysor without a prior is consistently lowest. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
 
-| Method | Clusters | Cells | Median cells/cluster | Min cells/cluster | Max cells/cluster |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 10x native | 15 | 23,629 | 1,333 | 199 | 3,314 |
-| **Nuclear-only** | | | | | |
-| CellPose | 13 | 20,166 | 1,080 | 105 | 3,658 |
-| StarDist | 12 | 24,745 | 1,512 | 457 | 4,771 |
-| Mesmer | 15 | 21,697 | 1,400 | 32 | 2,906 |
-| 10x Ranger | 13 | 23,624 | 1,352 | 188 | 4,103 |
-| **Voronoi** | | | | | |
-| Voronoi (CP) | 14 | 20,166 | 1,134 | 213 | 3,092 |
-| Voronoi (SD) | 16 | 24,743 | 1,394 | 24 | 5,000 |
-| Voronoi (M) | 14 | 21,697 | 1,557 | 192 | 3,262 |
-| Voronoi (10x) | 14 | 23,622 | 1,374 | 244 | 4,038 |
-| **Baysor** | | | | | |
-| Baysor | 21 | 18,321 | 609 | 86 | 3,070 |
-| Baysor (CP prior 0.2) | 24 | 19,061 | 608 | 52 | 2,193 |
-| Baysor (CP prior 0.8) | 20 | 29,771 | 932 | 204 | 4,971 |
-| Baysor (CP prior 1.0) | 21 | 30,473 | 1,053 | 228 | 4,310 |
-| Baysor (SD prior 1.0) | 22 | 34,230 | 989 | 163 | 5,006 |
-| Baysor (M prior 1.0) | 23 | 31,764 | 880 | 31 | 3,711 |
-| Baysor (10x prior 1.0) | 22 | 33,113 | 898 | 250 | 5,046 |
+![Leiden clustering comparison across methods](results/figures/cluster_comparison.png)
 
-10x native, nuclear-only methods, and Voronoi converge on 12-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 clusters with medians around 600, consistent with over-segmentation. At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes (880-1,053) approach the Voronoi range.
+10x native and Voronoi methods converge on 14-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 smaller clusters, consistent with over-segmentation. At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes approach the Voronoi range.
 
 ### Cluster alignment
 
