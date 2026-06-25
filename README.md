@@ -9,24 +9,24 @@ Cluster labels are aligned via two algorithms before computing disagreement and 
 | Comparison | Matched pairs | Median corr | ARI | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **Nuclear-only** | | | | | | | |
-| 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 | - | - |
-| 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 | - | - |
-| 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 | - | - |
-| 10x native vs. 10x Ranger | 23,155 | 0.822 | 0.504 | 35.0% | 0.191 | - | - |
+| 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 | 30.5% | 0.189 |
+| 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 | 33.4% | 0.221 |
+| 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 | 27.4% | 0.098 |
+| 10x native vs. 10x Ranger | 23,155 | 0.822 | 0.504 | 35.0% | 0.191 | 34.5% | 0.203 |
 | **Voronoi** | | | | | | | |
 | 10x native vs. Voronoi (CP) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 | 21.9% | 0.076 |
 | 10x native vs. Voronoi (SD) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 | 27.7% | 0.229 |
 | 10x native vs. Voronoi (M) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 | 18.8% | 0.161 |
-| 10x native vs. Voronoi (10x) | 23,153 | - | 0.592 | 28.3% | 0.172 | - | - |
+| 10x native vs. Voronoi (10x) | 23,153 | - | 0.592 | 28.3% | 0.172 | 25.8% | 0.168 |
 | **Baysor** | | | | | | | |
 | 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 | 43.8% | 0.079 |
-| 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | 51.9% | 0.036 | - | - |
+| 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | 51.9% | 0.036 | 39.2% | 0.086 |
 | 10x native vs. Baysor (CP prior 1.0) | 20,308 | 0.902 | 0.501 | 33.8% | 0.111 | 32.1% | 0.122 |
 | 10x native vs. Baysor (SD prior 1.0) | 21,814 | 0.905 | 0.498 | 37.7% | 0.136 | 32.9% | 0.170 |
 | 10x native vs. Baysor (M prior 1.0) | 21,148 | 0.924 | 0.518 | 32.3% | 0.115 | 30.7% | 0.119 |
-| 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | 34.7% | 0.208 | - | - |
+| 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | 34.7% | 0.208 | 33.1% | 0.204 |
 
-*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index (partition-based, independent of cluster alignment). *Disagreement*: fraction of matched cell pairs assigned to different clusters after alignment. *Moran's I*: spatial autocorrelation of the disagree flag. Values marked - will be populated on next pipeline run. Voronoi (10x) correlation will be populated on next pipeline run (gene-name encoding mismatch has been fixed).
+*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index (partition-based, independent of cluster alignment). *Disagreement*: fraction of matched cell pairs assigned to different clusters after alignment. *Moran's I*: spatial autocorrelation of the disagree flag. Voronoi (10x) correlation will be populated on next pipeline run (gene-name encoding mismatch has been fixed).
 
 The results cleanly separate the contributions of nuclear detection quality and expansion strategy. Among Voronoi methods, Mesmer centroids produce the highest ARI (0.686) and lowest disagreement (18.8%), while 10x Ranger centroids - despite being purpose-built for Xenium - score lower (ARI 0.592). Among Baysor PSC=1.0 variants, the same detector ordering holds: Mesmer prior leads at ARI 0.518, followed by 10x Ranger (0.530), CellPose (0.501), and StarDist (0.498). Baysor (10x prior 1.0) achieves the highest ARI of any Baysor variant (0.530) and the most matched pairs (22,910), benefiting from 10x Ranger detecting almost as many nuclei as the 10x native reference.
 
@@ -138,25 +138,23 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both align
 | Method | Clusters | Cells | Disagree (argmax) | Moran's I (argmax) |
 | --- | ---: | ---: | ---: | ---: |
 | **Nuclear-only** | | | | |
-| CellPose | 13 | 20,166 | - | - |
-| StarDist | 12 | 24,745 | - | - |
-| Mesmer | 15 | 21,697 | - | - |
-| 10x Ranger | 13 | 23,624 | - | - |
+| CellPose | 13 | 20,166 | 30.5% | 0.189 |
+| StarDist | 12 | 24,745 | 33.4% | 0.221 |
+| Mesmer | 15 | 21,697 | 27.4% | 0.098 |
+| 10x Ranger | 13 | 23,624 | 34.5% | 0.203 |
 | **Voronoi** | | | | |
 | Voronoi (CP) | 14 | 20,166 | 21.9% | 0.076 |
 | Voronoi (SD) | 16 | 24,743 | 27.7% | 0.229 |
 | Voronoi (M) | 14 | 21,697 | 18.8% | 0.161 |
-| Voronoi (10x) | 14 | 23,622 | - | - |
+| Voronoi (10x) | 14 | 23,622 | 25.8% | 0.168 |
 | **Baysor** | | | | |
 | Baysor | 21 | 18,321 | 43.8% | 0.079 |
-| Baysor (CP prior 0.2) | 24 | 19,061 | - | - |
+| Baysor (CP prior 0.2) | 24 | 19,061 | 39.2% | 0.086 |
 | Baysor (CP prior 0.8) | 20 | 29,771 | 37.4% | 0.234 |
 | Baysor (CP prior 1.0) | 21 | 30,473 | 32.1% | 0.122 |
 | Baysor (SD prior 1.0) | 22 | 34,230 | 32.9% | 0.170 |
 | Baysor (M prior 1.0) | 23 | 31,764 | 30.7% | 0.119 |
-| Baysor (10x prior 1.0) | 22 | 33,113 | - | - |
-
-*Values marked - will be populated on next pipeline run.*
+| Baysor (10x prior 1.0) | 22 | 33,113 | 33.1% | 0.204 |
 
 ### Cluster alignment
 
@@ -172,17 +170,15 @@ Each row is one 10x native cluster; columns are the comparison method's clusters
 | Voronoi (CP) | 14 | 21.9% | 0.076 | 21.9% | 0.076 |
 | Voronoi (SD) | 16 | 31.9% | 0.194 | 27.7% | 0.229 |
 | Voronoi (M) | 14 | 18.8% | 0.161 | 18.8% | 0.161 |
-| Voronoi (10x) | 14 | 28.3% | 0.172 | - | - |
+| Voronoi (10x) | 14 | 28.3% | 0.172 | 25.8% | 0.168 |
 | **Baysor** | | | | | |
 | Baysor | 21 | 51.7% | 0.033 | 43.8% | 0.079 |
-| Baysor (CP prior 0.2) | 24 | 51.9% | 0.036 | - | - |
+| Baysor (CP prior 0.2) | 24 | 51.9% | 0.036 | 39.2% | 0.086 |
 | Baysor (CP prior 0.8) | 20 | 38.8% | 0.219 | 37.4% | 0.234 |
 | Baysor (CP prior 1.0) | 21 | 33.8% | 0.112 | 32.1% | 0.122 |
 | Baysor (SD prior 1.0) | 22 | 37.7% | 0.136 | 32.9% | 0.170 |
 | Baysor (M prior 1.0) | 23 | 32.3% | 0.115 | 30.7% | 0.119 |
-| Baysor (10x prior 1.0) | 22 | 34.7% | 0.208 | - | - |
-
-*Argmax values for Voronoi (10x), Baysor (CP prior 0.2), and Baysor (10x prior 1.0) will be populated on next pipeline run.*
+| Baysor (10x prior 1.0) | 22 | 34.7% | 0.208 | 33.1% | 0.204 |
 
 Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
 
@@ -224,7 +220,15 @@ To test whether cluster-level expression profiles agree, matched cells are group
 
 ![LISA hotspot/coldspot maps - argmax](results/figures/local_morans_map_argmax.png)
 
-*Argmax spatial table will be populated on next pipeline run.*
+| Comparison | Global Moran's I | HH hotspots | LL coldspots |
+| --- | --- | --- | --- |
+| 10x native vs. CellPose | 0.189 | 21.5% | 29.3% |
+| 10x native vs. StarDist | 0.221 | 18.6% | 14.7% |
+| 10x native vs. Mesmer | 0.098 | 16.6% | 31.4% |
+| 10x native vs. Voronoi (CP) | 0.076 | 11.1% | 27.2% |
+| 10x native vs. Voronoi (SD) | 0.229 | 18.7% | 25.6% |
+| 10x native vs. Voronoi (M) | 0.161 | 9.5% | 20.4% |
+| 10x native vs. Baysor | 0.079 | 26.1% | 26.2% |
 
 Nuclear and Voronoi disagreements are spatially structured (Moran's I 0.076-0.215 under Hungarian), concentrated in luminal epithelial territory. Mesmer has the most agreement coldspots (32.5% LL); Voronoi (Mesmer) has the fewest disagreement hotspots (9.5% HH), consistent with residual errors being diffuse boundary noise. Under Hungarian alignment Baysor's near-zero Moran's I (0.033) reflects noise from forced cluster mismatches; under argmax alignment Moran's I increases to 0.079, revealing that Baysor's genuine disagreements are spatially structured - just less so than morphological methods.
 
