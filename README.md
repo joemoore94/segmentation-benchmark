@@ -117,39 +117,14 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both align
 
 UMAP embeddings colored by aligned cluster labels illustrate how the alignment algorithm reshapes cluster identity. Baysor without a prior shows the starkest contrast: Hungarian forces 6 of its 21 clusters into empty pairings, leaving large regions unmatched (gray), while argmax lets multiple Baysor clusters map to the same reference cluster, producing coherent coloring across the manifold.
 
-| Baysor (Hungarian) | Baysor (argmax) |
-|:---:|:---:|
-| ![Baysor Hungarian](results/figures/umap/umap_baysor_hungarian.png) | ![Baysor argmax](results/figures/umap/umap_baysor_argmax.png) |
+![Baysor Hungarian](results/figures/umap/umap_baysor_hungarian.png)
+![Baysor argmax](results/figures/umap/umap_baysor_argmax.png)
 
-<details>
-<summary>All individual UMAP plots</summary>
+### Per-cluster pseudobulk
 
-**Reference**
+![Per-cluster pseudobulk correlation vs. 10x native](results/figures/pseudobulk_by_cluster.png)
 
-![10x native](results/figures/umap/umap_10x_native.png)
-
-**Voronoi**
-
-| Method | Hungarian | Argmax |
-|---|---|---|
-| Voronoi (CP) | ![](results/figures/umap/umap_voronoi_hungarian.png) | ![](results/figures/umap/umap_voronoi_argmax.png) |
-| Voronoi (SD) | ![](results/figures/umap/umap_voronoi_stardist_hungarian.png) | ![](results/figures/umap/umap_voronoi_stardist_argmax.png) |
-| Voronoi (M) | ![](results/figures/umap/umap_voronoi_mesmer_hungarian.png) | ![](results/figures/umap/umap_voronoi_mesmer_argmax.png) |
-| Voronoi (10x) | ![](results/figures/umap/umap_voronoi_10x_ranger_hungarian.png) | ![](results/figures/umap/umap_voronoi_10x_ranger_argmax.png) |
-
-**Baysor**
-
-| Method | Hungarian | Argmax |
-|---|---|---|
-| Baysor | ![](results/figures/umap/umap_baysor_hungarian.png) | ![](results/figures/umap/umap_baysor_argmax.png) |
-| Baysor (CP prior 0.2) | ![](results/figures/umap/umap_baysor_prior_hungarian.png) | ![](results/figures/umap/umap_baysor_prior_argmax.png) |
-| Baysor (CP prior 0.8) | ![](results/figures/umap/umap_baysor_prior_c08_hungarian.png) | ![](results/figures/umap/umap_baysor_prior_c08_argmax.png) |
-| Baysor (CP prior 1.0) | ![](results/figures/umap/umap_baysor_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_prior_c10_argmax.png) |
-| Baysor (SD prior 1.0) | ![](results/figures/umap/umap_baysor_stardist_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_stardist_prior_c10_argmax.png) |
-| Baysor (M prior 1.0) | ![](results/figures/umap/umap_baysor_mesmer_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_mesmer_prior_c10_argmax.png) |
-| Baysor (10x prior 1.0) | ![](results/figures/umap/umap_baysor_10x_ranger_prior_c10_hungarian.png) | ![](results/figures/umap/umap_baysor_10x_ranger_prior_c10_argmax.png) |
-
-</details>
+To test whether cluster-level expression profiles agree, matched cells are grouped by 10x native's 15 Leiden clusters and pseudobulked per method. Nuclear methods drop to r = 0.86-0.87 on luminal epithelial clusters (0, 1, 3, 8) - the same populations driving single-cell disagreement - while Voronoi variants stay above 0.99 across all clusters. Baysor shows a comparable luminal dip plus reduced correlation on macrophage clusters (2, 7), consistent with transcript-density boundaries partitioning those populations differently.
 
 ### Cluster alignment
 
@@ -185,14 +160,6 @@ Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading.
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 
 Per-cell expression correlation is high for all methods (median 0.79-0.96), but cluster-label agreement tells a different story. Voronoi methods disagree with 10x native on 19-32% of matched cells. Baysor without a prior disagrees on 52% (Hungarian) / 44% (argmax); at PSC 0.2, disagreement is unchanged (52% / 39%), but PSC 1.0 variants drop to 32-38% (Hungarian) / 31-33% (argmax), approaching the Voronoi range.
-
-### Per-cluster pseudobulk
-
-![Per-cluster pseudobulk correlation vs. 10x native](results/figures/pseudobulk_by_cluster.png)
-
-To test whether cluster-level expression profiles agree, matched cells are grouped by 10x native's 15 Leiden clusters and pseudobulked per method. Nuclear methods drop to r = 0.86-0.87 on luminal epithelial clusters (0, 1, 3, 8) - the same populations driving single-cell disagreement - while Voronoi variants stay above 0.99 across all clusters. Baysor shows a comparable luminal dip plus reduced correlation on macrophage clusters (2, 7), consistent with transcript-density boundaries partitioning those populations differently.
-
----
 
 ## Spatial structure of disagreement
 
