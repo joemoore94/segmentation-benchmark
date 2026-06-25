@@ -249,16 +249,6 @@ All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55%
 
 ![Pairwise ARI between all segmentation methods](results/figures/pairwise_consensus.png)
 
-| | 10x native | CellPose | StarDist | Mesmer | Voronoi (CP) | Voronoi (SD) | Voronoi (M) | Baysor |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **10x native** | 1.0 | 0.547 | 0.545 | 0.557 | 0.630 | 0.584 | 0.686 | 0.305 |
-| **CellPose** | | 1.0 | 0.764 | 0.606 | 0.533 | 0.557 | 0.556 | 0.415 |
-| **StarDist** | | | 1.0 | 0.639 | 0.525 | 0.568 | 0.540 | 0.411 |
-| **Mesmer** | | | | 1.0 | 0.480 | 0.535 | 0.528 | 0.455 |
-| **Voronoi (CP)** | | | | | 1.0 | 0.581 | 0.661 | 0.336 |
-| **Voronoi (SD)** | | | | | | 1.0 | 0.633 | 0.361 |
-| **Voronoi (M)** | | | | | | | 1.0 | 0.377 |
-
 No, at least not within the Voronoi family. CellPose and StarDist agree with each other at ARI 0.764 (higher than the Voronoi pair at 0.661) because both are nuclear-morphology methods on the same DAPI image. Switching to Voronoi assignment lowers within-paradigm agreement because the two Voronoi variants use different centroids, shifting boundaries even where centroids are close. What Voronoi does raise is agreement with the 10x-native whole-cell reference (0.63-0.69): compatibility with the platform's own segmentation, not cross-method reproducibility. Baysor remains isolated from all morphological methods (ARI 0.30-0.46 regardless of partner).
 
 ---
