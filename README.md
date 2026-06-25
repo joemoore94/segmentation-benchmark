@@ -115,6 +115,8 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both align
 
 10x native and Voronoi methods converge on 14-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 smaller clusters, consistent with over-segmentation. At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes approach the Voronoi range.
 
+![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
+
 ### Cluster alignment
 
 ![Confusion matrices with Hungarian and argmax alignment](results/figures/confusion_clusters.png)
@@ -145,8 +147,6 @@ Each row is one 10x native cluster; columns are the comparison method's clusters
 | Baysor (10x prior 1.0) | 0.530 | 34.7% | 0.208 | 33.1% | 0.204 |
 
 Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading. Nuclear-only methods cluster at ARI 0.504-0.557, and Baysor without a prior is lowest at 0.305. Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
-
-![UMAP embeddings colored by Leiden cluster, per method](results/figures/pca_umap_clusters.png)
 
 ![Per-cell-pair expression correlation](results/figures/expression_correlation.png)
 
