@@ -11,6 +11,8 @@ results/tables/*
 !results/tables/.gitkeep
 # ...except figure PNGs, which the README links to and should render on GitHub
 !results/figures/*.png
+!results/figures/umap/
+!results/figures/umap/*.png
 
 # Python
 __pycache__/

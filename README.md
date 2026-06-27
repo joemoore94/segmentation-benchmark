@@ -105,11 +105,15 @@ Leiden clustering runs independently on each method's cells (normalize → PCA �
 
 ### Resolution stability
 
-![ARI, disagreement, and Moran's I across Leiden resolutions - Hungarian alignment](results/figures/resolution_sensitivity_hungarian.png)
+![ARI across Leiden resolutions (alignment-agnostic)](results/figures/resolution_ari.png)
 
-![ARI, disagreement, and Moran's I across Leiden resolutions - argmax alignment](results/figures/resolution_sensitivity_argmax.png)
+ARI is partition-based and does not depend on cluster alignment, so it is the same under Hungarian and argmax. The method ordering is stable across Leiden resolutions 0.3-2.0. Voronoi (Mesmer) leads at most resolutions (0.3, 0.6, 0.8-1.2); at resolutions 0.5 and 0.7, Voronoi (StarDist) briefly takes the lead, and at 1.5+ StarDist's higher cell count gives it a durable advantage as finer clustering demands more cells per cluster. Baysor without a prior is consistently lowest.
 
-The method ordering is stable across Leiden resolutions 0.3-2.0 under both alignment algorithms. Voronoi (Mesmer) leads at most resolutions (0.3, 0.6, 0.8-1.2); at resolutions 0.5 and 0.7, Voronoi (StarDist) briefly takes the lead, and at 1.5+ StarDist's higher cell count gives it a durable advantage as finer clustering demands more cells per cluster. Baysor without a prior is consistently lowest. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
+![Disagreement and Moran's I across Leiden resolutions - Hungarian alignment](results/figures/resolution_disagree_morans_hungarian.png)
+
+![Disagreement and Moran's I across Leiden resolutions - argmax alignment](results/figures/resolution_disagree_morans_argmax.png)
+
+Disagreement and Moran's I do depend on alignment. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
 
 ![Leiden clustering comparison across methods](results/figures/cluster_comparison.png)
 
@@ -118,6 +122,7 @@ The method ordering is stable across Leiden resolutions 0.3-2.0 under both align
 UMAP embeddings colored by aligned cluster labels illustrate how the alignment algorithm reshapes cluster identity. Baysor without a prior shows the starkest contrast: Hungarian forces 6 of its 21 clusters into empty pairings, leaving large regions unmatched (gray), while argmax lets multiple Baysor clusters map to the same reference cluster, producing coherent coloring across the manifold.
 
 ![Baysor Hungarian](results/figures/umap/umap_baysor_hungarian.png)
+
 ![Baysor argmax](results/figures/umap/umap_baysor_argmax.png)
 
 ### Per-cluster pseudobulk
@@ -126,13 +131,17 @@ UMAP embeddings colored by aligned cluster labels illustrate how the alignment a
 
 To test whether cluster-level expression profiles agree, matched cells are grouped by 10x native's 15 Leiden clusters and pseudobulked per method. Nuclear methods drop to r = 0.86-0.87 on luminal epithelial clusters (0, 1, 3, 8) - the same populations driving single-cell disagreement - while Voronoi variants stay above 0.99 across all clusters. Baysor shows a comparable luminal dip plus reduced correlation on macrophage clusters (2, 7), consistent with transcript-density boundaries partitioning those populations differently.
 
-### Cluster alignment
+---
+
+## Cluster alignment
 
 ![Confusion matrices with Hungarian and argmax alignment](results/figures/confusion_clusters.png)
 
-Each row is one 10x native cluster; columns are the comparison method's clusters. Red cells mark Hungarian (one-to-one) matched pairs, blue cells mark argmax (many-to-one) matches, and purple cells mark pairs selected by both algorithms. Voronoi methods produce clean matches under both algorithms. Baysor's 15×21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
+Each row is one 10x native cluster; columns are the comparison method's clusters. Red cells mark Hungarian (one-to-one) matched pairs, blue cells mark argmax (many-to-one) matches, and purple cells mark pairs selected by both algorithms. Voronoi methods produce clean matches under both algorithms. Baysor's 15x21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
 
-#### Clustering agreement vs. 10x native
+Hungarian produces min(n_10x, n_method) matched pairs; when cluster counts differ, the excess clusters are forced into poor pairings. Argmax maps every method cluster to its best-overlap 10x cluster (many-to-one), so all method clusters are assigned but some 10x clusters may receive multiple mappings while others receive none. At resolution 1.0, 10x native produces 15 clusters; Voronoi methods produce 14-16 (near-perfect matching under both algorithms) while Baysor without a prior produces 21 (6 unmatched under Hungarian, all 21 mapped under argmax).
+
+### Clustering agreement vs. 10x native
 
 | Method | ARI | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
 | --- | ---: | ---: | ---: | ---: | ---: |

@@ -242,21 +242,17 @@ def main() -> None:
     pivot_cl = df_cl[df_cl["method"].isin(plot_labels)].set_index("method")[cluster_labels]
     pivot_cl = pivot_cl.reindex(index=[l for _, l, _, _ in PLOT_COMPARISONS if l in pivot_cl.index])
 
-    fig2, ax_cl = plt.subplots(figsize=(18, 6))
+    fig2, ax_cl = plt.subplots(figsize=(10, 14))
     sns.heatmap(
-        pivot_cl,
+        pivot_cl.T,
         annot=True, fmt=".3f",
         cmap="YlOrRd",
         vmin=0.90, vmax=1.0,
         linewidths=0.4, linecolor="white",
         ax=ax_cl,
-        cbar=False,
+        cbar_kws={"label": "Pseudobulk Pearson r (log CPM)", "shrink": 0.6},
         annot_kws={"size": 9, "weight": "bold"},
     )
-    sm = plt.cm.ScalarMappable(cmap="YlOrRd", norm=plt.Normalize(vmin=0.90, vmax=1.0))
-    cbar = fig2.colorbar(sm, ax=ax_cl, orientation="horizontal",
-                         fraction=0.04, pad=0.18, aspect=40)
-    cbar.set_label("Pseudobulk Pearson r (log CPM)")
     ax_cl.set_title(
         "Per-cluster pseudobulk Pearson correlation vs. 10x native\n"
         "(matched cells grouped by 10x Leiden cluster, log CPM, shared genes)",
@@ -264,9 +260,9 @@ def main() -> None:
     )
     ax_cl.set_xlabel("")
     ax_cl.set_ylabel("")
-    ax_cl.tick_params(axis="x", rotation=40, labelsize=9)
+    ax_cl.tick_params(axis="x", rotation=40, labelsize=11)
     plt.setp(ax_cl.get_xticklabels(), ha="right")
-    ax_cl.tick_params(axis="y", rotation=0, labelsize=11)
+    ax_cl.tick_params(axis="y", rotation=0, labelsize=9)
     fig2.tight_layout()
     fig2.savefig(FIGURES / "pseudobulk_by_cluster.png", dpi=150, bbox_inches="tight")
     plt.close(fig2)
