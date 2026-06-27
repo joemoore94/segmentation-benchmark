@@ -174,7 +174,10 @@ Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading.
 
 ## Spatial structure of disagreement
 
-### Hungarian alignment
+![Spatial autocorrelation of disagreement - all methods](results/figures/spatial_morans_dotplot.png)
+
+<details>
+<summary><b>Spatial disagreement maps (Hungarian alignment)</b> - click to expand</summary>
 
 ![Disagreement mapped spatially - Hungarian](results/figures/disagreement_spatial_map.png)
 
@@ -190,7 +193,10 @@ Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading.
 | 10x native vs. Voronoi (M) | 0.161 | 9.5% | 20.4% |
 | 10x native vs. Baysor | 0.033 | 21.4% | 17.5% |
 
-### Argmax alignment
+</details>
+
+<details>
+<summary><b>Spatial disagreement maps (Argmax alignment)</b> - click to expand</summary>
 
 ![Disagreement mapped spatially - argmax](results/figures/disagreement_spatial_map_argmax.png)
 
@@ -206,7 +212,7 @@ Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading.
 | 10x native vs. Voronoi (M) | 0.161 | 9.5% | 20.4% |
 | 10x native vs. Baysor | 0.079 | 26.1% | 26.2% |
 
-![Spatial autocorrelation of disagreement - all methods](results/figures/spatial_morans_dotplot.png)
+</details>
 
 Nuclear and Voronoi disagreements are spatially structured (Moran's I 0.076-0.215 under Hungarian), concentrated in luminal epithelial territory. Mesmer has the most agreement coldspots (32.5% LL); Voronoi (Mesmer) has the fewest disagreement hotspots (9.5% HH), consistent with residual errors being diffuse boundary noise. Under Hungarian alignment Baysor's near-zero Moran's I (0.033) reflects noise from forced cluster mismatches; under argmax alignment Moran's I increases to 0.079, revealing that Baysor's genuine disagreements are spatially structured - just less so than morphological methods.
 
