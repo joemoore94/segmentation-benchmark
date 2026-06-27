@@ -334,11 +334,13 @@ def fig_pca_umap() -> None:
     palette["unmatched"] = "#DDDDDD"
 
     _save_single_umap(emb_ref, emb_ref["leiden"].astype(str), palette,
-                       "10x native", umap_dir / "umap_10x_native.png")
+                       f"10x native ({n_ref} clusters)",
+                       umap_dir / "umap_10x_native.png")
 
     for method in methods:
         emb = pd.read_csv(TABLES_DIR / f"embedding_{method}.csv", index_col=0)
         label = METHOD_LABELS[method]
+        n_clusters_method = emb["leiden"].nunique()
 
         for alg, suffix in [("hungarian", ""), ("argmax", "_argmax")]:
             dt_path = TABLES_DIR / f"disagreement_table_10x_{method}{suffix}.csv"
@@ -348,7 +350,8 @@ def fig_pca_umap() -> None:
             aligned = dt.set_index("id_b")["label_b"].astype(str)
             color_col = emb.index.astype(str).to_series().map(aligned).fillna("unmatched")
             out = umap_dir / f"umap_{method}_{alg}.png"
-            _save_single_umap(emb, color_col, palette, f"{label} ({alg})", out)
+            _save_single_umap(emb, color_col, palette,
+                              f"{label} ({alg}, {n_clusters_method} clusters)", out)
 
     print(f"  Individual UMAPs saved to {umap_dir}/")
 

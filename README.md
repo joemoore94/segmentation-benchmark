@@ -70,7 +70,7 @@ Nuclear-only methods (CellPose, StarDist, Mesmer, 10x Ranger) capture only 35-52
 | Mesmer | 21,697 | 70 | 51.8% |
 | 10x Ranger | 23,624 | 45 | 38.0% |
 
-<img src="results/figures/nuclear_mask_sizes.png" alt="Nuclear mask size comparison across all four detectors" width="600">
+<p align="center"><img src="results/figures/nuclear_mask_sizes.png" alt="Nuclear mask size comparison across all four detectors" width="600"></p>
 
 All four detectors operate on the same DAPI image but produce substantially different masks. Mesmer detects the largest nuclei (median ~45 µm², long tail to 200 µm²), capturing 51.8% of transcripts - nearly double CellPose's 35.4%. StarDist and 10x Ranger produce similar-sized masks but StarDist finds more nuclei (24,745 vs 23,624). 10x Ranger captures only 38% of transcripts despite detecting nearly as many cells as the 10x native whole-cell segmentation (23,624 vs 23,629), confirming that 10x native's 99% capture comes from its proprietary expansion, not from larger nuclei.
 
@@ -91,7 +91,7 @@ All four detectors operate on the same DAPI image but produce substantially diff
 | Baysor (M prior 1.0) | 31,764 | 74 | 98.9% |
 | Baysor (10x prior 1.0) | 33,113 | 65 | 98.9% |
 
-<img src="results/figures/transcripts_per_cell.png" alt="Transcripts/cell distribution across expansion methods" width="600">
+![Transcripts/cell distribution across expansion methods](results/figures/transcripts_per_cell.png)
 
 Voronoi expansion captures 100% of transcripts by construction regardless of detector. Median transcripts per cell under Voronoi varies with detector quality: Voronoi (CP) leads at 149 tx/cell because CellPose detects fewer, larger nuclei, concentrating more transcripts per cell. Voronoi (10x) at 128 tx/cell is closest to 10x native (124), consistent with using the same nuclear seeds - the gap between them reflects 10x native's proprietary expansion assigning some transcripts differently than nearest-centroid.
 
@@ -99,7 +99,7 @@ Baysor without a prior captures 98.6% but detects fewer cells (18,321) - the den
 
 ### Per-cell expression correlation
 
-<img src="results/figures/expression_correlation.png" alt="Per-cell expression correlation vs. 10x native" width="600">
+<p align="center"><img src="results/figures/expression_correlation.png" alt="Per-cell expression correlation vs. 10x native" width="600"></p>
 
 Per-cell expression correlation is high for all methods (median 0.79-0.96). Voronoi methods lead (median r 0.96) because nearest-centroid expansion assigns largely the same transcripts as 10x native. Baysor PSC=1.0 variants cluster at 0.90-0.92, and nuclear-only methods at 0.82-0.88, reflecting missing cytoplasmic transcripts rather than misassignment.
 
@@ -111,7 +111,7 @@ Leiden clustering runs independently on each method's cells (normalize → PCA �
 
 ### Resolution stability
 
-<img src="results/figures/resolution_ari.png" alt="ARI across Leiden resolutions (alignment-agnostic)" width="600">
+<p align="center"><img src="results/figures/resolution_ari.png" alt="ARI across Leiden resolutions (alignment-agnostic)" width="600"></p>
 
 ARI is partition-based and does not depend on cluster alignment, so it is the same under Hungarian and argmax. The method ordering is stable across Leiden resolutions 0.3-2.0. Voronoi (Mesmer) leads at most resolutions (0.3, 0.6, 0.8-1.2); at resolutions 0.5 and 0.7, Voronoi (StarDist) briefly takes the lead, and at 1.5+ StarDist's higher cell count gives it a durable advantage as finer clustering demands more cells per cluster. Baysor without a prior is consistently lowest.
 
@@ -121,7 +121,7 @@ ARI is partition-based and does not depend on cluster alignment, so it is the sa
 
 Disagreement and Moran's I do depend on alignment. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
 
-<img src="results/figures/cluster_comparison.png" alt="Leiden clustering comparison across methods" width="600">
+<p align="center"><img src="results/figures/cluster_comparison.png" alt="Leiden clustering comparison across methods" width="600"></p>
 
 10x native and Voronoi methods converge on 14-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 smaller clusters, consistent with over-segmentation. At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes approach the Voronoi range.
 
@@ -131,7 +131,7 @@ UMAP embeddings colored by aligned cluster labels illustrate how the alignment a
 
 ### Per-cluster pseudobulk
 
-<img src="results/figures/pseudobulk_by_cluster.png" alt="Per-cluster pseudobulk correlation vs. 10x native" width="600">
+<p align="center"><img src="results/figures/pseudobulk_by_cluster.png" alt="Per-cluster pseudobulk correlation vs. 10x native" width="600"></p>
 
 To test whether cluster-level expression profiles agree, matched cells are grouped by 10x native's 15 Leiden clusters and pseudobulked per method. Nuclear methods drop to r = 0.86-0.87 on luminal epithelial clusters (0, 1, 3, 8) - the same populations driving single-cell disagreement - while Voronoi variants stay above 0.99 across all clusters. Baysor shows a comparable luminal dip plus reduced correlation on macrophage clusters (2, 7), consistent with transcript-density boundaries partitioning those populations differently.
 
@@ -258,7 +258,7 @@ All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55%
 
 ## Pairwise method agreement
 
-<img src="results/figures/pairwise_consensus.png" alt="Pairwise ARI between all segmentation methods" width="600">
+<p align="center"><img src="results/figures/pairwise_consensus.png" alt="Pairwise ARI between all segmentation methods" width="600"></p>
 
 No, at least not within the Voronoi family. CellPose and StarDist agree with each other at ARI 0.764 (higher than the Voronoi pair at 0.661) because both are nuclear-morphology methods on the same DAPI image. Switching to Voronoi assignment lowers within-paradigm agreement because the two Voronoi variants use different centroids, shifting boundaries even where centroids are close. What Voronoi does raise is agreement with the 10x-native whole-cell reference (0.63-0.69): compatibility with the platform's own segmentation, not cross-method reproducibility. Baysor remains isolated from all morphological methods (ARI 0.30-0.46 regardless of partner).
 
@@ -286,7 +286,7 @@ Smaller 10x-native cells are significantly more likely to disagree with every mo
 
 ## Marker gene recovery
 
-<img src="results/figures/marker_recovery.png" alt="Marker gene recovery relative to 10x native" width="600">
+<p align="center"><img src="results/figures/marker_recovery.png" alt="Marker gene recovery relative to 10x native" width="600"></p>
 
 Using 10x-native cell-type annotations as ground truth, nuclear methods recover 75-92% of cytoplasmic marker expression relative to 10x native, with the largest deficits for extranuclear markers like MUC1, SERPINA3, and LYZ. Voronoi methods recover near-100% across all cell types. Baysor recovers macrophage markers (LYZ, CD14) at or above 10x-native levels while showing slightly reduced T cell marker (CD3E) recovery.
 
@@ -294,7 +294,7 @@ Using 10x-native cell-type annotations as ground truth, nuclear methods recover 
 
 ## Population-level convergence
 
-<img src="results/figures/pseudobulk_correlation.png" alt="Pseudobulk correlation vs. 10x native" width="600">
+<p align="center"><img src="results/figures/pseudobulk_correlation.png" alt="Pseudobulk correlation vs. 10x native" width="600"></p>
 
 | Method | Per-cell-type pseudobulk r (range) | Aggregate r | Single-cell ARI |
 | --- | --- | --- | --- |
