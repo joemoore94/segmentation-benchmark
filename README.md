@@ -125,11 +125,9 @@ Cell types are annotated on the 10x native segmentation only. Leiden clustering 
 | 13 | 1,333 | CAFs |
 | 14 | 199 | Adipocytes |
 
-The detection rate heatmap and dotplot below show which canonical markers are expressed in each cluster, confirming the assignments. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant, cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic).
+The dotplot below shows which canonical markers are expressed in each cluster, confirming the assignments. Dot size encodes the percentage of cells in the cluster expressing the marker; color encodes mean expression level. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant, cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic).
 
-![Canonical marker detection rate by Leiden cluster](results/figures/annotation_dotplot.png)
-
-![Canonical marker dotplot](results/figures/annotation_dotplot_flipped.png)
+![Canonical marker expression by Leiden cluster](results/figures/annotation_dotplot_flipped.png)
 
 ---
 

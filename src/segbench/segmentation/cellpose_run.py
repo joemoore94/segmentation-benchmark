@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 
 
 def run_cellpose(
-    image: NDArray[np.number],
+    image: NDArray[np.floating],
     model_type: str = "nuclei",
     channels: list[int] | None = None,
     diameter: float | None = None,

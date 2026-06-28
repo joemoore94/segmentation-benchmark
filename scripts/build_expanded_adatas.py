@@ -24,6 +24,7 @@ import tifffile
 from scipy.spatial import cKDTree
 from skimage.segmentation import expand_labels
 
+from segbench.constants import TOTAL_TRANSCRIPTS_FULL_ROI
 from segbench.io import PIXEL_SIZE
 from segbench.quantify import quantify_cells
 
@@ -90,7 +91,7 @@ def main() -> None:
         out = ROI_DIR / f"adata_cellpose_exp{dist_um:.0f}um.h5ad"
         adata.write_h5ad(out)
         n_tx = int(adata.X.sum())
-        capture = n_tx / 3_392_051
+        capture = n_tx / TOTAL_TRANSCRIPTS_FULL_ROI
         print(f"  {adata.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
 
     print("\n=== Voronoi (CellPose centroids) ===")
@@ -98,7 +99,7 @@ def main() -> None:
     out = ROI_DIR / "adata_voronoi.h5ad"
     adata_vor.write_h5ad(out)
     n_tx = int(adata_vor.X.sum())
-    capture = n_tx / 3_392_051
+    capture = n_tx / TOTAL_TRANSCRIPTS_FULL_ROI
     print(f"  {adata_vor.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
 
     print("\n=== Voronoi (Mesmer centroids) ===")
@@ -107,7 +108,7 @@ def main() -> None:
     out = ROI_DIR / "adata_voronoi_mesmer.h5ad"
     adata_vor_mesmer.write_h5ad(out)
     n_tx = int(adata_vor_mesmer.X.sum())
-    capture = n_tx / 3_392_051
+    capture = n_tx / TOTAL_TRANSCRIPTS_FULL_ROI
     print(f"  {adata_vor_mesmer.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
 
     print("\n=== Voronoi (StarDist centroids) ===")
@@ -116,7 +117,7 @@ def main() -> None:
     out = ROI_DIR / "adata_voronoi_stardist.h5ad"
     adata_vor_stardist.write_h5ad(out)
     n_tx = int(adata_vor_stardist.X.sum())
-    capture = n_tx / 3_392_051
+    capture = n_tx / TOTAL_TRANSCRIPTS_FULL_ROI
     print(f"  {adata_vor_stardist.n_obs} cells, {n_tx} transcripts ({capture:.1%} capture) -> {out.name}")
 
 

@@ -2,7 +2,7 @@
 
 Identical tiling scheme (2x2 grid of ~1mm x 1mm quadrants, each padded by
 ``MARGIN`` on interior edges) applied to ``transcripts_baysor_prior.csv``
-(produced by ``add_cellpose_prior.py``), so the CellPose-prior Baysor run is
+(produced by ``add_nuclear_prior.py``), so the CellPose-prior Baysor run is
 directly comparable to the unprimed run -- same tiles, same merge logic in
 ``build_baysor_prior_adata.py``.
 

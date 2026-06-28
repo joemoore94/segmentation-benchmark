@@ -16,11 +16,11 @@ import numpy as np
 import pandas as pd
 import tifffile
 
+from segbench.constants import TOTAL_TRANSCRIPTS_FULL_ROI
 from segbench.io import PIXEL_SIZE
 from segbench.quantify import quantify_cells
 
 ROI_DIR = Path("data/processed/roi")
-TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
 
 
 def main() -> None:

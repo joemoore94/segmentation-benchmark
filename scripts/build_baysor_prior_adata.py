@@ -3,7 +3,7 @@
 Identical merge logic to ``build_baysor_adata.py`` (core-region partitioning +
 ``transcript_id`` dedup across overlapping tile padding), applied to
 ``data/processed/roi/baysor_prior_tiles/<tile>/segmentation.csv`` -- the
-CellPose-nucleus-prior hybrid run (see ``add_cellpose_prior.py``,
+CellPose-nucleus-prior hybrid run (see ``add_nuclear_prior.py``,
 ``tile_baysor_prior_transcripts.py``, ``configs/baysor_prior_config.toml``).
 
 Usage::

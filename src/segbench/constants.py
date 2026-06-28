@@ -1,5 +1,7 @@
 """Shared constants for the segmentation benchmark."""
 
+TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
+
 # ---------------------------------------------------------------------------
 # Cell-type annotations
 # ---------------------------------------------------------------------------

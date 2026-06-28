@@ -7,8 +7,7 @@ genes that justify each annotation.
 
 Reads:  data/processed/roi/adata_10x.h5ad
 Writes: results/tables/annotation_evidence.csv
-        results/figures/annotation_dotplot.png
-        results/figures/annotation_evidence_heatmap.png
+        results/figures/annotation_dotplot_flipped.png
 
 Usage::
 
@@ -21,13 +20,9 @@ from pathlib import Path
 
 import anndata as ad
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
-
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from segbench.constants import CLUSTER_ANNOTATIONS
 from segbench.style import apply_style
@@ -323,9 +318,6 @@ def main() -> None:
         print()
 
     print("Generating figures...")
-    fig_marker_detection(adata)
-    print("  Saved annotation_dotplot.png")
-
     fig_dotplot_canonical(adata)
     print("  Saved annotation_dotplot_flipped.png")
 

@@ -35,8 +35,6 @@ ROI_DIR = Path("data/processed/roi")
 TABLES_DIR = Path("results/tables")
 FIGURES_DIR = Path("results/figures")
 
-TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
-
 DPI = 200
 PANEL_W = 9
 PANEL_H = 7

@@ -23,7 +23,6 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
 import scanpy as sc
-import seaborn as sns
 from segbench.constants import CELLTYPE_COLORS, CLUSTER_ANNOTATIONS, COMPARISON_ORDER
 from segbench.style import apply_style
 

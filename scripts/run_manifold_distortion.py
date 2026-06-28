@@ -28,10 +28,8 @@ import anndata as ad
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
-import pandas as pd
 import scanpy as sc
 import scipy.sparse as sp
-import umap as umap_lib
 from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
 from segbench.style import apply_style

@@ -30,11 +30,11 @@ from segbench.compare import (
     match_cells_by_centroid,
     match_cluster_labels,
 )
+from segbench.constants import TOTAL_TRANSCRIPTS_FULL_ROI
 from segbench.spatial import disagreement_table, disagreement_spatial_structure
 
 ROI_DIR = Path("data/processed/roi")
 MAX_MATCH_DIST = 10.0
-TOTAL_TX = 3_392_051
 
 CANDIDATES = {
     "exp10um": "adata_cellpose_exp10um.h5ad",
@@ -63,7 +63,7 @@ def main() -> None:
         adata = ad.read_h5ad(path)
         n_cells = adata.n_obs
         n_tx = int(adata.X.sum())
-        capture = n_tx / TOTAL_TX
+        capture = n_tx / TOTAL_TRANSCRIPTS_FULL_ROI
 
         matches = match_cells_by_centroid(adata_10x, adata, max_dist=MAX_MATCH_DIST)
         labels = cluster_cell_types(adata, seed=0)

@@ -160,7 +160,7 @@ CellPose and Mesmer segment the DAPI image (`dapi.tif`, 9412x9412px at
 
 - Same transcript-density EM as above, but seeded with CellPose's nucleus
   masks as a `--prior-segmentation` (Baysor's `:column_name` syntax).
-  `scripts/add_cellpose_prior.py` looks up each transcript's
+  `scripts/add_nuclear_prior.py cellpose` looks up each transcript's
   `(x_location, y_location)` in `masks_cellpose.tif` (converting um -> pixel
   via `PIXEL_SIZE=0.2125`) and writes a `cellpose_prior` column (0 =
   background, matching Baysor's `unassigned_prior_label="0"` default);

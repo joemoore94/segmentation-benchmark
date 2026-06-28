@@ -28,13 +28,13 @@ from segbench.compare import (
     match_cluster_labels_argmax,
     size_summary,
 )
+from segbench.constants import TOTAL_TRANSCRIPTS_FULL_ROI
 from segbench.spatial import disagreement_spatial_structure, disagreement_table
 
 ROI_DIR = Path("data/processed/roi")
 TABLES_DIR = Path("results/tables")
 
 MAX_MATCH_DIST = 10.0
-TOTAL_TRANSCRIPTS_FULL_ROI = 3_392_051
 
 
 def _save_disagreement(method_key, matches, labels_10x, labels_comp, adata_10x):

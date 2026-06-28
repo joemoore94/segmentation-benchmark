@@ -27,6 +27,7 @@ from segbench.constants import (
     METHOD_LABELS,
     NEGATIVE_PAIRS_TIER1,
     NEGATIVE_PAIRS_TIER2,
+    TOTAL_TRANSCRIPTS_FULL_ROI,
 )
 
 TABLES_DIR = Path("results/tables")
@@ -359,7 +360,7 @@ def section_1(pdf):
         {"Property": "Platform", "Value": "10x Xenium (Custom Add-on Panel)"},
         {"Property": "ROI Dimensions", "Value": "2 mm x 2 mm"},
         {"Property": "Total Cells (10x native)", "Value": "23,629"},
-        {"Property": "Total Transcripts (ROI)", "Value": "3,392,051"},
+        {"Property": "Total Transcripts (ROI)", "Value": f"{TOTAL_TRANSCRIPTS_FULL_ROI:,}"},
         {"Property": "Gene Panel", "Value": "380 genes"},
         {"Property": "Companion scRNA-seq", "Value": "GEO GSE243275"},
     ])
@@ -513,7 +514,6 @@ def section_3(pdf):
     print(f"  Wrote {ari_csv_path}")
 
     # Standalone ARI plot
-    import seaborn as sns
     fig_ari, ax_ari = plt.subplots(figsize=(10, 6))
     for method_name in ari_standalone["method"].unique():
         mdata = ari_standalone[ari_standalone["method"] == method_name]
