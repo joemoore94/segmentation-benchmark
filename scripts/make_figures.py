@@ -470,7 +470,7 @@ def fig_spatial_morans_dotplot() -> None:
     n = len(df)
     y = np.arange(n)
 
-    fig, ax = plt.subplots(figsize=(10, max(6, n * 0.5)))
+    fig, ax = plt.subplots(figsize=(PANEL_W + 2, max(PANEL_H, 0.7 * n + 2)))
 
     for i in range(n):
         ax.plot([df.iloc[i]["hungarian"], df.iloc[i]["argmax"]], [y[i], y[i]],
@@ -489,25 +489,25 @@ def fig_spatial_morans_dotplot() -> None:
             left_is_h = h_val <= a_val
             ax.annotate(f"{left:.3f}", (left, y[i]),
                         textcoords="offset points", xytext=(-8, 0),
-                        ha="right", va="center", fontsize=7, color="#555555")
+                        ha="right", va="center", fontsize=12, color="#555555")
             ax.annotate(f"{right:.3f}", (right, y[i]),
                         textcoords="offset points", xytext=(8, 0),
-                        ha="left", va="center", fontsize=7, color="#555555")
+                        ha="left", va="center", fontsize=12, color="#555555")
         else:
             ax.annotate(f"{h_val:.3f}", (h_val, y[i]),
-                        textcoords="offset points", xytext=(0, 8),
-                        ha="center", fontsize=7, color="#555555")
+                        textcoords="offset points", xytext=(0, 10),
+                        ha="center", fontsize=12, color="#555555")
             ax.annotate(f"{a_val:.3f}", (a_val, y[i]),
-                        textcoords="offset points", xytext=(0, -12),
-                        ha="center", fontsize=7, color="#555555")
+                        textcoords="offset points", xytext=(0, -14),
+                        ha="center", fontsize=12, color="#555555")
 
     ax.set_yticks(y)
     ax.set_yticklabels(df["method"])
     ax.set_ylim(n - 0.5, -0.5)
     ax.set_xlabel("Global Moran's I")
     ax.set_title("Spatial autocorrelation of disagreement vs. 10x native",
-                 fontweight="bold", fontsize=13)
-    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=9, framealpha=0.9)
+                 fontweight="bold")
+    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), framealpha=0.9)
     ax.grid(True, axis="x", alpha=0.3)
 
     fig.tight_layout()
