@@ -194,6 +194,35 @@ The dotplot below shows which canonical markers are expressed in each cluster, c
 
 ![Canonical marker expression by Leiden cluster](results/figures/annotation_dotplot_flipped.png)
 
+## Luminal epithelial subtypes
+
+The tissue sample is an invasive ductal carcinoma (IDC) of the breast, with the ROI spanning several tumor nests (DCIS and invasive) surrounded by stroma and immune infiltrate. At Leiden resolution 1.0, four of the 15 clusters (0, 1, 3, 8) annotate as luminal epithelial, together accounting for 8,548 cells — 36% of the ROI. Wilcoxon DE within this subpopulation reveals that the four clusters are not redundant: each has a distinct marker profile corresponding to known luminal biology, consistent with the heterogeneity expected in IDC where hormone-receptor-positive and proliferative tumor populations coexist within the same lesion.
+
+| Subcluster | Cells | Top markers | Interpretation |
+| ---: | ---: | --- | --- |
+| 0 | 2,799 | FLNB, DHRS2, MLPH, ESR1, PDZK1, AGR3 | ER+ hormone-responsive (luminal A-like) |
+| 1 | 2,926 | MYBPC1, PGR, CLIC6, FASN, MUC1, ELOVL5, SCD | Secretory luminal with lipid metabolism |
+| 3 | 902 | NNMT, ENAH, LUM, POSTN, AQP3 | Stromal-adjacent; EMT-like or boundary contamination |
+| 8 | 1,921 | EGR1, STC2, KRT7, CCND1, TACSTD2, TCIM | Stress-response / proliferative |
+
+![Top markers per luminal epithelial subcluster](results/figures/lum_ep_subtypes/lum_ep_subcluster_dotplot.png)
+
+![Luminal epithelial subcluster heatmap](results/figures/lum_ep_subtypes/lum_ep_subcluster_heatmap.png)
+
+Clusters 0 and 1 map to recognized luminal subtypes in breast cancer: cluster 0 expresses the canonical ER+ program (ESR1, MLPH, PDZK1, AGR3) while cluster 1 emphasizes progesterone signaling and lipid biosynthesis (PGR, FASN, ELOVL5, SCD). Cluster 8 is dominated by immediate-early genes (EGR1 logFC +3.4, STC2 logFC +4.2) and CCND1, consistent with an actively cycling or stress-responsive state. Cluster 3 is the most ambiguous — its top markers include NNMT (metabolic stress), plus LUM and POSTN, which are canonical CAF markers and in fact define clusters 9 and 13 in the full annotation. This could reflect genuine epithelial-mesenchymal transition in a subset of tumor cells, or it could indicate that 10x native's expansion algorithm is pulling stromal transcripts into epithelial cell boundaries in densely packed regions. Either way, this subcluster sits at the lineage boundary where segmentation errors are most consequential.
+
+### Resolution sweep
+
+![Leiden resolution sweep — luminal epithelial splitting](results/figures/lum_ep_subtypes/lum_ep_resolution_sweep.png)
+
+A Leiden resolution sweep from 0.1 to 2.0 reveals that the four subclusters do not emerge simultaneously. Cluster 8 (EGR1/STC2/KRT7) splits off first at resolution 0.3, consistent with its strong immediate-early gene signature making it the most transcriptionally distinct subpopulation. Clusters 0 and 1 separate from each other at resolution 0.6 as the ESR1-high and PGR/FASN-high programs become resolvable. Cluster 3 (NNMT/LUM/POSTN) is the last to emerge, not appearing as a distinct cluster until resolution 0.9. The late splitting and stromal marker expression together make cluster 3 the weakest of the four subtypes — the one most likely to represent a segmentation boundary effect rather than a discrete biological state.
+
+![Luminal epithelial subclusters in UMAP context](results/figures/lum_ep_subtypes/lum_ep_umap_context.png)
+
+The UMAP confirms this hierarchy: cluster 8 occupies a clearly separated island within the luminal epithelial territory, while clusters 0 and 1 are adjacent but distinguishable, and cluster 3 cells are scattered along the boundary between luminal epithelial and CAF/stromal regions. The four-subcluster structure within luminal epithelial — and particularly the graded transcriptional boundaries between them — helps explain why this cell type drives the plurality of cross-method disagreement: a handful of misassigned boundary transcripts can shift a cell between subtypes without crossing a sharp lineage boundary.
+
+---
+
 ## Spatial structure of disagreement
 
 ![Spatial autocorrelation of disagreement - all methods](results/figures/spatial_morans_dotplot.png)
