@@ -94,7 +94,12 @@ All four detectors operate on the same DAPI image but produce substantially diff
 | Baysor (M prior 1.0) | 31,764 | 74 | 98.9% |
 | Baysor (10x prior 1.0) | 33,113 | 65 | 98.9% |
 
+<details>
+<summary><b>Transcripts/cell distribution across expansion methods</b> — click to expand</summary>
+
 ![Transcripts/cell distribution across expansion methods](results/figures/transcripts_per_cell.png)
+
+</details>
 
 Voronoi expansion captures 100% of transcripts by construction regardless of detector. Median transcripts per cell under Voronoi varies with detector quality: Voronoi (CP) leads at 149 tx/cell because CellPose detects fewer, larger nuclei, concentrating more transcripts per cell. Voronoi (10x) at 128 tx/cell is closest to 10x native (124), consistent with using the same nuclear seeds - the gap between them reflects 10x native's proprietary expansion assigning some transcripts differently than nearest-centroid.
 
@@ -153,9 +158,14 @@ To test whether cluster-level expression profiles agree, matched cells are group
 
 ## Cluster alignment
 
+<details>
+<summary><b>Confusion matrices (Hungarian and argmax)</b> — click to expand</summary>
+
 ![Confusion matrices with Hungarian and argmax alignment](results/figures/confusion_clusters.png)
 
 Each row is one 10x native cluster; columns are the comparison method's clusters. Red cells mark Hungarian (one-to-one) matched pairs, blue cells mark argmax (many-to-one) matches, and purple cells mark pairs selected by both algorithms. Voronoi methods produce clean matches under both algorithms. Baysor's 15x21 matrix shows the key difference: under Hungarian, 6 clusters are forced into empty pairings; under argmax, every column maps to the highest-overlap reference cluster with no wasted assignments.
+
+</details>
 
 Hungarian produces min(n_10x, n_method) matched pairs; when cluster counts differ, the excess clusters are forced into poor pairings. Argmax maps every method cluster to its best-overlap 10x cluster (many-to-one), so all method clusters are assigned but some 10x clusters may receive multiple mappings while others receive none. At resolution 1.0, 10x native produces 15 clusters; Voronoi methods produce 14-16 (near-perfect matching under both algorithms) while Baysor without a prior produces 21 (6 unmatched under Hungarian, all 21 mapped under argmax).
 
@@ -182,7 +192,12 @@ Hungarian produces min(n_10x, n_method) matched pairs; when cluster counts diffe
 | Baysor (M prior 1.0) | 0.518 | 32.3% | 0.115 | 30.7% | 0.119 |
 | Baysor (10x prior 1.0) | 0.530 | 34.7% | 0.208 | 33.1% | 0.204 |
 
+<details>
+<summary><b>Clustering agreement vs. 10x native</b> — click to expand</summary>
+
 ![Clustering agreement vs. 10x native](results/figures/clustering_agreement.png)
+
+</details>
 
 Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading. Nuclear-only methods cluster at ARI 0.504-0.557, and Baysor without a prior is lowest at 0.305. Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
 
@@ -212,7 +227,12 @@ Cell types are annotated on the 10x native segmentation only. Leiden clustering 
 
 The dotplot below shows which canonical markers are expressed in each cluster, confirming the assignments. Dot size encodes the percentage of cells in the cluster expressing the marker; color encodes mean expression level. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant, cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic).
 
+<details>
+<summary><b>Canonical marker expression by Leiden cluster</b> — click to expand</summary>
+
 ![Canonical marker expression by Leiden cluster](results/figures/annotation_dotplot_flipped.png)
+
+</details>
 
 ## Luminal epithelial subtypes
 
@@ -262,7 +282,7 @@ The UMAP confirms this hierarchy: cluster 8 occupies a clearly separated island 
 </details>
 
 <details>
-<summary><b>LISA hotspot/coldspot maps (Hungarian alignment)</b> - click to expand</summary>
+<summary><b>LISA hotspot/coldspot maps (Hungarian)</b> — click to expand</summary>
 
 ![LISA hotspot/coldspot maps - Hungarian](results/figures/local_morans_map.png)
 
@@ -286,9 +306,19 @@ Nuclear and Voronoi disagreements are spatially structured (Moran's I 0.076-0.21
 
 ## Cell-type sensitivity
 
+<details>
+<summary><b>Cell type vs. agreement (Hungarian)</b> — click to expand</summary>
+
 ![Cell type vs. agreement - Hungarian](results/figures/agreement_explainer.png)
 
+</details>
+
+<details>
+<summary><b>Cell type vs. agreement (Argmax)</b> — click to expand</summary>
+
 ![Cell type vs. agreement - argmax](results/figures/agreement_explainer_argmax.png)
+
+</details>
 
 Adipocytes and myoepithelial cells have the highest per-cell disagreement (~50-68% and ~40-47%) but are rare. Luminal epithelial cells dominate by volume: ~35% disagreement across ~8,500 cells drives the majority of total disagreement events. These clusters likely encompass malignant and normal epithelial cells; both share canonical markers (GATA3, PGR, ESR1, MUC1) and are inseparable by nuclear morphology alone. T cells and B cells are robustly identified regardless of method or alignment algorithm.
 
@@ -296,13 +326,33 @@ Adipocytes and myoepithelial cells have the highest per-cell disagreement (~50-6
 
 ## Disagreement drivers: cell state vs. geometry
 
+<details>
+<summary><b>Phenotypic density vs. disagreement (Hungarian)</b> — click to expand</summary>
+
 ![Phenotypic density vs. disagreement - Hungarian](results/figures/density_vs_disagreement.png)
+
+</details>
+
+<details>
+<summary><b>Phenotypic density vs. disagreement (Argmax)</b> — click to expand</summary>
 
 ![Phenotypic density vs. disagreement - argmax](results/figures/density_vs_disagreement_argmax.png)
 
+</details>
+
+<details>
+<summary><b>DE: disagree vs. agree cells (Hungarian)</b> — click to expand</summary>
+
 ![DE: disagree vs. agree cells - Hungarian](results/figures/de_volcano.png)
 
+</details>
+
+<details>
+<summary><b>DE: disagree vs. agree cells (Argmax)</b> — click to expand</summary>
+
 ![DE: disagree vs. agree cells - argmax](results/figures/de_volcano_argmax.png)
+
+</details>
 
 | Comparison | n agree / disagree | Median log-density (agree / disagree) | p |
 | --- | --- | --- | --- |
@@ -320,9 +370,19 @@ Nuclear methods disagree on cells in higher-density phenotypic regions (Mann-Whi
 
 ## Phenotypic landscape distortion
 
+<details>
+<summary><b>All methods in shared PCA/UMAP space</b> — click to expand</summary>
+
 ![All methods in shared PCA/UMAP space](results/figures/manifold_shared_umap.png)
 
+</details>
+
+<details>
+<summary><b>Density distortion vs. 10x native</b> — click to expand</summary>
+
 ![Phenotypic landscape distortion vs. 10x native](results/figures/manifold_distortion.png)
+
+</details>
 
 All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55% variance explained) and embedded in a joint UMAP. Density ratio maps (log₂ method/10x) show which phenotypic regions each method enriches or depletes. Nuclear methods show depleted regions in high-density luminal epithelial areas, consistent with missed cytoplasmic transcripts pulling cells toward lower-expression PCA states. Voronoi methods track 10x native closely. Baysor shows enrichment in a distinct region corresponding to its finer resolution of macrophage and stromal subtypes.
 
@@ -332,17 +392,37 @@ All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55%
 
 The phenotypic landscape distortion analysis above uses a PCA space fit on 10x native, so the coordinate system is itself a segmentation output. To test whether method choice shifts cells in a segmentation-independent reference, PCA is fit on companion scRNA-seq from the same tissue blocks (GSE243275, 3' chemistry, 7,329 cells after QC) subsetted to the 374 Xenium panel genes present in both datasets. Each segmentation method's cells are then projected into this reference PCA space (30 PCs, 62% variance explained), clustered via Leiden in the shared reference embedding, and compared.
 
+<details>
+<summary><b>Xenium cells in scRNA-seq reference UMAP</b> — click to expand</summary>
+
 ![Xenium cells projected into scRNA-seq reference UMAP](results/figures/ref_projection_umap.png)
 
+</details>
+
+<details>
+<summary><b>Density distortion vs. scRNA-seq reference</b> — click to expand</summary>
+
 ![Density distortion vs. scRNA-seq reference](results/figures/ref_projection_density.png)
+
+</details>
 
 All methods project into the same regions of the scRNA-seq reference landscape, but Baysor without a prior collapses into a narrow band — consistent with its lower transcript-per-cell counts compressing the phenotypic range. Voronoi methods and 10x native show nearly identical density profiles, with enrichment in the luminal epithelial region and depletion in populations that are better represented in the dissociated scRNA-seq (e.g. immune subtypes lost during tissue sectioning). Baysor PSC=1.0 variants are intermediate.
 
 ### Clustering in reference space
 
+<details>
+<summary><b>Reference-space Leiden clustering UMAPs</b> — click to expand</summary>
+
 ![Reference-space Leiden clustering](results/figures/ref_projection_ref_clustering.png)
 
+</details>
+
+<details>
+<summary><b>Reference-space clusters mapped to tissue</b> — click to expand</summary>
+
 ![Reference-space clusters mapped to tissue](results/figures/ref_projection_spatial.png)
+
+</details>
 
 Leiden clustering in the shared reference PCA space (resolution 1.0) produces 12–14 clusters for Voronoi methods and 10x native, but 22–25 for Baysor variants. The spatial maps confirm that reference-space clusters are biologically coherent: tissue structures (ducts, stroma, immune infiltrate) are visible across methods despite the clustering being performed in an independent coordinate system.
 
@@ -364,9 +444,19 @@ Voronoi (10x) leads with ARI 0.720 against 10x native — higher than in the own
 
 ### Cell-level displacement
 
+<details>
+<summary><b>Matched-cell displacement by method</b> — click to expand</summary>
+
 ![Matched-cell displacement by method](results/figures/ref_projection_displacement.png)
 
+</details>
+
+<details>
+<summary><b>Matched-cell displacement by cell type</b> — click to expand</summary>
+
 ![Matched-cell displacement by cell type](results/figures/ref_projection_displacement_by_ct.png)
+
+</details>
 
 | Method | Matched cells | Median displacement |
 | --- | ---: | ---: |
@@ -394,9 +484,19 @@ No, at least not within the Voronoi family. CellPose and StarDist agree with eac
 
 ## Cell size and disagreement
 
+<details>
+<summary><b>Cell size vs. disagreement (Hungarian)</b> — click to expand</summary>
+
 ![Cell size vs. disagreement - Hungarian](results/figures/cell_size_disagreement.png)
 
+</details>
+
+<details>
+<summary><b>Cell size vs. disagreement (Argmax)</b> — click to expand</summary>
+
 ![Cell size vs. disagreement - argmax](results/figures/cell_size_disagreement_argmax.png)
+
+</details>
 
 | Comparison | Median area (agree) | Median area (disagree) | p |
 | --- | --- | --- | --- |
