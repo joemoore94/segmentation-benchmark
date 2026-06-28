@@ -308,6 +308,42 @@ All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55%
 
 ---
 
+## Reference transcriptome projection
+
+The phenotypic landscape distortion analysis above uses a PCA space fit on 10x native, so the coordinate system is itself a segmentation output. To test whether method choice shifts cells in a segmentation-independent reference, PCA is fit on companion scRNA-seq from the same tissue blocks (GSE243275, 3' chemistry, 7,329 cells after QC) subsetted to the 374 Xenium panel genes present in both datasets. Each segmentation method's cells are then projected into this reference PCA space (30 PCs, 62% variance explained), clustered via Leiden in the shared reference embedding, and compared.
+
+![Xenium cells projected into scRNA-seq reference UMAP](results/figures/ref_projection_umap.png)
+
+![Density distortion vs. scRNA-seq reference](results/figures/ref_projection_density.png)
+
+All methods project into the same regions of the scRNA-seq reference landscape, but Baysor without a prior collapses into a narrow band — consistent with its lower transcript-per-cell counts compressing the phenotypic range. Voronoi methods and 10x native show nearly identical density profiles, with enrichment in the luminal epithelial region and depletion in populations that are better represented in the dissociated scRNA-seq (e.g. immune subtypes lost during tissue sectioning). Baysor PSC=1.0 variants are intermediate.
+
+### Clustering in reference space
+
+![Reference-space Leiden clustering](results/figures/ref_projection_ref_clustering.png)
+
+![Reference-space clusters mapped to tissue](results/figures/ref_projection_spatial.png)
+
+Leiden clustering in the shared reference PCA space (resolution 1.0) produces 12–14 clusters for Voronoi methods and 10x native, but 22–25 for Baysor variants. The spatial maps confirm that reference-space clusters are biologically coherent: tissue structures (ducts, stroma, immune infiltrate) are visible across methods despite the clustering being performed in an independent coordinate system.
+
+<p align="center"><img src="results/figures/ref_projection_ari.png" alt="Pairwise ARI in reference PCA space" width="600"></p>
+
+| Method | Ref-space clusters | ARI vs 10x native |
+| --- | ---: | ---: |
+| Voronoi (CP) | 12 | 0.659 |
+| Voronoi (SD) | 13 | 0.649 |
+| Voronoi (M) | 13 | 0.650 |
+| Voronoi (10x) | 13 | 0.720 |
+| Baysor | 23 | 0.191 |
+| Baysor (CP prior 1.0) | 22 | 0.380 |
+| Baysor (SD prior 1.0) | 25 | 0.401 |
+| Baysor (M prior 1.0) | 25 | 0.401 |
+| Baysor (10x prior 1.0) | 24 | 0.387 |
+
+Voronoi (10x) leads with ARI 0.720 against 10x native — higher than in the own-space analysis (0.592) — because the shared reference PCA removes the coordinate-system bias that inflates disagreement when each method builds its own PCA. Within the Voronoi family, agreement is tight (0.65–0.73), and within Baysor PSC=1.0 variants it reaches 0.59–0.71, confirming that expansion-strategy families produce internally consistent cell state assignments even in an external coordinate system. Baysor without a prior remains isolated (ARI 0.19 with 10x native), and the gap between prior-free Baysor and PSC=1.0 variants (0.19 vs 0.38–0.40) is larger in reference space than in own-space clustering, suggesting that the density-only model's deviations from morphological methods reflect genuine shifts in recovered cell state rather than coordinate-system artifacts.
+
+---
+
 ## Pairwise method agreement
 
 <p align="center"><img src="results/figures/pairwise_consensus.png" alt="Pairwise ARI between all segmentation methods" width="600"></p>
