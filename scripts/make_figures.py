@@ -434,6 +434,88 @@ def fig_de_volcano() -> None:
         plt.close(fig)
 
 
+def fig_spatial_morans_dotplot() -> None:
+    """Dumbbell plot of Global Moran's I (Hungarian vs Argmax) for all methods."""
+    import json
+
+    ALL_METHODS_ORDERED = [
+        "cellpose", "stardist", "mesmer", "10x_ranger",
+        "voronoi", "voronoi_stardist", "voronoi_mesmer", "voronoi_10x_ranger",
+        "baysor", "baysor_prior",
+        "baysor_prior_c08", "baysor_prior_c10",
+        "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
+        "baysor_10x_ranger_prior_c10",
+    ]
+
+    rows = []
+    for m in ALL_METHODS_ORDERED:
+        h_path = TABLES_DIR / f"disagreement_spatial_10x_{m}.json"
+        a_path = TABLES_DIR / f"disagreement_spatial_10x_{m}_argmax.json"
+        if not h_path.exists() or not a_path.exists():
+            continue
+        with open(h_path) as f:
+            h = json.load(f)
+        with open(a_path) as f:
+            a = json.load(f)
+        rows.append({
+            "method": METHOD_LABELS.get(m, m),
+            "hungarian": h["morans_i"],
+            "argmax": a["morans_i"],
+        })
+
+    if not rows:
+        return
+
+    df = pd.DataFrame(rows)
+    n = len(df)
+    y = np.arange(n)
+
+    fig, ax = plt.subplots(figsize=(8, max(5, n * 0.4)))
+
+    for i in range(n):
+        ax.plot([df.iloc[i]["hungarian"], df.iloc[i]["argmax"]], [y[i], y[i]],
+                color="#8fbc8f", linewidth=2, zorder=1)
+
+    ax.scatter(df["hungarian"], y, s=60, c="#55A868", marker="s",
+               edgecolors="black", linewidth=0.5, zorder=2, label="Hungarian")
+    ax.scatter(df["argmax"], y, s=60, c="#8fbc8f", marker="D",
+               edgecolors="black", linewidth=0.5, zorder=2, label="Argmax")
+
+    for i in range(n):
+        h_val = df.iloc[i]["hungarian"]
+        a_val = df.iloc[i]["argmax"]
+        if abs(h_val - a_val) < 0.015:
+            left, right = (h_val, a_val) if h_val < a_val else (a_val, h_val)
+            left_is_h = h_val <= a_val
+            ax.annotate(f"{left:.3f}", (left, y[i]),
+                        textcoords="offset points", xytext=(-8, 0),
+                        ha="right", va="center", fontsize=7, color="#555555")
+            ax.annotate(f"{right:.3f}", (right, y[i]),
+                        textcoords="offset points", xytext=(8, 0),
+                        ha="left", va="center", fontsize=7, color="#555555")
+        else:
+            ax.annotate(f"{h_val:.3f}", (h_val, y[i]),
+                        textcoords="offset points", xytext=(0, 8),
+                        ha="center", fontsize=7, color="#555555")
+            ax.annotate(f"{a_val:.3f}", (a_val, y[i]),
+                        textcoords="offset points", xytext=(0, -12),
+                        ha="center", fontsize=7, color="#555555")
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(df["method"])
+    ax.set_ylim(n - 0.5, -0.5)
+    ax.set_xlabel("Global Moran's I")
+    ax.set_title("Spatial autocorrelation of disagreement vs. 10x native",
+                 fontweight="bold")
+    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=9, framealpha=0.9)
+    ax.grid(True, axis="x", alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "spatial_morans_dotplot.png", dpi=DPI,
+                bbox_inches="tight")
+    plt.close(fig)
+
+
 def fig_cluster_confusion() -> None:
     from matplotlib.patches import Rectangle
 
@@ -560,6 +642,7 @@ def main() -> None:
     confusion_csvs = [f"cell_type_confusion_10x_{m}.csv" for m, _ in _available_comparisons()]
     if any((TABLES_DIR / f).exists() for f in confusion_csvs):
         fig_cluster_confusion()
+    fig_spatial_morans_dotplot()
     print(f"wrote figures to {FIGURES_DIR}")
 
 

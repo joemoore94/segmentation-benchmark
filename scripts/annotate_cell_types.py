@@ -219,7 +219,7 @@ def fig_dotplot_canonical(adata: ad.AnnData) -> None:
     n_markers = len(marker_order)
     n_clusters = len(cluster_order)
 
-    fig, ax = plt.subplots(figsize=(max(14, n_clusters * 1.1), max(16, n_markers * 0.45)))
+    fig, ax = plt.subplots(figsize=(max(10, n_clusters * 0.8), max(12, n_markers * 0.32)))
 
     for i, marker in enumerate(marker_order):
         for j, cluster in enumerate(cluster_order):
@@ -227,7 +227,7 @@ def fig_dotplot_canonical(adata: ad.AnnData) -> None:
             color_val = float(mean_scaled.loc[cluster, marker])
             ax.scatter(
                 j, n_markers - 1 - i,
-                s=max(size * 8, 1),
+                s=max(size * 3, 1),
                 c=[plt.cm.Reds(color_val)],
                 edgecolors="black", linewidth=0.3,
             )
@@ -274,10 +274,10 @@ def fig_dotplot_canonical(adata: ad.AnnData) -> None:
 
     # Size legend
     for pct_val, label in [(20, "20%"), (50, "50%"), (80, "80%"), (100, "100%")]:
-        ax.scatter([], [], s=pct_val * 8, c="gray", edgecolors="black",
+        ax.scatter([], [], s=pct_val * 3, c="gray", edgecolors="black",
                    linewidth=0.3, label=label)
-    ax.legend(title="% expressing", loc="lower right", fontsize=11,
-              title_fontsize=12, framealpha=0.9, labelspacing=1.2)
+    ax.legend(title="% expressing", loc="upper left", bbox_to_anchor=(1.01, 0.15),
+              fontsize=10, title_fontsize=11, framealpha=0.9, labelspacing=1.2)
 
     ax.set_title("Canonical marker expression by Leiden cluster (10x native)",
                  fontweight="bold", pad=60)

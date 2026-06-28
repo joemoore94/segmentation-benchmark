@@ -103,34 +103,6 @@ Per-cell expression correlation is high for all methods (median 0.79-0.96). Voro
 
 ---
 
-## Cell type annotation
-
-Cell types are annotated on the 10x native segmentation only. Leiden clustering (resolution 1.0) partitions the 10x native cells into 15 clusters, then differential expression (DE) identifies each cluster's distinguishing genes. DE compares the expression of every gene in the cells of one cluster against all other cells using a Wilcoxon rank-sum test, ranking genes by how strongly and specifically they are upregulated in that cluster. The top DE genes are matched to canonical breast tissue markers to assign a cell type label. These 10x native annotations serve as the reference for all downstream cross-method comparisons. The raw Xenium output carries no cell type labels - only coordinates and transcript counts.
-
-| Cluster | Cells | Annotation |
-| ---: | ---: | --- |
-| 0 | 2,799 | Luminal epithelial |
-| 1 | 2,926 | Luminal epithelial |
-| 2 | 335 | Macrophages |
-| 3 | 902 | Luminal epithelial |
-| 4 | 1,025 | Myoepithelial |
-| 5 | 2,861 | T cells |
-| 6 | 758 | B cells |
-| 7 | 2,612 | Macrophages |
-| 8 | 1,921 | Luminal epithelial |
-| 9 | 3,314 | CAFs |
-| 10 | 870 | Smooth muscle |
-| 11 | 1,508 | Endothelial |
-| 12 | 266 | Plasma cells |
-| 13 | 1,333 | CAFs |
-| 14 | 199 | Adipocytes |
-
-The dotplot below shows which canonical markers are expressed in each cluster, confirming the assignments. Dot size encodes the percentage of cells in the cluster expressing the marker; color encodes mean expression level. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant, cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic).
-
-![Canonical marker expression by Leiden cluster](results/figures/annotation_dotplot_flipped.png)
-
----
-
 ## Clustering comparison
 
 Leiden clustering runs independently on each method's cells (normalize → PCA → neighbors → Leiden at resolution 1.0). Cluster labels are aligned across methods before computing confusion matrices and disagreement, using two algorithms: Hungarian (one-to-one) and argmax (many-to-one).
@@ -194,6 +166,34 @@ Hungarian produces min(n_10x, n_method) matched pairs; when cluster counts diffe
 
 Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading. Nuclear-only methods cluster at ARI 0.504-0.557, and Baysor without a prior is lowest at 0.305. Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
 
+---
+
+## Cell type annotation
+
+Cell types are annotated on the 10x native segmentation only. Leiden clustering (resolution 1.0) partitions the 10x native cells into 15 clusters, then differential expression (DE) identifies each cluster's distinguishing genes. DE compares the expression of every gene in the cells of one cluster against all other cells using a Wilcoxon rank-sum test, ranking genes by how strongly and specifically they are upregulated in that cluster. The top DE genes are matched to canonical breast tissue markers to assign a cell type label. These 10x native annotations serve as the reference for all downstream cross-method comparisons. The raw Xenium output carries no cell type labels - only coordinates and transcript counts.
+
+| Cluster | Cells | Annotation |
+| ---: | ---: | --- |
+| 0 | 2,799 | Luminal epithelial |
+| 1 | 2,926 | Luminal epithelial |
+| 2 | 335 | Macrophages |
+| 3 | 902 | Luminal epithelial |
+| 4 | 1,025 | Myoepithelial |
+| 5 | 2,861 | T cells |
+| 6 | 758 | B cells |
+| 7 | 2,612 | Macrophages |
+| 8 | 1,921 | Luminal epithelial |
+| 9 | 3,314 | CAFs |
+| 10 | 870 | Smooth muscle |
+| 11 | 1,508 | Endothelial |
+| 12 | 266 | Plasma cells |
+| 13 | 1,333 | CAFs |
+| 14 | 199 | Adipocytes |
+
+The dotplot below shows which canonical markers are expressed in each cluster, confirming the assignments. Dot size encodes the percentage of cells in the cluster expressing the marker; color encodes mean expression level. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant, cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic).
+
+![Canonical marker expression by Leiden cluster](results/figures/annotation_dotplot_flipped.png)
+
 ## Spatial structure of disagreement
 
 ![Spatial autocorrelation of disagreement - all methods](results/figures/spatial_morans_dotplot.png)
@@ -203,7 +203,21 @@ Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading.
 
 ![Disagreement mapped spatially - Hungarian](results/figures/disagreement_spatial_map.png)
 
+</details>
+
+<details>
+<summary><b>Spatial disagreement maps (Argmax alignment)</b> - click to expand</summary>
+
+![Disagreement mapped spatially - argmax](results/figures/disagreement_spatial_map_argmax.png)
+
+</details>
+
+<details>
+<summary><b>LISA hotspot/coldspot maps (Hungarian alignment)</b> - click to expand</summary>
+
 ![LISA hotspot/coldspot maps - Hungarian](results/figures/local_morans_map.png)
+
+</details>
 
 | Comparison | Global Moran's I | HH hotspots | LL coldspots |
 | --- | --- | --- | --- |
@@ -215,30 +229,9 @@ Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading.
 | 10x native vs. Voronoi (M) | 0.161 | 9.5% | 20.4% |
 | 10x native vs. Baysor | 0.033 | 21.4% | 17.5% |
 
-</details>
-
-<details>
-<summary><b>Spatial disagreement maps (Argmax alignment)</b> - click to expand</summary>
-
-![Disagreement mapped spatially - argmax](results/figures/disagreement_spatial_map_argmax.png)
-
-![LISA hotspot/coldspot maps - argmax](results/figures/local_morans_map_argmax.png)
-
-| Comparison | Global Moran's I | HH hotspots | LL coldspots |
-| --- | --- | --- | --- |
-| 10x native vs. CellPose | 0.189 | 21.5% | 29.3% |
-| 10x native vs. StarDist | 0.221 | 18.6% | 14.7% |
-| 10x native vs. Mesmer | 0.098 | 16.6% | 31.4% |
-| 10x native vs. Voronoi (CP) | 0.076 | 11.1% | 27.2% |
-| 10x native vs. Voronoi (SD) | 0.229 | 18.7% | 25.6% |
-| 10x native vs. Voronoi (M) | 0.161 | 9.5% | 20.4% |
-| 10x native vs. Baysor | 0.079 | 26.1% | 26.2% |
-
-</details>
-
 Nuclear and Voronoi disagreements are spatially structured (Moran's I 0.076-0.215 under Hungarian), concentrated in luminal epithelial territory. Mesmer has the most agreement coldspots (32.5% LL); Voronoi (Mesmer) has the fewest disagreement hotspots (9.5% HH), consistent with residual errors being diffuse boundary noise. Under Hungarian alignment Baysor's near-zero Moran's I (0.033) reflects noise from forced cluster mismatches; under argmax alignment Moran's I increases to 0.079, revealing that Baysor's genuine disagreements are spatially structured - just less so than morphological methods.
 
-*LISA labels*: HH = disagreement hotspot; LL = agreement coldspot. Global Moran's I summarises spatial autocorrelation of the disagree flag (0 = random, 1 = fully clustered).
+*LISA labels*: Local Moran's I (Anselin 1995) decomposes the global statistic to a per-cell level. Each cell's local I measures whether it and its k-nearest spatial neighbors share similar disagree/agree status. Cells are classified by the sign of their local I and their own value: HH = disagreeing cell surrounded by disagreeing neighbors (hotspot), LL = agreeing cell surrounded by agreeing neighbors (coldspot), HL/LH = spatial outliers. Global Moran's I summarises spatial autocorrelation of the disagree flag across the whole ROI (0 = random, 1 = fully clustered).
 
 ---
 
