@@ -106,54 +106,85 @@ def build_evidence_table(adata: ad.AnnData, n_top: int = 8) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def fig_evidence_heatmap(adata: ad.AnnData, evidence: pd.DataFrame) -> None:
-    """Heatmap of mean expression of top DE genes per cluster."""
+def fig_marker_detection(adata: ad.AnnData) -> None:
+    """Stacked bar chart: fraction of cells in each cluster expressing canonical markers."""
     apply_style()
 
-    all_top_genes: list[str] = []
-    for _, row in evidence.iterrows():
-        genes = [g.split(" (")[0] for g in row["top_de_genes"].split(", ")]
-        for g in genes:
-            if g not in all_top_genes:
-                all_top_genes.append(g)
+    panel_genes = set(adata.var_names)
 
-    X = adata[:, all_top_genes].X
+    # Pick top 2-3 most specific markers per cell type
+    KEY_MARKERS: dict[str, list[str]] = {
+        "Luminal epithelial": ["EPCAM", "GATA3", "ESR1"],
+        "Myoepithelial": ["KRT14", "ACTA2"],
+        "T cells": ["CD3E", "TRAC", "CCL5"],
+        "B cells": ["MS4A1", "CD79A"],
+        "Plasma cells": ["MZB1", "SLAMF7"],
+        "Macrophages": ["CD14", "LYZ", "FCER1G"],
+        "CAFs": ["LUM", "SFRP4", "PDGFRA"],
+        "Smooth muscle": ["MYH11", "RGS5"],
+        "Endothelial": ["PECAM1", "VWF"],
+        "Adipocytes": ["ADIPOQ", "PLIN1"],
+    }
+
+    all_markers = []
+    marker_to_ct = {}
+    for ct, genes in KEY_MARKERS.items():
+        for g in genes:
+            if g in panel_genes:
+                all_markers.append(g)
+                marker_to_ct[g] = ct
+
+    X = adata[:, all_markers].X
     if hasattr(X, "toarray"):
         X = X.toarray()
-    expr = pd.DataFrame(X, columns=all_top_genes, index=adata.obs_names)
-    expr["cluster"] = adata.obs["leiden"].values
+    detected = pd.DataFrame(
+        (X > 0).astype(float), columns=all_markers, index=adata.obs_names,
+    )
+    detected["cluster"] = adata.obs["leiden"].values
 
-    cluster_means = expr.groupby("cluster").mean()
-    cluster_means = cluster_means.loc[
-        sorted(cluster_means.index, key=int)
-    ]
+    pct = detected.groupby("cluster").mean() * 100
+    pct = pct.loc[sorted(pct.index, key=int)]
 
     labels = [
-        f"{c}: {evidence.loc[evidence['cluster'] == c, 'annotation'].values[0]}"
-        for c in cluster_means.index
+        f"{c}: {CLUSTER_ANNOTATIONS.get(c, '?')}" for c in pct.index
     ]
 
-    zscore = (cluster_means - cluster_means.mean()) / cluster_means.std().replace(0, 1)
-
-    fig, ax = plt.subplots(figsize=(max(20, len(all_top_genes) * 0.5), 12))
+    fig, ax = plt.subplots(figsize=(22, 12))
     sns.heatmap(
-        zscore, cmap="RdBu_r", center=0, linewidths=0.3,
-        yticklabels=labels, ax=ax,
-        cbar_kws={"label": "Z-score (mean expression)"},
+        pct, annot=True, fmt=".0f", cmap="YlOrRd",
+        linewidths=0.5, ax=ax, vmin=0, vmax=100,
+        yticklabels=labels, annot_kws={"size": 11},
+        cbar_kws={"label": "% cells expressing marker"},
     )
-    ax.set_title("Top DE genes per cluster (z-scored mean expression)",
+    ax.set_title("Canonical marker detection rate by Leiden cluster (10x native)",
                  fontweight="bold")
-    ax.set_xlabel("Gene")
+    ax.set_xlabel("")
     ax.set_ylabel("")
-    plt.xticks(rotation=60, ha="right", fontsize=10)
+
+    # Add cell type group labels along the top
+    prev_ct = None
+    start = 0
+    for i, g in enumerate(all_markers):
+        ct = marker_to_ct[g]
+        if ct != prev_ct:
+            if prev_ct is not None:
+                mid = (start + i) / 2
+                ax.text(mid, -0.8, prev_ct, ha="center", va="bottom",
+                        fontsize=11, fontweight="bold", rotation=30)
+            start = i
+            prev_ct = ct
+    mid = (start + len(all_markers)) / 2
+    ax.text(mid, -0.8, prev_ct, ha="center", va="bottom",
+            fontsize=11, fontweight="bold", rotation=30)
+
+    plt.xticks(rotation=45, ha="right")
     fig.tight_layout()
-    fig.savefig(FIGURES / "annotation_evidence_heatmap.png", dpi=DPI,
-                bbox_inches="tight")
+    fig.savefig(FIGURES / "annotation_dotplot.png", dpi=DPI, bbox_inches="tight")
     plt.close(fig)
 
 
-def fig_dotplot(adata: ad.AnnData) -> None:
-    """Dotplot of canonical markers grouped by cell type."""
+def fig_dotplot_canonical(adata: ad.AnnData) -> None:
+    """Scanpy dotplot of canonical markers, clusters on x-axis."""
     apply_style()
 
     panel_genes = set(adata.var_names)
@@ -163,12 +194,20 @@ def fig_dotplot(adata: ad.AnnData) -> None:
         if present:
             marker_dict[ct] = present
 
-    fig = sc.pl.dotplot(
-        adata, var_names=marker_dict, groupby="leiden",
-        standard_scale="var", show=False, return_fig=True,
-        figsize=(22, 10),
+    adata.obs["cluster_label"] = adata.obs["leiden"].map(
+        lambda c: f"{c}: {CLUSTER_ANNOTATIONS.get(c, '?')}"
     )
-    fig.savefig(FIGURES / "annotation_dotplot.png", dpi=DPI, bbox_inches="tight")
+    order = [f"{c}: {CLUSTER_ANNOTATIONS.get(c, '?')}"
+             for c in sorted(adata.obs["leiden"].unique(), key=int)]
+
+    fig = sc.pl.dotplot(
+        adata, var_names=marker_dict, groupby="cluster_label",
+        categories_order=order,
+        standard_scale="var", swap_axes=True, show=False, return_fig=True,
+        figsize=(16, 22),
+    )
+    fig.savefig(FIGURES / "annotation_dotplot_flipped.png", dpi=DPI,
+                bbox_inches="tight")
     plt.close()
 
 
@@ -200,11 +239,11 @@ def main() -> None:
         print()
 
     print("Generating figures...")
-    fig_evidence_heatmap(adata, evidence)
-    print("  Saved annotation_evidence_heatmap.png")
-
-    fig_dotplot(adata)
+    fig_marker_detection(adata)
     print("  Saved annotation_dotplot.png")
+
+    fig_dotplot_canonical(adata)
+    print("  Saved annotation_dotplot_flipped.png")
 
     print("Done.")
 

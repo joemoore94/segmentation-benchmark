@@ -105,7 +105,7 @@ Per-cell expression correlation is high for all methods (median 0.79-0.96). Voro
 
 ## Cell type annotation
 
-Cell types are assigned at the cluster level using Leiden clustering and Wilcoxon differential expression. Each cluster is compared against all other cells to identify its most upregulated genes; the top DE genes are then matched to canonical breast tissue markers to assign a cell type label. The raw data carries no cell type annotations — the Xenium output is coordinates and transcript counts only.
+Cell types are annotated on the 10x native segmentation only. Leiden clustering (resolution 1.0) partitions the 10x native cells into 15 clusters, then differential expression (DE) identifies each cluster's distinguishing genes. DE compares the expression of every gene in the cells of one cluster against all other cells using a Wilcoxon rank-sum test, ranking genes by how strongly and specifically they are upregulated in that cluster. The top DE genes are matched to canonical breast tissue markers to assign a cell type label. These 10x native annotations serve as the reference for all downstream cross-method comparisons. The raw Xenium output carries no cell type labels - only coordinates and transcript counts.
 
 | Cluster | Cells | Annotation | Top DE genes | Canonical markers matched |
 | ---: | ---: | --- | --- | --- |
@@ -129,7 +129,7 @@ Cell types are assigned at the cluster level using Leiden clustering and Wilcoxo
 
 Every cluster's top DE genes include the expected canonical markers for its assigned cell type. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant (progesterone receptor), cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic/activated).
 
-![Annotation evidence heatmap](results/figures/annotation_evidence_heatmap.png)
+![Canonical marker dotplot](results/figures/annotation_dotplot_flipped.png)
 
 ---
 
