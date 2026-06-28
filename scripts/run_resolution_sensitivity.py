@@ -43,9 +43,12 @@ RESOLUTIONS = [0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.5, 2.0]
 _TICK_LABELS = {r: str(r) for r in [0.3, 0.5, 0.8, 1.0, 1.5, 2.0]}
 
 _ALL_METHODS = [
-    "cellpose", "stardist", "mesmer",
-    "voronoi", "voronoi_stardist", "voronoi_mesmer",
-    "baysor", "baysor_prior_c08", "baysor_prior_c10", "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10", "bidcell", "segger",
+    "cellpose", "stardist", "mesmer", "10x_ranger",
+    "voronoi", "voronoi_stardist", "voronoi_mesmer", "voronoi_10x_ranger",
+    "baysor", "baysor_prior", "baysor_prior_c08", "baysor_prior_c10",
+    "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
+    "baysor_10x_ranger_prior_c10",
+    "bidcell", "segger",
 ]
 METHODS = [(k, METHOD_LABELS[k]) for k in _ALL_METHODS]
 
