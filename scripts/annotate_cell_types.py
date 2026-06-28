@@ -269,14 +269,15 @@ def fig_dotplot_canonical(adata: ad.AnnData) -> None:
         ax.plot([bracket_x, bracket_x + 0.15], [y_bot, y_bot],
                 color="black", lw=2, clip_on=False)
 
-        ax.text(bracket_x - 0.2, y_mid, ct_name, ha="right", va="center",
+        ax.text(bracket_x - 0.3, y_mid, ct_name, ha="right", va="center",
                 fontsize=12, fontweight="bold", clip_on=False)
 
     # Size legend
     for pct_val, label in [(20, "20%"), (50, "50%"), (80, "80%"), (100, "100%")]:
         ax.scatter([], [], s=pct_val * 3, c="gray", edgecolors="black",
                    linewidth=0.3, label=label)
-    ax.legend(title="% expressing", loc="upper left", bbox_to_anchor=(1.01, 0.15),
+    ax.legend(title="% expressing", loc="upper center",
+              bbox_to_anchor=(0.5, -0.03), ncol=4,
               fontsize=10, title_fontsize=11, framealpha=0.9, labelspacing=1.2)
 
     ax.set_title("Canonical marker expression by Leiden cluster (10x native)",
@@ -284,7 +285,7 @@ def fig_dotplot_canonical(adata: ad.AnnData) -> None:
     ax.grid(True, alpha=0.15)
 
     fig.tight_layout()
-    fig.subplots_adjust(left=0.32)
+    fig.subplots_adjust(left=0.35)
     fig.savefig(FIGURES / "annotation_dotplot_flipped.png", dpi=DPI,
                 bbox_inches="tight")
     plt.close(fig)

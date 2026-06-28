@@ -470,7 +470,7 @@ def fig_spatial_morans_dotplot() -> None:
     n = len(df)
     y = np.arange(n)
 
-    fig, ax = plt.subplots(figsize=(8, max(5, n * 0.4)))
+    fig, ax = plt.subplots(figsize=(10, max(6, n * 0.5)))
 
     for i in range(n):
         ax.plot([df.iloc[i]["hungarian"], df.iloc[i]["argmax"]], [y[i], y[i]],
@@ -506,7 +506,7 @@ def fig_spatial_morans_dotplot() -> None:
     ax.set_ylim(n - 0.5, -0.5)
     ax.set_xlabel("Global Moran's I")
     ax.set_title("Spatial autocorrelation of disagreement vs. 10x native",
-                 fontweight="bold")
+                 fontweight="bold", fontsize=13)
     ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=9, framealpha=0.9)
     ax.grid(True, axis="x", alpha=0.3)
 
