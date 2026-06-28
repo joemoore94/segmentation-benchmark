@@ -13,6 +13,8 @@ results/tables/*
 !results/figures/*.png
 !results/figures/umap/
 !results/figures/umap/*.png
+!results/figures/lum_ep_subtypes/
+!results/figures/lum_ep_subtypes/*.png
 
 # Python
 __pycache__/
