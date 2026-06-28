@@ -107,27 +107,27 @@ Per-cell expression correlation is high for all methods (median 0.79-0.96). Voro
 
 Cell types are annotated on the 10x native segmentation only. Leiden clustering (resolution 1.0) partitions the 10x native cells into 15 clusters, then differential expression (DE) identifies each cluster's distinguishing genes. DE compares the expression of every gene in the cells of one cluster against all other cells using a Wilcoxon rank-sum test, ranking genes by how strongly and specifically they are upregulated in that cluster. The top DE genes are matched to canonical breast tissue markers to assign a cell type label. These 10x native annotations serve as the reference for all downstream cross-method comparisons. The raw Xenium output carries no cell type labels - only coordinates and transcript counts.
 
-| Cluster | Cells | Annotation | Top DE genes | Canonical markers matched |
-| ---: | ---: | --- | --- | --- |
-| 0 | 2,799 | Luminal epithelial | FLNB (+2.9), MLPH (+3.1), ESR1 (+3.0), ANKRD30A (+2.7), FOXA1 (+2.6) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
-| 1 | 2,926 | Luminal epithelial | MYBPC1 (+3.3), MUC1 (+2.9), CLIC6 (+2.7), SERPINA3 (+2.8), GATA3 (+2.7) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
-| 2 | 335 | Macrophages | FCER1G (+2.4), LYZ (+2.1), FCGR3A (+2.8), HAVCR2 (+2.9), CXCL16 (+2.1) | CD14, CD68, CD163, AIF1, LYZ, FCER1G |
-| 3 | 902 | Luminal epithelial | SERPINA3 (+2.7), MUC1 (+2.5), TPD52 (+2.2), ENAH (+1.9), S100A14 (+2.2) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
-| 4 | 1,025 | Myoepithelial | MYLK (+4.0), DST (+3.4), ACTA2 (+2.5), KRT14 (+6.4), MYH11 (+3.4) | KRT14, KRT5, ACTA2, MYLK, DST |
-| 5 | 2,861 | T cells | CD3E (+5.3), TRAC (+4.6), CD96 (+5.3), CCL5 (+4.6), GZMA (+5.0) | CD3E, CD3G, TRAC, TRBC1, CD96, IL7R, CCL5 |
-| 6 | 758 | B cells | MS4A1 (+7.3), BANK1 (+6.4), CD79A (+5.1), CD52 (+3.6), SELL (+4.5) | MS4A1, CD79A, CD79B, BANK1, CD19 |
-| 7 | 2,612 | Macrophages | FCER1G (+3.5), LYZ (+3.5), CD14 (+3.7), AIF1 (+2.9), FGL2 (+3.2) | CD14, CD68, CD163, AIF1, LYZ, FCER1G |
-| 8 | 1,921 | Luminal epithelial | TACSTD2 (+2.5), KRT7 (+3.0), GATA3 (+2.4), STC2 (+5.0), CCND1 (+1.9) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
-| 9 | 3,314 | CAFs | SFRP4 (+3.8), LUM (+3.1), CCDC80 (+3.1), FBLN1 (+3.2), THBS2 (+3.0) | LUM, SFRP4, FBLN1, CCDC80, THBS2, MMP2, PDGFRA |
-| 10 | 870 | Smooth muscle | ACTA2 (+3.4), MYLK (+3.4), MYH11 (+5.5), RGS5 (+3.7), CAV1 (+3.0) | MYH11, ACTA2, MYLK, RGS5, CAV1 |
-| 11 | 1,508 | Endothelial | AQP1 (+5.5), PECAM1 (+4.6), VWF (+6.2), CD93 (+4.3), CLEC14A (+6.4) | PECAM1, VWF, AQP1, CD93, CLEC14A |
-| 12 | 266 | Plasma cells | MZB1 (+7.1), SLAMF7 (+5.8), TENT5C (+5.7), ITM2C (+4.7), SEC11C (+4.2) | MZB1, SLAMF7, TENT5C, TNFRSF17 |
-| 13 | 1,333 | CAFs | POSTN (+3.5), LUM (+2.4), AEBP1 (+2.2), CTHRC1 (+2.2), PDGFRB (+2.2) | LUM, SFRP4, FBLN1, CCDC80, THBS2, MMP2, PDGFRA |
-| 14 | 199 | Adipocytes | ADIPOQ (+8.7), LPL (+7.0), G0S2 (+8.0), PLIN1 (+7.9), PPARG (+4.4) | ADIPOQ, PLIN1, PPARG, LPL, G0S2 |
+| Cluster | Cells | Annotation |
+| ---: | ---: | --- |
+| 0 | 2,799 | Luminal epithelial |
+| 1 | 2,926 | Luminal epithelial |
+| 2 | 335 | Macrophages |
+| 3 | 902 | Luminal epithelial |
+| 4 | 1,025 | Myoepithelial |
+| 5 | 2,861 | T cells |
+| 6 | 758 | B cells |
+| 7 | 2,612 | Macrophages |
+| 8 | 1,921 | Luminal epithelial |
+| 9 | 3,314 | CAFs |
+| 10 | 870 | Smooth muscle |
+| 11 | 1,508 | Endothelial |
+| 12 | 266 | Plasma cells |
+| 13 | 1,333 | CAFs |
+| 14 | 199 | Adipocytes |
 
-![Canonical marker dotplot by Leiden cluster](results/figures/annotation_dotplot.png)
+The detection rate heatmap and dotplot below show which canonical markers are expressed in each cluster, confirming the assignments. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant, cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic).
 
-Every cluster's top DE genes include the expected canonical markers for its assigned cell type. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant (progesterone receptor), cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic/activated).
+![Canonical marker detection rate by Leiden cluster](results/figures/annotation_dotplot.png)
 
 ![Canonical marker dotplot](results/figures/annotation_dotplot_flipped.png)
 
