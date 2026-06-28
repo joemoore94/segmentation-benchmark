@@ -34,8 +34,6 @@ Across both expansion strategies, Voronoi consistently outperforms Baysor PSC=1.
 
 Nuclear-only methods capture too few transcripts for meaningful downstream comparison and are excluded from figures past the recovery section.
 
-<!-- Project 2 (label-transfer-benchmark): uses this project's segmented cells to evaluate scRNA-seq label-transfer reliability. Add link once repo is public. -->
-
 ## Dataset
 
 **Xenium FFPE Human Breast (Custom Add-on Panel)**, Janesick et al. 2023, *Nature Communications* ([dataset page](https://www.10xgenomics.com/datasets/xenium-ffpe-human-breast-with-custom-add-on-panel-1-standard)). Invasive ductal carcinoma; matched scRNA-seq + Visium from the same tissue blocks: GEO [GSE243275](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE243275).
@@ -105,6 +103,36 @@ Per-cell expression correlation is high for all methods (median 0.79-0.96). Voro
 
 ---
 
+## Cell type annotation
+
+Cell types are assigned at the cluster level using Leiden clustering and Wilcoxon differential expression. Each cluster is compared against all other cells to identify its most upregulated genes; the top DE genes are then matched to canonical breast tissue markers to assign a cell type label. The raw data carries no cell type annotations — the Xenium output is coordinates and transcript counts only.
+
+| Cluster | Cells | Annotation | Top DE genes | Canonical markers matched |
+| ---: | ---: | --- | --- | --- |
+| 0 | 2,799 | Luminal epithelial | FLNB (+2.9), MLPH (+3.1), ESR1 (+3.0), ANKRD30A (+2.7), FOXA1 (+2.6) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
+| 1 | 2,926 | Luminal epithelial | MYBPC1 (+3.3), MUC1 (+2.9), CLIC6 (+2.7), SERPINA3 (+2.8), GATA3 (+2.7) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
+| 2 | 335 | Macrophages | FCER1G (+2.4), LYZ (+2.1), FCGR3A (+2.8), HAVCR2 (+2.9), CXCL16 (+2.1) | CD14, CD68, CD163, AIF1, LYZ, FCER1G |
+| 3 | 902 | Luminal epithelial | SERPINA3 (+2.7), MUC1 (+2.5), TPD52 (+2.2), ENAH (+1.9), S100A14 (+2.2) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
+| 4 | 1,025 | Myoepithelial | MYLK (+4.0), DST (+3.4), ACTA2 (+2.5), KRT14 (+6.4), MYH11 (+3.4) | KRT14, KRT5, ACTA2, MYLK, DST |
+| 5 | 2,861 | T cells | CD3E (+5.3), TRAC (+4.6), CD96 (+5.3), CCL5 (+4.6), GZMA (+5.0) | CD3E, CD3G, TRAC, TRBC1, CD96, IL7R, CCL5 |
+| 6 | 758 | B cells | MS4A1 (+7.3), BANK1 (+6.4), CD79A (+5.1), CD52 (+3.6), SELL (+4.5) | MS4A1, CD79A, CD79B, BANK1, CD19 |
+| 7 | 2,612 | Macrophages | FCER1G (+3.5), LYZ (+3.5), CD14 (+3.7), AIF1 (+2.9), FGL2 (+3.2) | CD14, CD68, CD163, AIF1, LYZ, FCER1G |
+| 8 | 1,921 | Luminal epithelial | TACSTD2 (+2.5), KRT7 (+3.0), GATA3 (+2.4), STC2 (+5.0), CCND1 (+1.9) | ESR1, FOXA1, GATA3, PGR, MUC1, ANKRD30A, EPCAM, KRT7, KRT8, TACSTD2, CCND1 |
+| 9 | 3,314 | CAFs | SFRP4 (+3.8), LUM (+3.1), CCDC80 (+3.1), FBLN1 (+3.2), THBS2 (+3.0) | LUM, SFRP4, FBLN1, CCDC80, THBS2, MMP2, PDGFRA |
+| 10 | 870 | Smooth muscle | ACTA2 (+3.4), MYLK (+3.4), MYH11 (+5.5), RGS5 (+3.7), CAV1 (+3.0) | MYH11, ACTA2, MYLK, RGS5, CAV1 |
+| 11 | 1,508 | Endothelial | AQP1 (+5.5), PECAM1 (+4.6), VWF (+6.2), CD93 (+4.3), CLEC14A (+6.4) | PECAM1, VWF, AQP1, CD93, CLEC14A |
+| 12 | 266 | Plasma cells | MZB1 (+7.1), SLAMF7 (+5.8), TENT5C (+5.7), ITM2C (+4.7), SEC11C (+4.2) | MZB1, SLAMF7, TENT5C, TNFRSF17 |
+| 13 | 1,333 | CAFs | POSTN (+3.5), LUM (+2.4), AEBP1 (+2.2), CTHRC1 (+2.2), PDGFRB (+2.2) | LUM, SFRP4, FBLN1, CCDC80, THBS2, MMP2, PDGFRA |
+| 14 | 199 | Adipocytes | ADIPOQ (+8.7), LPL (+7.0), G0S2 (+8.0), PLIN1 (+7.9), PPARG (+4.4) | ADIPOQ, PLIN1, PPARG, LPL, G0S2 |
+
+![Canonical marker dotplot by Leiden cluster](results/figures/annotation_dotplot.png)
+
+Every cluster's top DE genes include the expected canonical markers for its assigned cell type. Clusters 0, 1, 3, and 8 all annotate as luminal epithelial but are distinguished by different marker profiles: cluster 0 is ESR1/FOXA1-dominant (ER+ hormone-responsive), cluster 1 is PGR/MUC1-dominant (progesterone receptor), cluster 3 expresses stromal-adjacent markers (NNMT, LUM), and cluster 8 is TACSTD2/KRT7/STC2-dominant (proliferative/stress-response). Clusters 2 and 7 are both macrophage populations: cluster 2 (335 cells) expresses FCGR3A and HAVCR2 (non-classical/M2-like), while cluster 7 (2,612 cells) expresses CD14 and AIF1 (classical monocyte-derived). Clusters 9 and 13 are both CAFs: cluster 9 expresses SFRP4 and FBLN1 (matrix-producing), while cluster 13 expresses POSTN and CTHRC1 (myofibroblastic/activated).
+
+![Annotation evidence heatmap](results/figures/annotation_evidence_heatmap.png)
+
+---
+
 ## Clustering comparison
 
 Leiden clustering runs independently on each method's cells (normalize → PCA → neighbors → Leiden at resolution 1.0). Cluster labels are aligned across methods before computing confusion matrices and disagreement, using two algorithms: Hungarian (one-to-one) and argmax (many-to-one).
@@ -120,10 +148,6 @@ ARI is partition-based and does not depend on cluster alignment, so it is the sa
 ![Disagreement and Moran's I across Leiden resolutions - argmax alignment](results/figures/resolution_disagree_morans_argmax.png)
 
 Disagreement and Moran's I do depend on alignment. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
-
-<p align="center"><img src="results/figures/cluster_comparison.png" alt="Leiden clustering comparison across methods" width="600"></p>
-
-10x native and Voronoi methods converge on 14-16 clusters with median sizes above 1,000 cells. Baysor without a prior and at PSC 0.2 produce 21-24 smaller clusters, consistent with over-segmentation. At PSC 0.8-1.0, Baysor prior variants produce 20-23 clusters with higher cell counts (29,000-34,000) because the hard-locked nuclear seeds prevent merging; their median cluster sizes approach the Voronoi range.
 
 UMAP embeddings colored by aligned cluster labels illustrate how the alignment algorithm reshapes cluster identity. Baysor without a prior shows the starkest contrast: Hungarian forces 6 of its 21 clusters into empty pairings, leaving large regions unmatched (gray), while argmax lets multiple Baysor clusters map to the same reference cluster, producing coherent coloring across the manifold.
 
