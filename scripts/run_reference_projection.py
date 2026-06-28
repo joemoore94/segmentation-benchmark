@@ -416,20 +416,115 @@ def main() -> None:
     plt.close(fig)
     print("Saved ref_projection_spatial.png")
 
+    # ================================================================ FIGURE 6: matched-cell displacement
+    # For each comparison method, match cells to 10x native by nearest centroid,
+    # then measure how far the same cell moves in reference PCA space.
+    print("\nComputing matched-cell displacement in reference PCA space...")
+    from scipy.spatial import cKDTree
+
+    Z_10x = projections["10x native"]
+    xy_10x = np.column_stack([
+        adata_10x_own.obs["centroid_x"], adata_10x_own.obs["centroid_y"]
+    ])
+    celltypes = sorted(set(ct_labels_10x))
+
+    compare_methods = [(k, l) for k, l in plot_methods if l != "10x native"]
+
+    disp_by_method: dict[str, np.ndarray] = {}
+    disp_by_ct: dict[str, dict[str, np.ndarray]] = {}
+
+    for key, label in compare_methods:
+        adata_m = adatas_raw[label]
+        Z_m = projections[label]
+        xy_m = np.column_stack([adata_m.obs["centroid_x"], adata_m.obs["centroid_y"]])
+        tree_m = cKDTree(xy_m)
+        match_dists, match_idx = tree_m.query(xy_10x)
+        matched = match_dists < 15
+
+        displacement = np.sqrt(
+            ((Z_10x[matched] - Z_m[match_idx[matched]]) ** 2).sum(axis=1)
+        )
+        disp_by_method[label] = displacement
+        print(f"  {label}: {matched.sum()} matched, "
+              f"median displacement = {np.median(displacement):.2f}")
+
+        ct_disp = {}
+        for ct in celltypes:
+            ct_mask = (ct_labels_10x == ct) & matched
+            if ct_mask.sum() < 20:
+                continue
+            ct_disp[ct] = np.sqrt(
+                ((Z_10x[ct_mask] - Z_m[match_idx[ct_mask]]) ** 2).sum(axis=1)
+            )
+        disp_by_ct[label] = ct_disp
+
+    # --- violin: displacement by method ---
+    fig, ax = plt.subplots(figsize=(16, 8))
+    labels_ordered = [l for l in [l for _, l in compare_methods]]
+    data = [disp_by_method[l] for l in labels_ordered]
+    parts = ax.violinplot(data, positions=range(len(labels_ordered)),
+                          showmedians=True, showextrema=False)
+    for i, pc in enumerate(parts["bodies"]):
+        pc.set_facecolor(METHOD_COLORS.get(labels_ordered[i], "#999999"))
+        pc.set_alpha(0.7)
+    parts["cmedians"].set_color("black")
+    ax.set_xticks(range(len(labels_ordered)))
+    ax.set_xticklabels(labels_ordered, rotation=45, ha="right")
+    ax.set_ylabel("Displacement from 10x native position\n(Euclidean distance in 30-PC reference space)")
+    ax.set_title(
+        "How far does the same cell move in reference space depending on segmentation method?\n"
+        "(matched cells by nearest centroid, <15 µm)",
+        fontweight="bold",
+    )
+    fig.tight_layout()
+    fig.savefig(FIGURES / "ref_projection_displacement.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print("Saved ref_projection_displacement.png")
+
+    # --- grouped bar: displacement by cell type ---
+    n_ct = len(celltypes)
+    n_meth = len(disp_by_ct)
+    fig, ax = plt.subplots(figsize=(18, 9))
+    x_pos = np.arange(n_ct)
+    width = 0.8 / max(n_meth, 1)
+
+    for i, (label, ct_disp) in enumerate(disp_by_ct.items()):
+        medians = [float(np.median(ct_disp[ct])) if ct in ct_disp else 0
+                   for ct in celltypes]
+        ax.bar(x_pos + i * width, medians, width,
+               color=METHOD_COLORS.get(label, "#333333"),
+               label=label, alpha=0.85)
+
+    ax.set_xticks(x_pos + width * n_meth / 2)
+    ax.set_xticklabels(celltypes, rotation=45, ha="right")
+    ax.set_ylabel("Median displacement from 10x native\n(Euclidean in 30-PC reference space)")
+    ax.set_title(
+        "Per-cell-type displacement in scRNA-seq reference space\n"
+        "(how far segmentation method choice moves matched cells from their 10x native position)",
+        fontweight="bold",
+    )
+    ax.legend(fontsize=10, loc="upper right", ncol=2)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "ref_projection_displacement_by_ct.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print("Saved ref_projection_displacement_by_ct.png")
+
     # ================================================================ summary table
     print("\n" + "=" * 70)
-    print("SUMMARY: Reference-space clustering")
+    print("SUMMARY: Reference-space clustering + displacement")
     print("=" * 70)
-    print(f"{'Method':<30} {'Clusters':>8}  {'ARI vs 10x native':>18}")
-    print("-" * 60)
+    print(f"{'Method':<30} {'Clusters':>8}  {'ARI vs 10x':>10}  {'Med. disp.':>11}")
+    print("-" * 65)
     tenx_idx = method_labels.index("10x native") if "10x native" in method_labels else None
     for i_m, label in enumerate(method_labels):
         n_cl = len(set(ref_leiden[label]))
+        med_d = (f"{np.median(disp_by_method[label]):.2f}"
+                 if label in disp_by_method else "—")
         if tenx_idx is not None and i_m != tenx_idx:
             ari_val = ari_matrix[tenx_idx, i_m]
-            print(f"{label:<30} {n_cl:>8}  {ari_val:>18.3f}")
+            print(f"{label:<30} {n_cl:>8}  {ari_val:>10.3f}  {med_d:>11}")
         else:
-            print(f"{label:<30} {n_cl:>8}  {'—':>18}")
+            print(f"{label:<30} {n_cl:>8}  {'—':>10}  {med_d:>11}")
 
     print("\nDone.")
 

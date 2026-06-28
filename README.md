@@ -6,6 +6,9 @@
 
 Cluster labels are aligned via two algorithms before computing disagreement and Moran's I. Hungarian finds the optimal one-to-one assignment; when cluster counts differ, unmatched clusters are forced into poor pairings. Argmax maps each method's clusters to the 10x native cluster with plurality overlap, allowing many-to-one mapping. Matched pairs, median correlation, and ARI do not depend on cluster alignment.
 
+<details>
+<summary><b>Full results table</b> — click to expand</summary>
+
 | Comparison | Matched pairs | Median corr | ARI | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **Nuclear-only** | | | | | | | |
@@ -27,6 +30,8 @@ Cluster labels are aligned via two algorithms before computing disagreement and 
 | 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | 34.7% | 0.208 | 33.1% | 0.204 |
 
 *Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index (partition-based, independent of cluster alignment). *Disagreement*: fraction of matched cell pairs assigned to different clusters after alignment. *Moran's I*: spatial autocorrelation of the disagree flag. Voronoi (10x) correlation will be populated on next pipeline run (gene-name encoding mismatch has been fixed).
+
+</details>
 
 The results cleanly separate the contributions of nuclear detection quality and expansion strategy. Among Voronoi methods, Mesmer centroids produce the highest ARI (0.686) and lowest disagreement (18.8%), while 10x Ranger centroids - despite being purpose-built for Xenium - score lower (ARI 0.592). Among Baysor PSC=1.0 variants, the same detector ordering holds: Mesmer prior leads at ARI 0.518, followed by 10x Ranger (0.530), CellPose (0.501), and StarDist (0.498). Baysor (10x prior 1.0) achieves the highest ARI of any Baysor variant (0.530) and the most matched pairs (22,910), benefiting from 10x Ranger detecting almost as many nuclei as the 10x native reference.
 
@@ -113,15 +118,30 @@ Leiden clustering runs independently on each method's cells (normalize → PCA �
 
 ARI is partition-based and does not depend on cluster alignment, so it is the same under Hungarian and argmax. The method ordering is stable across Leiden resolutions 0.3-2.0. Voronoi (Mesmer) leads at most resolutions (0.3, 0.6, 0.8-1.2); at resolutions 0.5 and 0.7, Voronoi (StarDist) briefly takes the lead, and at 1.5+ StarDist's higher cell count gives it a durable advantage as finer clustering demands more cells per cluster. Baysor without a prior is consistently lowest.
 
+<details>
+<summary><b>Disagreement and Moran's I across resolutions (Hungarian)</b> — click to expand</summary>
+
 ![Disagreement and Moran's I across Leiden resolutions - Hungarian alignment](results/figures/resolution_disagree_morans_hungarian.png)
+
+</details>
+
+<details>
+<summary><b>Disagreement and Moran's I across resolutions (Argmax)</b> — click to expand</summary>
 
 ![Disagreement and Moran's I across Leiden resolutions - argmax alignment](results/figures/resolution_disagree_morans_argmax.png)
 
+</details>
+
 Disagreement and Moran's I do depend on alignment. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
+
+<details>
+<summary><b>Baysor UMAP: Hungarian vs argmax alignment</b> — click to expand</summary>
 
 UMAP embeddings colored by aligned cluster labels illustrate how the alignment algorithm reshapes cluster identity. Baysor without a prior shows the starkest contrast: Hungarian forces 6 of its 21 clusters into empty pairings, leaving large regions unmatched (gray), while argmax lets multiple Baysor clusters map to the same reference cluster, producing coherent coloring across the manifold.
 
 ![Baysor UMAP: Hungarian vs argmax alignment](results/figures/umap_baysor_alignment_comparison.png)
+
+</details>
 
 ### Per-cluster pseudobulk
 
@@ -341,6 +361,26 @@ Leiden clustering in the shared reference PCA space (resolution 1.0) produces 12
 | Baysor (10x prior 1.0) | 24 | 0.387 |
 
 Voronoi (10x) leads with ARI 0.720 against 10x native — higher than in the own-space analysis (0.592) — because the shared reference PCA removes the coordinate-system bias that inflates disagreement when each method builds its own PCA. Within the Voronoi family, agreement is tight (0.65–0.73), and within Baysor PSC=1.0 variants it reaches 0.59–0.71, confirming that expansion-strategy families produce internally consistent cell state assignments even in an external coordinate system. Baysor without a prior remains isolated (ARI 0.19 with 10x native), and the gap between prior-free Baysor and PSC=1.0 variants (0.19 vs 0.38–0.40) is larger in reference space than in own-space clustering, suggesting that the density-only model's deviations from morphological methods reflect genuine shifts in recovered cell state rather than coordinate-system artifacts.
+
+### Cell-level displacement
+
+![Matched-cell displacement by method](results/figures/ref_projection_displacement.png)
+
+![Matched-cell displacement by cell type](results/figures/ref_projection_displacement_by_ct.png)
+
+| Method | Matched cells | Median displacement |
+| --- | ---: | ---: |
+| Voronoi (CP) | 23,267 | 1.41 |
+| Voronoi (SD) | 23,515 | 1.08 |
+| Voronoi (M) | 23,580 | 1.18 |
+| Voronoi (10x) | 23,626 | 0.92 |
+| Baysor | 22,344 | 2.97 |
+| Baysor (CP prior 1.0) | 23,626 | 2.27 |
+| Baysor (SD prior 1.0) | 23,628 | 2.41 |
+| Baysor (M prior 1.0) | 23,628 | 2.01 |
+| Baysor (10x prior 1.0) | 23,629 | 2.28 |
+
+For each matched cell pair (nearest centroid, <15 µm), displacement measures how far the same cell moves in the 30-PC reference space depending on which segmentation method assigned its transcripts. Voronoi methods displace cells 0.92–1.41 units from their 10x native position; Baysor displaces them 2.01–2.97 — roughly 2× further. Voronoi (10x) has the smallest displacement (0.92) because it shares nuclear seeds with 10x native, differing only in the expansion algorithm. The cell-type breakdown shows that Baysor's displacement is elevated across all populations but peaks on plasma cells (3.8), T cells (3.4), and B cells (3.1) — rare or small-cell populations where the density model has few transcripts per cell and boundary assignments are most uncertain. Luminal epithelial displacement is moderate for Baysor (2.2–2.4) but drives the largest absolute number of displaced cells given its 36% share of the ROI. Baysor (M prior 1.0) has the lowest displacement among Baysor variants (2.01), consistent with Mesmer's larger nuclear masks anchoring more transcripts and reducing cytoplasmic boundary noise.
 
 ---
 
