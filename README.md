@@ -94,12 +94,7 @@ All four detectors operate on the same DAPI image but produce substantially diff
 | Baysor (M prior 1.0) | 31,764 | 74 | 98.9% |
 | Baysor (10x prior 1.0) | 33,113 | 65 | 98.9% |
 
-<details>
-<summary><b>Transcripts/cell distribution across expansion methods</b> — click to expand</summary>
-
 ![Transcripts/cell distribution across expansion methods](results/figures/transcripts_per_cell.png)
-
-</details>
 
 Voronoi expansion captures 100% of transcripts by construction regardless of detector. Median transcripts per cell under Voronoi varies with detector quality: Voronoi (CP) leads at 149 tx/cell because CellPose detects fewer, larger nuclei, concentrating more transcripts per cell. Voronoi (10x) at 128 tx/cell is closest to 10x native (124), consistent with using the same nuclear seeds - the gap between them reflects 10x native's proprietary expansion assigning some transcripts differently than nearest-centroid.
 
@@ -123,36 +118,60 @@ Leiden clustering runs independently on each method's cells (normalize → PCA �
 
 ARI is partition-based and does not depend on cluster alignment, so it is the same under Hungarian and argmax. The method ordering is stable across Leiden resolutions 0.3-2.0. Voronoi (Mesmer) leads at most resolutions (0.3, 0.6, 0.8-1.2); at resolutions 0.5 and 0.7, Voronoi (StarDist) briefly takes the lead, and at 1.5+ StarDist's higher cell count gives it a durable advantage as finer clustering demands more cells per cluster. Baysor without a prior is consistently lowest.
 
-<details>
-<summary><b>Disagreement and Moran's I across resolutions (Hungarian)</b> — click to expand</summary>
-
 ![Disagreement and Moran's I across Leiden resolutions - Hungarian alignment](results/figures/resolution_disagree_morans_hungarian.png)
-
-</details>
-
-<details>
-<summary><b>Disagreement and Moran's I across resolutions (Argmax)</b> — click to expand</summary>
 
 ![Disagreement and Moran's I across Leiden resolutions - argmax alignment](results/figures/resolution_disagree_morans_argmax.png)
 
-</details>
-
 Disagreement and Moran's I do depend on alignment. The Hungarian alignment forces unmatched clusters into poor pairings when cluster counts differ, inflating disagreement for methods that produce more clusters. The argmax alignment lets multiple clusters map to the same reference cluster, reducing this artifact. The Moran's I panel confirms that the spatial-structure gap is resolution-invariant under both algorithms: Voronoi and Baysor prior methods maintain spatially structured disagreement while Baysor without a prior stays near zero regardless of cluster granularity.
-
-<details>
-<summary><b>Baysor UMAP: Hungarian vs argmax alignment</b> — click to expand</summary>
 
 UMAP embeddings colored by aligned cluster labels illustrate how the alignment algorithm reshapes cluster identity. Baysor without a prior shows the starkest contrast: Hungarian forces 6 of its 21 clusters into empty pairings, leaving large regions unmatched (gray), while argmax lets multiple Baysor clusters map to the same reference cluster, producing coherent coloring across the manifold.
 
 ![Baysor UMAP: Hungarian vs argmax alignment](results/figures/umap_baysor_alignment_comparison.png)
 
+<details>
+<summary><b>All method UMAPs — Hungarian alignment</b> — click to expand</summary>
+
+![10x native](results/figures/umap/umap_10x_native.png)
+![Voronoi (CellPose)](results/figures/umap/umap_voronoi_hungarian.png)
+![Voronoi (StarDist)](results/figures/umap/umap_voronoi_stardist_hungarian.png)
+![Voronoi (Mesmer)](results/figures/umap/umap_voronoi_mesmer_hungarian.png)
+![Voronoi (10x Ranger)](results/figures/umap/umap_voronoi_10x_ranger_hungarian.png)
+![Baysor (no prior)](results/figures/umap/umap_baysor_hungarian.png)
+![Baysor (CellPose prior)](results/figures/umap/umap_baysor_prior_hungarian.png)
+![Baysor (CellPose prior, PSC=0.8)](results/figures/umap/umap_baysor_prior_c08_hungarian.png)
+![Baysor (CellPose prior, PSC=1.0)](results/figures/umap/umap_baysor_prior_c10_hungarian.png)
+![Baysor (StarDist prior, PSC=1.0)](results/figures/umap/umap_baysor_stardist_prior_c10_hungarian.png)
+![Baysor (Mesmer prior, PSC=1.0)](results/figures/umap/umap_baysor_mesmer_prior_c10_hungarian.png)
+![Baysor (10x Ranger prior, PSC=1.0)](results/figures/umap/umap_baysor_10x_ranger_prior_c10_hungarian.png)
+
 </details>
 
-### Per-cluster pseudobulk
+<details>
+<summary><b>All method UMAPs — argmax alignment</b> — click to expand</summary>
+
+![10x native](results/figures/umap/umap_10x_native.png)
+![Voronoi (CellPose)](results/figures/umap/umap_voronoi_argmax.png)
+![Voronoi (StarDist)](results/figures/umap/umap_voronoi_stardist_argmax.png)
+![Voronoi (Mesmer)](results/figures/umap/umap_voronoi_mesmer_argmax.png)
+![Voronoi (10x Ranger)](results/figures/umap/umap_voronoi_10x_ranger_argmax.png)
+![Baysor (no prior)](results/figures/umap/umap_baysor_argmax.png)
+![Baysor (CellPose prior)](results/figures/umap/umap_baysor_prior_argmax.png)
+![Baysor (CellPose prior, PSC=0.8)](results/figures/umap/umap_baysor_prior_c08_argmax.png)
+![Baysor (CellPose prior, PSC=1.0)](results/figures/umap/umap_baysor_prior_c10_argmax.png)
+![Baysor (StarDist prior, PSC=1.0)](results/figures/umap/umap_baysor_stardist_prior_c10_argmax.png)
+![Baysor (Mesmer prior, PSC=1.0)](results/figures/umap/umap_baysor_mesmer_prior_c10_argmax.png)
+![Baysor (10x Ranger prior, PSC=1.0)](results/figures/umap/umap_baysor_10x_ranger_prior_c10_argmax.png)
+
+</details>
+
+<details>
+<summary><b>Per-cluster pseudobulk</b> — click to expand</summary>
 
 <p align="center"><img src="results/figures/pseudobulk_by_cluster.png" alt="Per-cluster pseudobulk correlation vs. 10x native" width="600"></p>
 
 To test whether cluster-level expression profiles agree, matched cells are grouped by 10x native's 15 Leiden clusters and pseudobulked per method. Nuclear methods drop to r = 0.86-0.87 on luminal epithelial clusters (0, 1, 3, 8) - the same populations driving single-cell disagreement - while Voronoi variants stay above 0.99 across all clusters. Baysor shows a comparable luminal dip plus reduced correlation on macrophage clusters (2, 7), consistent with transcript-density boundaries partitioning those populations differently.
+
+</details>
 
 ---
 
@@ -171,33 +190,7 @@ Hungarian produces min(n_10x, n_method) matched pairs; when cluster counts diffe
 
 ### Clustering agreement vs. 10x native
 
-| Method | ARI | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| **Nuclear-only** | | | | | |
-| CellPose | 0.547 | 30.8% | 0.178 | 30.5% | 0.189 |
-| StarDist | 0.545 | 33.5% | 0.215 | 33.4% | 0.221 |
-| Mesmer | 0.557 | 27.9% | 0.090 | 27.4% | 0.098 |
-| 10x Ranger | 0.504 | 35.0% | 0.191 | 34.5% | 0.203 |
-| **Voronoi** | | | | | |
-| Voronoi (CP) | 0.630 | 21.9% | 0.076 | 21.9% | 0.076 |
-| Voronoi (SD) | 0.584 | 31.9% | 0.194 | 27.7% | 0.229 |
-| Voronoi (M) | 0.686 | 18.8% | 0.161 | 18.8% | 0.161 |
-| Voronoi (10x) | 0.592 | 28.3% | 0.172 | 25.8% | 0.168 |
-| **Baysor** | | | | | |
-| Baysor | 0.305 | 51.7% | 0.033 | 43.8% | 0.079 |
-| Baysor (CP prior 0.2) | 0.318 | 51.9% | 0.036 | 39.2% | 0.086 |
-| Baysor (CP prior 0.8) | 0.488 | 38.8% | 0.219 | 37.4% | 0.234 |
-| Baysor (CP prior 1.0) | 0.501 | 33.8% | 0.112 | 32.1% | 0.122 |
-| Baysor (SD prior 1.0) | 0.498 | 37.7% | 0.136 | 32.9% | 0.170 |
-| Baysor (M prior 1.0) | 0.518 | 32.3% | 0.115 | 30.7% | 0.119 |
-| Baysor (10x prior 1.0) | 0.530 | 34.7% | 0.208 | 33.1% | 0.204 |
-
-<details>
-<summary><b>Clustering agreement vs. 10x native</b> — click to expand</summary>
-
 ![Clustering agreement vs. 10x native](results/figures/clustering_agreement.png)
-
-</details>
 
 Voronoi methods achieve the highest ARI (0.584-0.686), with Voronoi (M) leading. Nuclear-only methods cluster at ARI 0.504-0.557, and Baysor without a prior is lowest at 0.305. Argmax reduces Baysor's disagreement by ~8pp (51.7% to 43.8%) by eliminating forced mismatches from unmatched clusters. Voronoi methods with matched cluster counts are barely affected. The Moran's I increase for Baysor under argmax (0.033 to 0.079) shows that removing alignment noise reveals spatially structured disagreement that was previously masked.
 
