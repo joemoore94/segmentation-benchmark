@@ -281,6 +281,13 @@ The UMAP confirms this hierarchy: cluster 8 occupies a clearly separated island 
 
 </details>
 
+<details>
+<summary><b>LISA hotspot/coldspot maps (argmax)</b> — click to expand</summary>
+
+![LISA hotspot/coldspot maps - argmax](results/figures/local_morans_map_argmax.png)
+
+</details>
+
 | Comparison | Global Moran's I | HH hotspots | LL coldspots |
 | --- | --- | --- | --- |
 | 10x native vs. CellPose | 0.178 | 21.7% | 30.3% |
