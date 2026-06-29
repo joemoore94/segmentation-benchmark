@@ -388,7 +388,7 @@ All methods are projected into a shared PCA space fit on 10x native (30 PCs, 55%
 
 ---
 
-## Reference transcriptome projection
+## Comparison to scRNA-seq reference
 
 The phenotypic landscape distortion analysis above uses a PCA space fit on 10x native, so the coordinate system is itself a segmentation output. To test whether method choice shifts cells in a segmentation-independent reference, PCA is fit on companion scRNA-seq from the same tissue blocks (GSE243275, 3' chemistry, 7,329 cells after QC) subsetted to the 374 Xenium panel genes present in both datasets. Each segmentation method's cells are then projected into this reference PCA space (30 PCs, 62% variance explained), clustered via Leiden in the shared reference embedding, and compared.
 
@@ -428,19 +428,22 @@ Leiden clustering in the shared reference PCA space (resolution 1.0) produces 12
 
 <p align="center"><img src="results/figures/ref_projection_ari.png" alt="Pairwise ARI in reference PCA space" width="600"></p>
 
-| Method | Ref-space clusters | ARI vs 10x native |
-| --- | ---: | ---: |
-| Voronoi (CP) | 12 | 0.659 |
-| Voronoi (SD) | 13 | 0.649 |
-| Voronoi (M) | 13 | 0.650 |
-| Voronoi (10x) | 13 | 0.720 |
-| Baysor | 23 | 0.191 |
-| Baysor (CP prior 1.0) | 22 | 0.380 |
-| Baysor (SD prior 1.0) | 25 | 0.401 |
-| Baysor (M prior 1.0) | 25 | 0.401 |
-| Baysor (10x prior 1.0) | 24 | 0.387 |
+To test whether the reference projection genuinely improves cell typing or merely compresses method differences ("graying"), ARI is computed against a fixed anchor: 10x native's own-PCA clustering. The "before" column clusters each method in its own PCA space; the "after" column clusters in the reference PCA space. Both are compared to the same 10x native own-space labels.
 
-Voronoi (10x) leads with ARI 0.720 against 10x native — higher than in the own-space analysis (0.592) — because the shared reference PCA removes the coordinate-system bias that inflates disagreement when each method builds its own PCA. Within the Voronoi family, agreement is tight (0.65–0.73), and within Baysor PSC=1.0 variants it reaches 0.59–0.71, confirming that expansion-strategy families produce internally consistent cell state assignments even in an external coordinate system. Baysor without a prior remains isolated (ARI 0.19 with 10x native), and the gap between prior-free Baysor and PSC=1.0 variants (0.19 vs 0.38–0.40) is larger in reference space than in own-space clustering, suggesting that the density-only model's deviations from morphological methods reflect genuine shifts in recovered cell state rather than coordinate-system artifacts.
+| Method | Ref clusters | ARI (before) | ARI (after) | ΔARI |
+| --- | ---: | ---: | ---: | ---: |
+| 10x native | 14 | 1.000 | 0.522 | −0.478 |
+| Voronoi (CP) | 12 | 0.568 | 0.454 | −0.114 |
+| Voronoi (SD) | 13 | 0.555 | 0.462 | −0.093 |
+| Voronoi (M) | 13 | 0.614 | 0.480 | −0.135 |
+| Voronoi (10x) | 13 | 0.624 | 0.500 | −0.124 |
+| Baysor | 23 | 0.172 | 0.181 | +0.009 |
+| Baysor (CP prior 1.0) | 22 | 0.327 | 0.266 | −0.061 |
+| Baysor (SD prior 1.0) | 25 | 0.306 | 0.290 | −0.017 |
+| Baysor (M prior 1.0) | 25 | 0.324 | 0.288 | −0.036 |
+| Baysor (10x prior 1.0) | 24 | 0.343 | 0.291 | −0.052 |
+
+Even 10x native's own reference-space clustering only achieves ARI 0.522 against its internal clustering, and every method except prior-free Baysor moves away from the original 10x native cell types after projection. The pairwise convergence observed between methods in the reference space (mean off-diagonal ARI 0.570 → 0.631) therefore reflects a shared loss of resolution rather than convergence toward ground truth. The 374-gene panel captures 62% of variance in the reference but emphasizes different axes of variation than each method's own PCA, compressing cell-type boundaries in the process. The density and displacement analyses above remain valid since they measure geometry rather than clustering, but the reference PCA is not a better basis for cell typing than each method's own space.
 
 ### Cell-level displacement
 
@@ -471,6 +474,25 @@ Voronoi (10x) leads with ARI 0.720 against 10x native — higher than in the own
 | Baysor (10x prior 1.0) | 23,629 | 2.28 |
 
 For each matched cell pair (nearest centroid, <15 µm), displacement measures how far the same cell moves in the 30-PC reference space depending on which segmentation method assigned its transcripts. Voronoi methods displace cells 0.92–1.41 units from their 10x native position; Baysor displaces them 2.01–2.97 — roughly 2× further. Voronoi (10x) has the smallest displacement (0.92) because it shares nuclear seeds with 10x native, differing only in the expansion algorithm. The cell-type breakdown shows that Baysor's displacement is elevated across all populations but peaks on plasma cells (3.8), T cells (3.4), and B cells (3.1) — rare or small-cell populations where the density model has few transcripts per cell and boundary assignments are most uncertain. Luminal epithelial displacement is moderate for Baysor (2.2–2.4) but drives the largest absolute number of displaced cells given its 36% share of the ROI. Baysor (M prior 1.0) has the lowest displacement among Baysor variants (2.01), consistent with Mesmer's larger nuclear masks anchoring more transcripts and reducing cytoplasmic boundary noise.
+
+### Cell type centroid distance
+
+As a complementary measure to clustering-based comparisons, each cell in both the scRNA-seq reference (7,329 cells) and 10x native (23,629 cells) is annotated with a cell type using `sc.tl.score_genes` on the same canonical marker panels, then per-cell-type centroids are computed in the shared 30-PC reference space. The Euclidean distance between matching centroids measures how closely each Xenium cell type aligns with its scRNA-seq counterpart — independent of clustering resolution or label alignment.
+
+| Cell type | Ref cells | Xen cells | Distance |
+| --- | ---: | ---: | ---: |
+| Smooth muscle | 81 | 1,034 | 2.34 |
+| B cells | 202 | 448 | 2.96 |
+| Adipocytes | 32 | 215 | 3.20 |
+| Macrophages | 200 | 2,469 | 3.28 |
+| Plasma cells | 140 | 336 | 3.35 |
+| CAFs | 129 | 6,683 | 3.41 |
+| Myoepithelial | 74 | 894 | 3.50 |
+| Endothelial | 253 | 1,483 | 3.62 |
+| T cells | 1,619 | 1,441 | 4.49 |
+| Luminal epithelial | 4,599 | 8,626 | 4.96 |
+
+Mean cell type centroid distance is 3.51. Small, marker-distinct populations (smooth muscle, B cells, adipocytes) sit closest to their scRNA-seq counterparts, while luminal epithelial (4.96) and T cells (4.49) diverge the most. Luminal epithelial is the dominant population in both datasets and encompasses multiple subtypes (ESR1+, GATA3+, PGR+ luminal A/B, TACSTD2+ basal-like) that may resolve differently between the 380-gene Xenium panel and the full-transcriptome reference. The CAF size asymmetry (129 reference vs 6,683 Xenium cells) suggests the marker-based scorer over-assigns CAFs in the Xenium data — likely because stromal markers like LUM and SFRP4 are strongly represented in the 380-gene panel while competing signals from rarer fibroblast subtypes are absent.
 
 ---
 

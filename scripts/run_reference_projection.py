@@ -45,6 +45,7 @@ from segbench.constants import (
     METHOD_COLORS as _MC,
     NUCLEAR_ONLY,
 )
+from segbench.compare import cluster_cell_types
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
@@ -510,21 +511,65 @@ def main() -> None:
     print("Saved ref_projection_displacement_by_ct.png")
 
     # ================================================================ summary table
-    print("\n" + "=" * 70)
-    print("SUMMARY: Reference-space clustering + displacement")
-    print("=" * 70)
-    print(f"{'Method':<30} {'Clusters':>8}  {'ARI vs 10x':>10}  {'Med. disp.':>11}")
-    print("-" * 65)
-    tenx_idx = method_labels.index("10x native") if "10x native" in method_labels else None
-    for i_m, label in enumerate(method_labels):
+    # Internal-space clustering for before/after comparison
+    print("\nClustering each method in its own PCA space...")
+    internal_leiden: dict[str, pd.Series] = {}
+    for key, label in available:
+        internal_leiden[label] = cluster_cell_types(
+            adatas_raw[label], resolution=LEIDEN_RES, seed=RANDOM_STATE,
+        )
+        internal_leiden[label].index = internal_leiden[label].index.astype(str)
+
+    # ARI vs 10x native's internal clustering (fixed anchor).
+    # "Before": method X in own PCA vs 10x native in own PCA.
+    # "After":  method X in ref PCA vs 10x native in own PCA.
+    # Delta isolates the effect of projecting method X into the reference space.
+    xy_10x_sum = np.column_stack([
+        adatas_raw["10x native"].obs["centroid_x"],
+        adatas_raw["10x native"].obs["centroid_y"],
+    ])
+    tree_10x_sum = cKDTree(xy_10x_sum)
+    tenx_internal = internal_leiden["10x native"]
+
+    ari_before: dict[str, float] = {}
+    ari_after: dict[str, float] = {}
+    for key, label in available:
+        if label == "10x native":
+            ari_before[label] = 1.0
+            ari_after[label] = adjusted_rand_score(
+                tenx_internal.values,
+                ref_leiden[label],
+            )
+            continue
+        xy_m = np.column_stack([
+            adatas_raw[label].obs["centroid_x"],
+            adatas_raw[label].obs["centroid_y"],
+        ])
+        dists, idx_match = tree_10x_sum.query(xy_m)
+        matched = dists < 15
+        tenx_matched = tenx_internal.values[idx_match[matched]]
+        ari_before[label] = adjusted_rand_score(
+            tenx_matched,
+            internal_leiden[label].values[matched],
+        )
+        ari_after[label] = adjusted_rand_score(
+            tenx_matched,
+            ref_leiden[label][matched],
+        )
+
+    print("\n" + "=" * 95)
+    print("SUMMARY: ARI vs 10x native (own-PCA clustering) — before and after projection")
+    print("=" * 95)
+    print(f"{'Method':<30} {'Ref clusters':>12}  {'ARI (before)':>12}  {'ARI (after)':>12}  {'ΔARI':>7}  {'Med. disp.':>11}")
+    print("-" * 90)
+    for _, label in available:
         n_cl = len(set(ref_leiden[label]))
         med_d = (f"{np.median(disp_by_method[label]):.2f}"
                  if label in disp_by_method else "—")
-        if tenx_idx is not None and i_m != tenx_idx:
-            ari_val = ari_matrix[tenx_idx, i_m]
-            print(f"{label:<30} {n_cl:>8}  {ari_val:>10.3f}  {med_d:>11}")
-        else:
-            print(f"{label:<30} {n_cl:>8}  {'—':>10}  {med_d:>11}")
+        ab = ari_before[label]
+        aa = ari_after[label]
+        d_ari = aa - ab
+        print(f"{label:<30} {n_cl:>12}  {ab:>12.3f}  {aa:>12.3f}  {d_ari:>+7.3f}  {med_d:>11}")
 
     print("\nDone.")
 
