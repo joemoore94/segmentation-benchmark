@@ -1,15 +1,18 @@
-"""Cluster centroid distance: 10x native vs scRNA-seq reference.
+"""Cluster centroid distance: all segmentation methods vs scRNA-seq reference.
 
-For each Leiden resolution, clusters both the scRNA-seq reference and 10x
-native in a shared PCA space (fit on the reference, 374 shared genes, 30 PCs),
-computes cluster centroids, and measures the Euclidean distance from each 10x
-native centroid to the nearest scRNA-seq centroid. This answers: does each
-Xenium cluster correspond to a cell state present in the reference?
+For each segmentation method and Leiden resolution, projects cells into a
+shared PCA space (fit on scRNA-seq reference, 374 shared genes, 30 PCs),
+clusters in that space, computes cluster centroids, and measures the Euclidean
+distance to the nearest scRNA-seq reference centroid. This answers: which
+method and resolution produce clusters closest to the reference cell states?
+
+Also computes per-cell-type centroid distances using marker-based annotation.
 
 Reads:  data/reference/scrna_3p_filtered_feature_bc_matrix.h5
-        data/processed/roi/adata_10x.h5ad
+        data/processed/roi/adata_*.h5ad
 Writes: results/tables/centroid_distance.csv
         results/tables/centroid_distance_summary.csv
+        results/tables/celltype_centroid_distance.csv
 
 Usage::
 
@@ -28,6 +31,8 @@ import scanpy as sc
 import scipy.sparse as sp
 from sklearn.decomposition import PCA
 
+from segbench.constants import METHOD_LABELS, NUCLEAR_ONLY
+
 ROI_DIR  = Path("data/processed/roi")
 REF_PATH = Path("data/reference/scrna_3p_filtered_feature_bc_matrix.h5")
 TABLES   = Path("results/tables")
@@ -35,6 +40,35 @@ TABLES   = Path("results/tables")
 RESOLUTIONS = [0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.5, 2.0]
 N_PCS = 30
 RANDOM_STATE = 0
+
+METHODS = [
+    ("10x_native",                  "adata_10x.h5ad"),
+    ("voronoi",                     "adata_voronoi.h5ad"),
+    ("voronoi_stardist",            "adata_voronoi_stardist.h5ad"),
+    ("voronoi_mesmer",              "adata_voronoi_mesmer.h5ad"),
+    ("voronoi_10x_ranger",          "adata_voronoi_10x_ranger.h5ad"),
+    ("baysor",                      "adata_baysor.h5ad"),
+    ("baysor_prior_c10",            "adata_baysor_prior_c10.h5ad"),
+    ("baysor_stardist_prior_c10",   "adata_baysor_stardist_prior_c10.h5ad"),
+    ("baysor_mesmer_prior_c10",     "adata_baysor_mesmer_prior_c10.h5ad"),
+    ("baysor_10x_ranger_prior_c10", "adata_baysor_10x_ranger_prior_c10.h5ad"),
+]
+
+CANONICAL_MARKERS: dict[str, list[str]] = {
+    "Luminal epithelial": [
+        "EPCAM", "KRT7", "KRT8", "GATA3", "ESR1", "PGR", "FOXA1",
+        "MUC1", "ANKRD30A", "TACSTD2", "CCND1",
+    ],
+    "Myoepithelial": ["KRT14", "KRT5", "ACTA2", "MYLK", "DST"],
+    "T cells": ["CD3E", "CD3G", "TRAC", "TRBC1", "CD96", "IL7R", "CCL5"],
+    "B cells": ["MS4A1", "CD79A", "CD79B", "BANK1", "CD19"],
+    "Plasma cells": ["MZB1", "SLAMF7", "TENT5C", "TNFRSF17"],
+    "Macrophages": ["CD14", "CD68", "CD163", "AIF1", "LYZ", "FCER1G"],
+    "CAFs": ["LUM", "SFRP4", "FBLN1", "CCDC80", "THBS2", "MMP2", "PDGFRA"],
+    "Smooth muscle": ["MYH11", "ACTA2", "MYLK", "RGS5", "CAV1"],
+    "Endothelial": ["PECAM1", "VWF", "AQP1", "CD93", "CLEC14A"],
+    "Adipocytes": ["ADIPOQ", "PLIN1", "PPARG", "LPL", "G0S2"],
+}
 
 
 def normalize_log(X) -> np.ndarray:
@@ -54,6 +88,20 @@ def cluster_centroids(Z: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray
     return centroids
 
 
+def score_and_assign(adata_raw, gene_universe):
+    a = adata_raw.copy()
+    sc.pp.normalize_total(a)
+    sc.pp.log1p(a)
+    scores = {}
+    for ct, markers in CANONICAL_MARKERS.items():
+        valid = [g for g in markers if g in gene_universe]
+        if len(valid) < 2:
+            continue
+        sc.tl.score_genes(a, valid, score_name=f"score_{ct}")
+        scores[ct] = a.obs[f"score_{ct}"].values
+    return pd.DataFrame(scores, index=a.obs_names).idxmax(axis=1)
+
+
 def main() -> None:
     TABLES.mkdir(parents=True, exist_ok=True)
     sc.settings.verbosity = 0
@@ -67,90 +115,111 @@ def main() -> None:
     ref = ref[ref.obs["n_genes"] < 6000].copy()
     print(f"  {ref.n_obs} cells after QC")
 
-    # ---- load 10x native
-    print("Loading 10x native...")
-    xenium = ad.read_h5ad(ROI_DIR / "adata_10x.h5ad")
-    print(f"  {xenium.n_obs} cells")
+    # ---- load all segmentation methods
+    print("\nLoading segmentation methods...")
+    adatas_raw: dict[str, ad.AnnData] = {}
+    available: list[tuple[str, str]] = []
+    for key, fname in METHODS:
+        path = ROI_DIR / fname
+        if not path.exists():
+            print(f"  {METHOD_LABELS[key]}: skipped")
+            continue
+        label = METHOD_LABELS[key]
+        adatas_raw[label] = ad.read_h5ad(path)
+        available.append((key, label))
+        print(f"  {label}: {adatas_raw[label].n_obs} cells")
 
-    # ---- shared gene set + PCA
-    shared_genes = sorted(set(xenium.var_names) & set(ref.var_names))
-    print(f"  Shared genes: {len(shared_genes)}")
+    # ---- shared gene set + PCA (fit on reference)
+    first_label = available[0][1]
+    shared_genes = sorted(set(adatas_raw[first_label].var_names) & set(ref.var_names))
+    print(f"\nShared genes: {len(shared_genes)}")
 
     X_ref = normalize_log(ref[:, shared_genes].X)
     pca = PCA(n_components=N_PCS, random_state=RANDOM_STATE)
     Z_ref = pca.fit_transform(X_ref)
-    print(f"  PCA: {N_PCS} PCs, {pca.explained_variance_ratio_.sum():.1%} variance")
+    print(f"PCA: {N_PCS} PCs, {pca.explained_variance_ratio_.sum():.1%} variance")
 
-    X_xen = normalize_log(xenium[:, shared_genes].X)
-    Z_xen = pca.transform(X_xen)
+    # ---- project all methods into reference PCA
+    projections: dict[str, np.ndarray] = {}
+    for key, label in available:
+        X_m = normalize_log(adatas_raw[label][:, shared_genes].X)
+        projections[label] = pca.transform(X_m)
 
-    # ---- build neighbor graphs (once per dataset, reuse for all resolutions)
+    # ---- cluster reference at each resolution
+    print("\nClustering reference...")
     ref_ad = ad.AnnData(X=Z_ref, obs=pd.DataFrame(index=ref.obs_names))
     sc.pp.neighbors(ref_ad, use_rep="X", n_neighbors=15, random_state=RANDOM_STATE)
-
-    xen_ad = ad.AnnData(X=Z_xen, obs=pd.DataFrame(index=xenium.obs_names))
-    sc.pp.neighbors(xen_ad, use_rep="X", n_neighbors=15, random_state=RANDOM_STATE)
-
-    # ---- sweep resolutions
-    print("\nClustering at each resolution...")
     ref_clusterings: dict[float, np.ndarray] = {}
-    xen_clusterings: dict[float, np.ndarray] = {}
     for res in RESOLUTIONS:
         sc.tl.leiden(ref_ad, resolution=res, random_state=RANDOM_STATE, flavor="igraph")
         ref_clusterings[res] = ref_ad.obs["leiden"].values.copy()
+    print(f"  {len(RESOLUTIONS)} resolutions, "
+          f"{len(set(ref_clusterings[0.3]))}–{len(set(ref_clusterings[2.0]))} clusters")
 
-        sc.tl.leiden(xen_ad, resolution=res, random_state=RANDOM_STATE, flavor="igraph")
-        xen_clusterings[res] = xen_ad.obs["leiden"].values.copy()
+    # ---- cluster each method at each resolution
+    print("Clustering methods...")
+    method_clusterings: dict[str, dict[float, np.ndarray]] = {}
+    for key, label in available:
+        Z_m = projections[label]
+        m_ad = ad.AnnData(X=Z_m, obs=pd.DataFrame(index=adatas_raw[label].obs_names))
+        sc.pp.neighbors(m_ad, use_rep="X", n_neighbors=15, random_state=RANDOM_STATE)
+        method_clusterings[label] = {}
+        for res in RESOLUTIONS:
+            sc.tl.leiden(m_ad, resolution=res, random_state=RANDOM_STATE, flavor="igraph")
+            method_clusterings[label][res] = m_ad.obs["leiden"].values.copy()
+        n_lo = len(set(method_clusterings[label][0.3]))
+        n_hi = len(set(method_clusterings[label][2.0]))
+        print(f"  {label}: {n_lo}–{n_hi} clusters")
 
-        n_ref = len(set(ref_clusterings[res]))
-        n_xen = len(set(xen_clusterings[res]))
-        print(f"  res {res}: ref={n_ref} clusters, xenium={n_xen} clusters")
-
-    # ---- compute centroid distances for all (ref_res, xen_res) pairs
+    # ---- compute centroid distances for all (method, ref_res, method_res) combos
     print("\nComputing centroid distances...")
     detail_rows = []
     summary_rows = []
 
-    for ref_res, xen_res in product(RESOLUTIONS, RESOLUTIONS):
-        ref_centroids = cluster_centroids(Z_ref, ref_clusterings[ref_res])
-        xen_centroids = cluster_centroids(Z_xen, xen_clusterings[xen_res])
-        xen_labels = xen_clusterings[xen_res]
+    for key, label in available:
+        Z_m = projections[label]
+        for ref_res, m_res in product(RESOLUTIONS, RESOLUTIONS):
+            ref_centroids = cluster_centroids(Z_ref, ref_clusterings[ref_res])
+            m_centroids = cluster_centroids(Z_m, method_clusterings[label][m_res])
+            m_labels = method_clusterings[label][m_res]
 
-        ref_centers = np.array(list(ref_centroids.values()))
-        ref_keys = list(ref_centroids.keys())
+            ref_centers = np.array(list(ref_centroids.values()))
+            ref_keys = list(ref_centroids.keys())
 
-        distances = []
-        for cl, centroid in xen_centroids.items():
-            dists = np.linalg.norm(ref_centers - centroid, axis=1)
-            nearest_idx = int(np.argmin(dists))
-            nearest_dist = float(dists[nearest_idx])
-            n_cells = int((xen_labels == cl).sum())
+            distances = []
+            for cl, centroid in m_centroids.items():
+                dists = np.linalg.norm(ref_centers - centroid, axis=1)
+                nearest_idx = int(np.argmin(dists))
+                nearest_dist = float(dists[nearest_idx])
+                n_cells = int((m_labels == cl).sum())
 
-            detail_rows.append({
+                detail_rows.append({
+                    "method": label,
+                    "ref_res": ref_res,
+                    "method_res": m_res,
+                    "cluster": cl,
+                    "n_cells": n_cells,
+                    "nearest_ref_cluster": ref_keys[nearest_idx],
+                    "distance": round(nearest_dist, 4),
+                })
+                distances.append((nearest_dist, n_cells))
+
+            dists_arr = np.array([d for d, _ in distances])
+            sizes = np.array([n for _, n in distances])
+            weights = sizes / sizes.sum()
+
+            summary_rows.append({
+                "method": label,
                 "ref_res": ref_res,
-                "xen_res": xen_res,
-                "xen_cluster": cl,
-                "n_cells": n_cells,
-                "nearest_ref_cluster": ref_keys[nearest_idx],
-                "distance": round(nearest_dist, 4),
+                "method_res": m_res,
+                "n_ref_clusters": len(ref_centroids),
+                "n_method_clusters": len(m_centroids),
+                "weighted_mean_dist": round(float((dists_arr * weights).sum()), 4),
+                "unweighted_mean_dist": round(float(dists_arr.mean()), 4),
+                "median_dist": round(float(np.median(dists_arr)), 4),
+                "min_dist": round(float(dists_arr.min()), 4),
+                "max_dist": round(float(dists_arr.max()), 4),
             })
-            distances.append((nearest_dist, n_cells))
-
-        dists_arr = np.array([d for d, _ in distances])
-        sizes = np.array([n for _, n in distances])
-        weights = sizes / sizes.sum()
-
-        summary_rows.append({
-            "ref_res": ref_res,
-            "xen_res": xen_res,
-            "n_ref_clusters": len(ref_centroids),
-            "n_xen_clusters": len(xen_centroids),
-            "weighted_mean_dist": round(float((dists_arr * weights).sum()), 4),
-            "unweighted_mean_dist": round(float(dists_arr.mean()), 4),
-            "median_dist": round(float(np.median(dists_arr)), 4),
-            "min_dist": round(float(dists_arr.min()), 4),
-            "max_dist": round(float(dists_arr.max()), 4),
-        })
 
     detail_df = pd.DataFrame(detail_rows)
     detail_df.to_csv(TABLES / "centroid_distance.csv", index=False)
@@ -158,109 +227,108 @@ def main() -> None:
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(TABLES / "centroid_distance_summary.csv", index=False)
 
-    # ---- print summary
+    # ---- best resolution per method
     print("\n" + "=" * 95)
-    print("Centroid distance: 10x native clusters → nearest scRNA-seq cluster (30-PC Euclidean)")
+    print("Best (ref_res, method_res) per method (minimizing weighted mean distance)")
     print("=" * 95)
-    print(f"{'Ref res':>7}  {'Xen res':>7}  {'Ref cl':>6}  {'Xen cl':>6}  "
-          f"{'Wt mean':>8}  {'Mean':>8}  {'Median':>8}  {'Min':>8}  {'Max':>8}")
-    print("-" * 85)
-    for _, r in summary_df.iterrows():
-        print(f"{r['ref_res']:>7.1f}  {r['xen_res']:>7.1f}  "
-              f"{r['n_ref_clusters']:>6.0f}  {r['n_xen_clusters']:>6.0f}  "
-              f"{r['weighted_mean_dist']:>8.4f}  {r['unweighted_mean_dist']:>8.4f}  "
-              f"{r['median_dist']:>8.4f}  {r['min_dist']:>8.4f}  {r['max_dist']:>8.4f}")
+    print(f"{'Method':<30} {'Ref res':>7} {'Meth res':>8} {'Ref cl':>6} {'Meth cl':>7} "
+          f"{'Wt mean':>8} {'Mean':>8} {'Median':>8}")
+    print("-" * 90)
+    for key, label in available:
+        sub = summary_df[summary_df["method"] == label]
+        best_idx = sub["weighted_mean_dist"].idxmin()
+        b = sub.loc[best_idx]
+        print(f"{label:<30} {b['ref_res']:>7.1f} {b['method_res']:>8.1f} "
+              f"{b['n_ref_clusters']:>6.0f} {b['n_method_clusters']:>7.0f} "
+              f"{b['weighted_mean_dist']:>8.4f} {b['unweighted_mean_dist']:>8.4f} "
+              f"{b['median_dist']:>8.4f}")
 
-    # Best combination
-    best = summary_df.loc[summary_df["weighted_mean_dist"].idxmin()]
-    print(f"\nBest: ref_res={best['ref_res']}, xen_res={best['xen_res']}, "
-          f"weighted_mean_dist={best['weighted_mean_dist']:.4f}")
+    # ---- at fixed ref_res=1.0, best method_res per method
+    print("\n" + "=" * 95)
+    print("Best method_res per method at ref_res=1.0")
+    print("=" * 95)
+    print(f"{'Method':<30} {'Meth res':>8} {'Meth cl':>7} "
+          f"{'Wt mean':>8} {'Mean':>8}")
+    print("-" * 65)
+    for key, label in available:
+        sub = summary_df[(summary_df["method"] == label) &
+                         (summary_df["ref_res"] == 1.0)]
+        best_idx = sub["weighted_mean_dist"].idxmin()
+        b = sub.loc[best_idx]
+        print(f"{label:<30} {b['method_res']:>8.1f} {b['n_method_clusters']:>7.0f} "
+              f"{b['weighted_mean_dist']:>8.4f} {b['unweighted_mean_dist']:>8.4f}")
 
     print("\nSaved centroid_distance.csv and centroid_distance_summary.csv")
 
     # ================================================================
-    # Cell type centroid comparison
+    # Cell type centroid comparison — all methods
     # ================================================================
-    # Score every cell in both datasets with the same canonical marker
-    # panels, assign cell type by highest score, then compare per-type
-    # centroids in the shared PCA space.
-
-    CANONICAL_MARKERS: dict[str, list[str]] = {
-        "Luminal epithelial": [
-            "EPCAM", "KRT7", "KRT8", "GATA3", "ESR1", "PGR", "FOXA1",
-            "MUC1", "ANKRD30A", "TACSTD2", "CCND1",
-        ],
-        "Myoepithelial": ["KRT14", "KRT5", "ACTA2", "MYLK", "DST"],
-        "T cells": ["CD3E", "CD3G", "TRAC", "TRBC1", "CD96", "IL7R", "CCL5"],
-        "B cells": ["MS4A1", "CD79A", "CD79B", "BANK1", "CD19"],
-        "Plasma cells": ["MZB1", "SLAMF7", "TENT5C", "TNFRSF17"],
-        "Macrophages": ["CD14", "CD68", "CD163", "AIF1", "LYZ", "FCER1G"],
-        "CAFs": ["LUM", "SFRP4", "FBLN1", "CCDC80", "THBS2", "MMP2", "PDGFRA"],
-        "Smooth muscle": ["MYH11", "ACTA2", "MYLK", "RGS5", "CAV1"],
-        "Endothelial": ["PECAM1", "VWF", "AQP1", "CD93", "CLEC14A"],
-        "Adipocytes": ["ADIPOQ", "PLIN1", "PPARG", "LPL", "G0S2"],
-    }
-
-    print("\n" + "=" * 70)
-    print("Cell type centroid comparison (marker-based annotation)")
-    print("=" * 70)
-
-    def score_and_assign(adata_raw, gene_universe, label):
-        a = adata_raw.copy()
-        sc.pp.normalize_total(a)
-        sc.pp.log1p(a)
-        scores = {}
-        for ct, markers in CANONICAL_MARKERS.items():
-            valid = [g for g in markers if g in gene_universe]
-            if len(valid) < 2:
-                continue
-            sc.tl.score_genes(a, valid, score_name=f"score_{ct}")
-            scores[ct] = a.obs[f"score_{ct}"].values
-        score_df = pd.DataFrame(scores, index=a.obs_names)
-        assignments = score_df.idxmax(axis=1)
-        print(f"  {label}: annotated {len(assignments)} cells across "
-              f"{assignments.nunique()} types")
-        for ct in sorted(assignments.unique()):
-            print(f"    {ct}: {(assignments == ct).sum()}")
-        return assignments
-
-    ref_genes = set(ref.var_names)
-    xen_genes = set(xenium.var_names)
-    gene_universe_ref = ref_genes
-    gene_universe_xen = xen_genes
+    print("\n" + "=" * 80)
+    print("Cell type centroid distance (marker-based annotation, all methods)")
+    print("=" * 80)
 
     print("\nAnnotating reference cells...")
-    ref_ct = score_and_assign(ref, gene_universe_ref, "scRNA-seq")
-    print("\nAnnotating 10x native cells...")
-    xen_ct = score_and_assign(xenium, gene_universe_xen, "10x native")
-
-    # Compute per-cell-type centroids in the shared PCA space
-    shared_types = sorted(set(ref_ct.unique()) & set(xen_ct.unique()))
+    ref_ct = score_and_assign(ref, set(ref.var_names))
 
     ct_rows = []
-    print(f"\n{'Cell type':<25} {'Ref cells':>9} {'Xen cells':>9} {'Distance':>10}")
-    print("-" * 58)
-    for ct in shared_types:
-        ref_mask = (ref_ct == ct).values
-        xen_mask = (xen_ct == ct).values
-        n_ref = int(ref_mask.sum())
-        n_xen = int(xen_mask.sum())
-        if n_ref < 5 or n_xen < 5:
-            continue
-        ref_centroid = Z_ref[ref_mask].mean(axis=0)
-        xen_centroid = Z_xen[xen_mask].mean(axis=0)
-        dist = float(np.linalg.norm(xen_centroid - ref_centroid))
-        print(f"{ct:<25} {n_ref:>9} {n_xen:>9} {dist:>10.4f}")
-        ct_rows.append({
-            "cell_type": ct, "n_ref": n_ref, "n_xen": n_xen,
-            "distance": round(dist, 4),
-        })
+    for key, label in available:
+        print(f"\n  {label}...")
+        m_ct = score_and_assign(adatas_raw[label], set(adatas_raw[label].var_names))
+        Z_m = projections[label]
+
+        shared_types = sorted(set(ref_ct.unique()) & set(m_ct.unique()))
+        for ct in shared_types:
+            ref_mask = (ref_ct == ct).values
+            m_mask = (m_ct == ct).values
+            n_ref = int(ref_mask.sum())
+            n_m = int(m_mask.sum())
+            if n_ref < 5 or n_m < 5:
+                continue
+            ref_centroid = Z_ref[ref_mask].mean(axis=0)
+            m_centroid = Z_m[m_mask].mean(axis=0)
+            dist = float(np.linalg.norm(m_centroid - ref_centroid))
+            ct_rows.append({
+                "method": label,
+                "cell_type": ct,
+                "n_ref": n_ref,
+                "n_method": n_m,
+                "distance": round(dist, 4),
+            })
 
     ct_df = pd.DataFrame(ct_rows)
     ct_df.to_csv(TABLES / "celltype_centroid_distance.csv", index=False)
-    if len(ct_df):
-        print(f"\nMean cell type centroid distance: {ct_df['distance'].mean():.4f}")
-    print("Saved celltype_centroid_distance.csv")
+
+    # Summary: mean cell type centroid distance per method
+    print("\n" + "=" * 60)
+    print("Mean cell type centroid distance per method")
+    print("=" * 60)
+    print(f"{'Method':<30} {'Mean dist':>10} {'Median':>8} {'Max':>8}")
+    print("-" * 60)
+    for key, label in available:
+        sub = ct_df[ct_df["method"] == label]
+        if sub.empty:
+            continue
+        print(f"{label:<30} {sub['distance'].mean():>10.4f} "
+              f"{sub['distance'].median():>8.4f} {sub['distance'].max():>8.4f}")
+
+    # Per cell type across methods
+    print("\n" + "=" * 80)
+    cell_types = sorted(ct_df["cell_type"].unique())
+    method_labels = [l for _, l in available]
+    header = f"{'Cell type':<25}" + "".join(f"{l:>12}" for l in method_labels)
+    print(header)
+    print("-" * len(header))
+    for ct in cell_types:
+        row = f"{ct:<25}"
+        for label in method_labels:
+            sub = ct_df[(ct_df["method"] == label) & (ct_df["cell_type"] == ct)]
+            if sub.empty:
+                row += f"{'—':>12}"
+            else:
+                row += f"{sub['distance'].values[0]:>12.2f}"
+        print(row)
+
+    print("\nSaved celltype_centroid_distance.csv")
 
 
 if __name__ == "__main__":

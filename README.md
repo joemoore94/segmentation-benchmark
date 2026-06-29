@@ -475,24 +475,61 @@ Even 10x native's own reference-space clustering only achieves ARI 0.522 against
 
 For each matched cell pair (nearest centroid, <15 µm), displacement measures how far the same cell moves in the 30-PC reference space depending on which segmentation method assigned its transcripts. Voronoi methods displace cells 0.92–1.41 units from their 10x native position; Baysor displaces them 2.01–2.97 — roughly 2× further. Voronoi (10x) has the smallest displacement (0.92) because it shares nuclear seeds with 10x native, differing only in the expansion algorithm. The cell-type breakdown shows that Baysor's displacement is elevated across all populations but peaks on plasma cells (3.8), T cells (3.4), and B cells (3.1) — rare or small-cell populations where the density model has few transcripts per cell and boundary assignments are most uncertain. Luminal epithelial displacement is moderate for Baysor (2.2–2.4) but drives the largest absolute number of displaced cells given its 36% share of the ROI. Baysor (M prior 1.0) has the lowest displacement among Baysor variants (2.01), consistent with Mesmer's larger nuclear masks anchoring more transcripts and reducing cytoplasmic boundary noise.
 
+### Centroid distance to scRNA-seq reference
+
+To measure how closely each segmentation method's clusters match scRNA-seq cell states, all methods are projected into the shared reference PCA space, clustered at each Leiden resolution, and the Euclidean distance from each method cluster centroid to the nearest scRNA-seq cluster centroid is computed. Both the reference and method resolution are swept (0.3–2.0) and the combination minimizing weighted mean distance is reported.
+
+| Method | Ref res | Method res | Ref cl | Method cl | Wt. mean dist |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Voronoi (CP) | 2.0 | 2.0 | 26 | 22 | 3.73 |
+| Voronoi (M) | 0.6 | 1.5 | 13 | 17 | 3.76 |
+| 10x native | 0.6 | 1.5 | 13 | 18 | 3.84 |
+| Voronoi (SD) | 0.6 | 2.0 | 13 | 20 | 3.84 |
+| Voronoi (10x) | 0.6 | 1.2 | 13 | 15 | 3.85 |
+| Baysor (SD prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.40 |
+| Baysor (10x prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.45 |
+| Baysor | 2.0 | 0.3 | 26 | 11 | 3.45 |
+| Baysor (CP prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.52 |
+| Baysor (M prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.59 |
+
+Baysor methods achieve lower absolute centroid distances than Voronoi, but under very different conditions: they need high reference resolution (2.0, 26 clusters) and low method resolution (0.3, 10–11 clusters). This means Baysor's coarse clusters are landing near one of many fine-grained reference centroids — not that Baysor resolves cell states more precisely. Voronoi methods and 10x native converge at moderate resolution on both sides (ref 0.6, method 1.2–2.0), suggesting their cluster structure naturally aligns with the reference at a comparable granularity.
+
 ### Cell type centroid distance
 
-As a complementary measure to clustering-based comparisons, each cell in both the scRNA-seq reference (7,329 cells) and 10x native (23,629 cells) is annotated with a cell type using `sc.tl.score_genes` on the same canonical marker panels, then per-cell-type centroids are computed in the shared 30-PC reference space. The Euclidean distance between matching centroids measures how closely each Xenium cell type aligns with its scRNA-seq counterpart — independent of clustering resolution or label alignment.
+As a complementary measure, each cell in both the scRNA-seq reference and every segmentation method is annotated with a cell type using `sc.tl.score_genes` on the same canonical marker panels, then per-cell-type centroids are computed in the shared 30-PC space. This bypasses Leiden resolution entirely and directly asks: for a given cell type, how close is the method's centroid to the reference's?
 
-| Cell type | Ref cells | Xen cells | Distance |
+| Method | Mean | Median | Max |
 | --- | ---: | ---: | ---: |
-| Smooth muscle | 81 | 1,034 | 2.34 |
-| B cells | 202 | 448 | 2.96 |
-| Adipocytes | 32 | 215 | 3.20 |
-| Macrophages | 200 | 2,469 | 3.28 |
-| Plasma cells | 140 | 336 | 3.35 |
-| CAFs | 129 | 6,683 | 3.41 |
-| Myoepithelial | 74 | 894 | 3.50 |
-| Endothelial | 253 | 1,483 | 3.62 |
-| T cells | 1,619 | 1,441 | 4.49 |
-| Luminal epithelial | 4,599 | 8,626 | 4.96 |
+| Voronoi (M) | 3.49 | 3.44 | 4.86 |
+| 10x native | 3.51 | 3.38 | 4.96 |
+| Voronoi (10x) | 3.52 | 3.39 | 4.92 |
+| Voronoi (CP) | 3.55 | 3.51 | 4.85 |
+| Voronoi (SD) | 3.55 | 3.44 | 4.96 |
+| Baysor (M prior 1.0) | 4.23 | 3.94 | 5.58 |
+| Baysor (CP prior 1.0) | 4.29 | 4.00 | 5.64 |
+| Baysor (10x prior 1.0) | 4.35 | 4.05 | 5.73 |
+| Baysor (SD prior 1.0) | 4.39 | 4.09 | 5.80 |
+| Baysor | 4.66 | 4.32 | 6.32 |
 
-Mean cell type centroid distance is 3.51. Small, marker-distinct populations (smooth muscle, B cells, adipocytes) sit closest to their scRNA-seq counterparts, while luminal epithelial (4.96) and T cells (4.49) diverge the most. Luminal epithelial is the dominant population in both datasets and encompasses multiple subtypes (ESR1+, GATA3+, PGR+ luminal A/B, TACSTD2+ basal-like) that may resolve differently between the 380-gene Xenium panel and the full-transcriptome reference. The CAF size asymmetry (129 reference vs 6,683 Xenium cells) suggests the marker-based scorer over-assigns CAFs in the Xenium data — likely because stromal markers like LUM and SFRP4 are strongly represented in the 380-gene panel while competing signals from rarer fibroblast subtypes are absent.
+<details>
+<summary><b>Per-cell-type breakdown</b> — click to expand</summary>
+
+| Cell type | 10x native | Voronoi (CP) | Voronoi (SD) | Voronoi (M) | Voronoi (10x) | Baysor | Baysor (CP) | Baysor (SD) | Baysor (M) | Baysor (10x) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Smooth muscle | 2.34 | 2.12 | 2.33 | 2.18 | 2.27 | 4.05 | 3.61 | 3.76 | 3.51 | 3.72 |
+| Adipocytes | 3.20 | 3.74 | 3.27 | 3.63 | 3.38 | 2.99 | 2.96 | 2.92 | 2.91 | 2.90 |
+| B cells | 2.96 | 3.40 | 3.01 | 3.07 | 3.03 | 4.03 | 3.66 | 3.72 | 3.58 | 3.77 |
+| CAFs | 3.41 | 2.91 | 3.45 | 3.01 | 3.31 | 5.45 | 5.04 | 5.21 | 4.94 | 5.13 |
+| Endothelial | 3.62 | 3.37 | 3.69 | 3.39 | 3.61 | 5.57 | 4.97 | 5.15 | 4.85 | 5.10 |
+| Luminal epithelial | 4.96 | 4.85 | 4.96 | 4.86 | 4.92 | 6.32 | 5.64 | 5.80 | 5.57 | 5.73 |
+| Macrophages | 3.28 | 3.37 | 3.34 | 3.34 | 3.28 | 4.31 | 3.99 | 4.14 | 3.94 | 4.07 |
+| Myoepithelial | 3.50 | 3.72 | 3.53 | 3.67 | 3.55 | 4.34 | 4.01 | 4.03 | 3.94 | 4.03 |
+| Plasma cells | 3.35 | 3.62 | 3.42 | 3.50 | 3.39 | 3.72 | 3.45 | 3.57 | 3.49 | 3.56 |
+| T cells | 4.49 | 4.38 | 4.52 | 4.29 | 4.43 | 5.79 | 5.54 | 5.60 | 5.58 | 5.44 |
+
+</details>
+
+Voronoi methods and 10x native are tightly grouped (mean 3.49–3.55), with Voronoi (M) marginally closest to the reference. Baysor methods are consistently ~0.8 units further (mean 4.23–4.66), with Baysor (M prior 1.0) closest among them. The gap is driven by CAFs, endothelial, and luminal epithelial — populations where Baysor's density-adaptive boundaries assign transcripts differently enough to shift the population centroid in PCA space. Adipocytes are the one cell type where Baysor methods sit closer to the reference than Voronoi (2.90 vs 3.20–3.74), possibly because adipocytes' diffuse morphology is better captured by transcript-density expansion than by Voronoi tessellation around compact nuclei.
 
 ---
 
