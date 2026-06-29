@@ -1,17 +1,14 @@
-"""Cluster centroid distance: all segmentation methods vs scRNA-seq reference.
+"""Cluster centroid distance: segmentation methods vs scRNA-seq and 10x native.
 
-For each segmentation method and Leiden resolution, projects cells into a
-shared PCA space (fit on scRNA-seq reference, 374 shared genes, 30 PCs),
-clusters in that space, computes cluster centroids, and measures the Euclidean
-distance to the nearest scRNA-seq reference centroid. This answers: which
-method and resolution produce clusters closest to the reference cell states?
-
-Also computes per-cell-type centroid distances using marker-based annotation.
+At each Leiden resolution, clusters all methods in a shared PCA space (fit on
+scRNA-seq reference), Hungarian-matches cluster centroids one-to-one, and
+reports matched centroid distances. Also computes cell-level ARI vs 10x native
+and pairwise between methods.
 
 Reads:  data/reference/scrna_3p_filtered_feature_bc_matrix.h5
         data/processed/roi/adata_*.h5ad
 Writes: results/tables/centroid_distance.csv
-        results/tables/centroid_distance_summary.csv
+        results/tables/centroid_distance_pairwise.csv
         results/tables/celltype_centroid_distance.csv
 
 Usage::
@@ -21,7 +18,7 @@ Usage::
 
 from __future__ import annotations
 
-from itertools import product
+from itertools import combinations
 from pathlib import Path
 
 import anndata as ad
@@ -29,9 +26,12 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy.sparse as sp
+from scipy.optimize import linear_sum_assignment
+from scipy.spatial import cKDTree
 from sklearn.decomposition import PCA
+from sklearn.metrics import adjusted_rand_score
 
-from segbench.constants import METHOD_LABELS, NUCLEAR_ONLY
+from segbench.constants import METHOD_LABELS
 
 ROI_DIR  = Path("data/processed/roi")
 REF_PATH = Path("data/reference/scrna_3p_filtered_feature_bc_matrix.h5")
@@ -81,11 +81,72 @@ def normalize_log(X) -> np.ndarray:
     return np.log1p(X)
 
 
-def cluster_centroids(Z: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
-    centroids = {}
-    for cl in sorted(set(labels), key=lambda c: int(c)):
-        centroids[cl] = Z[labels == cl].mean(axis=0)
-    return centroids
+def cluster_centroids(Z: np.ndarray, labels: np.ndarray) -> tuple[list[str], np.ndarray]:
+    ids = sorted(set(labels), key=lambda c: int(c))
+    centers = np.array([Z[labels == cl].mean(axis=0) for cl in ids])
+    return ids, centers
+
+
+def hungarian_centroid_dist(centers_a: np.ndarray, centers_b: np.ndarray):
+    """Hungarian-match centroids, return matched distances and assignment."""
+    n_a, n_b = len(centers_a), len(centers_b)
+    cost = np.zeros((n_a, n_b))
+    for i in range(n_a):
+        cost[i] = np.linalg.norm(centers_b - centers_a[i], axis=1)
+    row_ind, col_ind = linear_sum_assignment(cost)
+    matched_dists = cost[row_ind, col_ind]
+    return matched_dists, row_ind, col_ind
+
+
+def spatial_match(adata_a, adata_b, max_dist=15.0):
+    """Mutual nearest-neighbor spatial matching. Returns matched index arrays."""
+    xy_a = np.column_stack([adata_a.obs["centroid_x"], adata_a.obs["centroid_y"]])
+    xy_b = np.column_stack([adata_b.obs["centroid_x"], adata_b.obs["centroid_y"]])
+    tree_a = cKDTree(xy_a)
+    tree_b = cKDTree(xy_b)
+    dist_ab, idx_b = tree_b.query(xy_a)
+    dist_ba, idx_a = tree_a.query(xy_b)
+    matched_a, matched_b = [], []
+    for i_a, (i_b, d) in enumerate(zip(idx_b, dist_ab)):
+        if d <= max_dist and idx_a[i_b] == i_a:
+            matched_a.append(i_a)
+            matched_b.append(i_b)
+    return np.array(matched_a), np.array(matched_b)
+
+
+def match_and_ari(adata_a, adata_b, labels_a, labels_b, max_dist=15.0):
+    """Match cells by spatial centroid, compute ARI."""
+    matched_a, matched_b = spatial_match(adata_a, adata_b, max_dist)
+    if len(matched_a) < 100:
+        return float("nan"), 0
+    return adjusted_rand_score(labels_a[matched_a], labels_b[matched_b]), len(matched_a)
+
+
+def argmax_centroid_dist(
+    Z_a, labels_a, Z_b, labels_b, matched_a, matched_b,
+):
+    """Argmax-match clusters via cell overlap, return per-cluster centroid distances.
+
+    Each cluster in B is mapped to whichever A cluster contains the plurality
+    of its matched cells (many-to-one). Returns distances for each B cluster.
+    """
+    ids_a, centers_a = cluster_centroids(Z_a, labels_a)
+    ids_b, centers_b = cluster_centroids(Z_b, labels_b)
+    center_map_a = {cl: c for cl, c in zip(ids_a, centers_a)}
+
+    la = labels_a[matched_a]
+    lb = labels_b[matched_b]
+    confusion = pd.crosstab(pd.Series(la, name="a"), pd.Series(lb, name="b"))
+
+    dists = []
+    for i, cl_b in enumerate(ids_b):
+        if cl_b in confusion.columns:
+            best_a = confusion[cl_b].idxmax()
+            d = float(np.linalg.norm(centers_b[i] - center_map_a[best_a]))
+        else:
+            d = float("nan")
+        dists.append(d)
+    return np.array(dists)
 
 
 def score_and_assign(adata_raw, gene_universe):
@@ -106,229 +167,271 @@ def main() -> None:
     TABLES.mkdir(parents=True, exist_ok=True)
     sc.settings.verbosity = 0
 
-    # ---- load and QC reference
+    # ---- load reference
     print("Loading scRNA-seq reference...")
     ref = sc.read_10x_h5(str(REF_PATH))
     ref.var_names_make_unique()
     sc.pp.filter_cells(ref, min_genes=200)
     sc.pp.filter_genes(ref, min_cells=3)
     ref = ref[ref.obs["n_genes"] < 6000].copy()
-    print(f"  {ref.n_obs} cells after QC")
+    print(f"  {ref.n_obs} cells")
 
-    # ---- load all segmentation methods
-    print("\nLoading segmentation methods...")
-    adatas_raw: dict[str, ad.AnnData] = {}
+    # ---- load methods
+    print("Loading segmentation methods...")
+    adatas: dict[str, ad.AnnData] = {}
     available: list[tuple[str, str]] = []
     for key, fname in METHODS:
         path = ROI_DIR / fname
         if not path.exists():
-            print(f"  {METHOD_LABELS[key]}: skipped")
             continue
         label = METHOD_LABELS[key]
-        adatas_raw[label] = ad.read_h5ad(path)
+        adatas[label] = ad.read_h5ad(path)
         available.append((key, label))
-        print(f"  {label}: {adatas_raw[label].n_obs} cells")
+        print(f"  {label}: {adatas[label].n_obs} cells")
 
-    # ---- shared gene set + PCA (fit on reference)
-    first_label = available[0][1]
-    shared_genes = sorted(set(adatas_raw[first_label].var_names) & set(ref.var_names))
+    # ---- shared PCA
+    shared_genes = sorted(set(adatas[available[0][1]].var_names) & set(ref.var_names))
     print(f"\nShared genes: {len(shared_genes)}")
-
     X_ref = normalize_log(ref[:, shared_genes].X)
     pca = PCA(n_components=N_PCS, random_state=RANDOM_STATE)
     Z_ref = pca.fit_transform(X_ref)
     print(f"PCA: {N_PCS} PCs, {pca.explained_variance_ratio_.sum():.1%} variance")
 
-    # ---- project all methods into reference PCA
     projections: dict[str, np.ndarray] = {}
     for key, label in available:
-        X_m = normalize_log(adatas_raw[label][:, shared_genes].X)
-        projections[label] = pca.transform(X_m)
+        projections[label] = pca.transform(
+            normalize_log(adatas[label][:, shared_genes].X)
+        )
 
-    # ---- cluster reference at each resolution
-    print("\nClustering reference...")
+    # ---- build neighbor graphs + cluster at all resolutions
+    print("\nClustering...")
     ref_ad = ad.AnnData(X=Z_ref, obs=pd.DataFrame(index=ref.obs_names))
     sc.pp.neighbors(ref_ad, use_rep="X", n_neighbors=15, random_state=RANDOM_STATE)
-    ref_clusterings: dict[float, np.ndarray] = {}
+
+    method_ads: dict[str, ad.AnnData] = {}
+    for key, label in available:
+        method_ads[label] = ad.AnnData(
+            X=projections[label],
+            obs=pd.DataFrame(index=adatas[label].obs_names),
+        )
+        sc.pp.neighbors(method_ads[label], use_rep="X", n_neighbors=15,
+                        random_state=RANDOM_STATE)
+
+    ref_cl: dict[float, np.ndarray] = {}
+    method_cl: dict[str, dict[float, np.ndarray]] = {l: {} for _, l in available}
     for res in RESOLUTIONS:
         sc.tl.leiden(ref_ad, resolution=res, random_state=RANDOM_STATE, flavor="igraph")
-        ref_clusterings[res] = ref_ad.obs["leiden"].values.copy()
-    print(f"  {len(RESOLUTIONS)} resolutions, "
-          f"{len(set(ref_clusterings[0.3]))}–{len(set(ref_clusterings[2.0]))} clusters")
+        ref_cl[res] = ref_ad.obs["leiden"].values.copy()
+        for key, label in available:
+            sc.tl.leiden(method_ads[label], resolution=res,
+                         random_state=RANDOM_STATE, flavor="igraph")
+            method_cl[label][res] = method_ads[label].obs["leiden"].values.copy()
 
-    # ---- cluster each method at each resolution
-    print("Clustering methods...")
-    method_clusterings: dict[str, dict[float, np.ndarray]] = {}
+    method_labels = [l for _, l in available]
+
+    # ==================================================================
+    # 1. Method vs scRNA-seq reference — centroid distances
+    # ==================================================================
+    print("\n" + "=" * 95)
+    print("1. Centroid distance to scRNA-seq reference (Hungarian matching, same resolution)")
+    print("=" * 95)
+
+    vs_ref_rows = []
+    header = f"{'Method':<30}" + "".join(f"{r:>6}" for r in RESOLUTIONS)
+    print(header)
+    print("-" * len(header))
     for key, label in available:
-        Z_m = projections[label]
-        m_ad = ad.AnnData(X=Z_m, obs=pd.DataFrame(index=adatas_raw[label].obs_names))
-        sc.pp.neighbors(m_ad, use_rep="X", n_neighbors=15, random_state=RANDOM_STATE)
-        method_clusterings[label] = {}
+        vals = []
         for res in RESOLUTIONS:
-            sc.tl.leiden(m_ad, resolution=res, random_state=RANDOM_STATE, flavor="igraph")
-            method_clusterings[label][res] = m_ad.obs["leiden"].values.copy()
-        n_lo = len(set(method_clusterings[label][0.3]))
-        n_hi = len(set(method_clusterings[label][2.0]))
-        print(f"  {label}: {n_lo}–{n_hi} clusters")
-
-    # ---- compute centroid distances for all (method, ref_res, method_res) combos
-    print("\nComputing centroid distances...")
-    detail_rows = []
-    summary_rows = []
-
-    for key, label in available:
-        Z_m = projections[label]
-        for ref_res, m_res in product(RESOLUTIONS, RESOLUTIONS):
-            ref_centroids = cluster_centroids(Z_ref, ref_clusterings[ref_res])
-            m_centroids = cluster_centroids(Z_m, method_clusterings[label][m_res])
-            m_labels = method_clusterings[label][m_res]
-
-            ref_centers = np.array(list(ref_centroids.values()))
-            ref_keys = list(ref_centroids.keys())
-
-            distances = []
-            for cl, centroid in m_centroids.items():
-                dists = np.linalg.norm(ref_centers - centroid, axis=1)
-                nearest_idx = int(np.argmin(dists))
-                nearest_dist = float(dists[nearest_idx])
-                n_cells = int((m_labels == cl).sum())
-
-                detail_rows.append({
-                    "method": label,
-                    "ref_res": ref_res,
-                    "method_res": m_res,
-                    "cluster": cl,
-                    "n_cells": n_cells,
-                    "nearest_ref_cluster": ref_keys[nearest_idx],
-                    "distance": round(nearest_dist, 4),
-                })
-                distances.append((nearest_dist, n_cells))
-
-            dists_arr = np.array([d for d, _ in distances])
-            sizes = np.array([n for _, n in distances])
+            _, ref_centers = cluster_centroids(Z_ref, ref_cl[res])
+            _, m_centers = cluster_centroids(projections[label], method_cl[label][res])
+            dists, _, _ = hungarian_centroid_dist(m_centers, ref_centers)
+            n_matched = len(dists)
+            sizes = np.array([int((method_cl[label][res] == cl).sum())
+                              for cl in sorted(set(method_cl[label][res]), key=int)])
             weights = sizes / sizes.sum()
+            wt_mean = float((dists * weights[:n_matched]).sum()) if n_matched == len(sizes) else float(dists.mean())
+            mean_d = float(dists.mean())
+            vals.append(mean_d)
+            vs_ref_rows.append({
+                "method": label, "resolution": res,
+                "n_ref_cl": len(ref_centers), "n_method_cl": len(m_centers),
+                "n_matched": n_matched,
+                "mean_matched_dist": round(mean_d, 4),
+                "median_matched_dist": round(float(np.median(dists)), 4),
+                "max_matched_dist": round(float(dists.max()), 4),
+            })
+        print(f"{label:<30}" + "".join(f"{v:>6.2f}" for v in vals))
 
-            summary_rows.append({
-                "method": label,
-                "ref_res": ref_res,
-                "method_res": m_res,
-                "n_ref_clusters": len(ref_centroids),
-                "n_method_clusters": len(m_centroids),
-                "weighted_mean_dist": round(float((dists_arr * weights).sum()), 4),
-                "unweighted_mean_dist": round(float(dists_arr.mean()), 4),
-                "median_dist": round(float(np.median(dists_arr)), 4),
-                "min_dist": round(float(dists_arr.min()), 4),
-                "max_dist": round(float(dists_arr.max()), 4),
+    # ==================================================================
+    # 2. Method vs 10x native — centroid distances + ARI
+    # ==================================================================
+    tenx_label = "10x native"
+
+    # Precompute spatial matches (once per method pair, reused across resolutions)
+    print("\nPrecomputing spatial cell matches vs 10x native...")
+    spatial_matches: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    for key, label in available:
+        if label == tenx_label:
+            continue
+        ma, mb = spatial_match(adatas[tenx_label], adatas[label])
+        spatial_matches[label] = (ma, mb)
+        print(f"  {label}: {len(ma)} matched cells")
+
+    print("\n" + "=" * 95)
+    print("2a. Centroid distance to 10x native (Hungarian matching)")
+    print("=" * 95)
+
+    vs_10x_rows = []
+    print(header)
+    print("-" * len(header))
+    for key, label in available:
+        vals = []
+        for res in RESOLUTIONS:
+            _, tenx_centers = cluster_centroids(projections[tenx_label], method_cl[tenx_label][res])
+            _, m_centers = cluster_centroids(projections[label], method_cl[label][res])
+            dists, _, _ = hungarian_centroid_dist(m_centers, tenx_centers)
+            mean_d = float(dists.mean())
+            vals.append(mean_d)
+            vs_10x_rows.append({
+                "method": label, "resolution": res,
+                "matching": "hungarian",
+                "n_10x_cl": len(tenx_centers), "n_method_cl": len(m_centers),
+                "mean_matched_dist": round(mean_d, 4),
+            })
+        print(f"{label:<30}" + "".join(f"{v:>6.2f}" for v in vals))
+
+    print(f"\n{'2b. Centroid distance to 10x native (argmax matching)':<60}")
+    print(header)
+    print("-" * len(header))
+    for key, label in available:
+        vals = []
+        for res in RESOLUTIONS:
+            if label == tenx_label:
+                vals.append(0.0)
+                vs_10x_rows.append({
+                    "method": label, "resolution": res,
+                    "matching": "argmax",
+                    "n_10x_cl": len(set(method_cl[tenx_label][res])),
+                    "n_method_cl": len(set(method_cl[label][res])),
+                    "mean_matched_dist": 0.0,
+                })
+                continue
+            ma, mb = spatial_matches[label]
+            dists = argmax_centroid_dist(
+                projections[tenx_label], method_cl[tenx_label][res],
+                projections[label], method_cl[label][res],
+                ma, mb,
+            )
+            valid = dists[~np.isnan(dists)]
+            mean_d = float(valid.mean()) if len(valid) else float("nan")
+            vals.append(mean_d)
+            vs_10x_rows.append({
+                "method": label, "resolution": res,
+                "matching": "argmax",
+                "n_10x_cl": len(set(method_cl[tenx_label][res])),
+                "n_method_cl": len(set(method_cl[label][res])),
+                "mean_matched_dist": round(mean_d, 4),
+            })
+        print(f"{label:<30}" + "".join(f"{v:>6.2f}" for v in vals))
+
+    print(f"\n{'2c. ARI vs 10x native (cell-level spatial matching)':<60}")
+    print(header)
+    print("-" * len(header))
+    for key, label in available:
+        vals = []
+        for res in RESOLUTIONS:
+            if label == tenx_label:
+                vals.append(1.0)
+                continue
+            ma, mb = spatial_matches[label]
+            la = method_cl[tenx_label][res][ma]
+            lb = method_cl[label][res][mb]
+            ari = adjusted_rand_score(la, lb) if len(ma) >= 100 else float("nan")
+            vals.append(ari)
+        print(f"{label:<30}" + "".join(f"{v:>6.3f}" for v in vals))
+
+    # ==================================================================
+    # 3. Pairwise method centroid distances
+    # ==================================================================
+    print("\n" + "=" * 95)
+    print("3. Pairwise centroid distances (resolution 1.0, Hungarian matching)")
+    print("=" * 95)
+
+    pairwise_rows = []
+    res_show = 1.0
+    pair_header = f"{'':>30}" + "".join(f"{l:>12}" for l in method_labels)
+    print(pair_header)
+    print("-" * len(pair_header))
+    pair_matrix = np.zeros((len(method_labels), len(method_labels)))
+    for i, la in enumerate(method_labels):
+        for j, lb in enumerate(method_labels):
+            if i == j:
+                pair_matrix[i, j] = 0.0
+                continue
+            if j < i:
+                pair_matrix[i, j] = pair_matrix[j, i]
+                continue
+            _, ca = cluster_centroids(projections[la], method_cl[la][res_show])
+            _, cb = cluster_centroids(projections[lb], method_cl[lb][res_show])
+            dists, _, _ = hungarian_centroid_dist(ca, cb)
+            pair_matrix[i, j] = pair_matrix[j, i] = float(dists.mean())
+            pairwise_rows.append({
+                "method_a": la, "method_b": lb, "resolution": res_show,
+                "mean_matched_dist": round(float(dists.mean()), 4),
             })
 
-    detail_df = pd.DataFrame(detail_rows)
-    detail_df.to_csv(TABLES / "centroid_distance.csv", index=False)
+    for i, la in enumerate(method_labels):
+        row = f"{la:>30}"
+        for j in range(len(method_labels)):
+            if i == j:
+                row += f"{'—':>12}"
+            else:
+                row += f"{pair_matrix[i,j]:>12.2f}"
+        print(row)
 
-    summary_df = pd.DataFrame(summary_rows)
-    summary_df.to_csv(TABLES / "centroid_distance_summary.csv", index=False)
+    # ---- save
+    pd.DataFrame(vs_ref_rows).to_csv(TABLES / "centroid_distance.csv", index=False)
+    pd.DataFrame(vs_10x_rows).to_csv(TABLES / "centroid_distance_vs_10x.csv", index=False)
+    pd.DataFrame(pairwise_rows).to_csv(TABLES / "centroid_distance_pairwise.csv", index=False)
 
-    # ---- best resolution per method
-    print("\n" + "=" * 95)
-    print("Best (ref_res, method_res) per method (minimizing weighted mean distance)")
-    print("=" * 95)
-    print(f"{'Method':<30} {'Ref res':>7} {'Meth res':>8} {'Ref cl':>6} {'Meth cl':>7} "
-          f"{'Wt mean':>8} {'Mean':>8} {'Median':>8}")
-    print("-" * 90)
-    for key, label in available:
-        sub = summary_df[summary_df["method"] == label]
-        best_idx = sub["weighted_mean_dist"].idxmin()
-        b = sub.loc[best_idx]
-        print(f"{label:<30} {b['ref_res']:>7.1f} {b['method_res']:>8.1f} "
-              f"{b['n_ref_clusters']:>6.0f} {b['n_method_clusters']:>7.0f} "
-              f"{b['weighted_mean_dist']:>8.4f} {b['unweighted_mean_dist']:>8.4f} "
-              f"{b['median_dist']:>8.4f}")
-
-    # ---- at fixed ref_res=1.0, best method_res per method
-    print("\n" + "=" * 95)
-    print("Best method_res per method at ref_res=1.0")
-    print("=" * 95)
-    print(f"{'Method':<30} {'Meth res':>8} {'Meth cl':>7} "
-          f"{'Wt mean':>8} {'Mean':>8}")
-    print("-" * 65)
-    for key, label in available:
-        sub = summary_df[(summary_df["method"] == label) &
-                         (summary_df["ref_res"] == 1.0)]
-        best_idx = sub["weighted_mean_dist"].idxmin()
-        b = sub.loc[best_idx]
-        print(f"{label:<30} {b['method_res']:>8.1f} {b['n_method_clusters']:>7.0f} "
-              f"{b['weighted_mean_dist']:>8.4f} {b['unweighted_mean_dist']:>8.4f}")
-
-    print("\nSaved centroid_distance.csv and centroid_distance_summary.csv")
-
-    # ================================================================
-    # Cell type centroid comparison — all methods
-    # ================================================================
+    # ==================================================================
+    # 4. Cell type centroid distance — all methods vs reference
+    # ==================================================================
     print("\n" + "=" * 80)
-    print("Cell type centroid distance (marker-based annotation, all methods)")
+    print("4. Cell type centroid distance (marker-based, all methods)")
     print("=" * 80)
 
-    print("\nAnnotating reference cells...")
     ref_ct = score_and_assign(ref, set(ref.var_names))
-
     ct_rows = []
     for key, label in available:
-        print(f"\n  {label}...")
-        m_ct = score_and_assign(adatas_raw[label], set(adatas_raw[label].var_names))
+        m_ct = score_and_assign(adatas[label], set(adatas[label].var_names))
         Z_m = projections[label]
-
-        shared_types = sorted(set(ref_ct.unique()) & set(m_ct.unique()))
-        for ct in shared_types:
+        for ct in sorted(set(ref_ct.unique()) & set(m_ct.unique())):
             ref_mask = (ref_ct == ct).values
             m_mask = (m_ct == ct).values
-            n_ref = int(ref_mask.sum())
-            n_m = int(m_mask.sum())
-            if n_ref < 5 or n_m < 5:
+            if ref_mask.sum() < 5 or m_mask.sum() < 5:
                 continue
-            ref_centroid = Z_ref[ref_mask].mean(axis=0)
-            m_centroid = Z_m[m_mask].mean(axis=0)
-            dist = float(np.linalg.norm(m_centroid - ref_centroid))
+            dist = float(np.linalg.norm(
+                Z_m[m_mask].mean(axis=0) - Z_ref[ref_mask].mean(axis=0)
+            ))
             ct_rows.append({
-                "method": label,
-                "cell_type": ct,
-                "n_ref": n_ref,
-                "n_method": n_m,
+                "method": label, "cell_type": ct,
+                "n_ref": int(ref_mask.sum()), "n_method": int(m_mask.sum()),
                 "distance": round(dist, 4),
             })
 
     ct_df = pd.DataFrame(ct_rows)
     ct_df.to_csv(TABLES / "celltype_centroid_distance.csv", index=False)
 
-    # Summary: mean cell type centroid distance per method
-    print("\n" + "=" * 60)
-    print("Mean cell type centroid distance per method")
-    print("=" * 60)
-    print(f"{'Method':<30} {'Mean dist':>10} {'Median':>8} {'Max':>8}")
-    print("-" * 60)
-    for key, label in available:
+    print(f"\n{'Method':<30} {'Mean':>8} {'Median':>8} {'Max':>8}")
+    print("-" * 58)
+    for _, label in available:
         sub = ct_df[ct_df["method"] == label]
-        if sub.empty:
-            continue
-        print(f"{label:<30} {sub['distance'].mean():>10.4f} "
-              f"{sub['distance'].median():>8.4f} {sub['distance'].max():>8.4f}")
+        print(f"{label:<30} {sub['distance'].mean():>8.2f} "
+              f"{sub['distance'].median():>8.2f} {sub['distance'].max():>8.2f}")
 
-    # Per cell type across methods
-    print("\n" + "=" * 80)
-    cell_types = sorted(ct_df["cell_type"].unique())
-    method_labels = [l for _, l in available]
-    header = f"{'Cell type':<25}" + "".join(f"{l:>12}" for l in method_labels)
-    print(header)
-    print("-" * len(header))
-    for ct in cell_types:
-        row = f"{ct:<25}"
-        for label in method_labels:
-            sub = ct_df[(ct_df["method"] == label) & (ct_df["cell_type"] == ct)]
-            if sub.empty:
-                row += f"{'—':>12}"
-            else:
-                row += f"{sub['distance'].values[0]:>12.2f}"
-        print(row)
-
-    print("\nSaved celltype_centroid_distance.csv")
+    print("\nDone.")
 
 
 if __name__ == "__main__":

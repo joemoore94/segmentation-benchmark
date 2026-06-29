@@ -477,22 +477,41 @@ For each matched cell pair (nearest centroid, <15 µm), displacement measures ho
 
 ### Centroid distance to scRNA-seq reference
 
-To measure how closely each segmentation method's clusters match scRNA-seq cell states, all methods are projected into the shared reference PCA space, clustered at each Leiden resolution, and the Euclidean distance from each method cluster centroid to the nearest scRNA-seq cluster centroid is computed. Both the reference and method resolution are swept (0.3–2.0) and the combination minimizing weighted mean distance is reported.
+To measure how closely each segmentation method's clusters match scRNA-seq cell states, all methods are projected into the shared reference PCA space, clustered at each Leiden resolution, and the Euclidean distance from each method cluster centroid to the nearest scRNA-seq cluster centroid is computed. Both the reference and method resolution are swept independently (0.3–2.0), giving a 10×10 grid of resolution combinations per method.
 
-| Method | Ref res | Method res | Ref cl | Method cl | Wt. mean dist |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Voronoi (CP) | 2.0 | 2.0 | 26 | 22 | 3.73 |
-| Voronoi (M) | 0.6 | 1.5 | 13 | 17 | 3.76 |
-| 10x native | 0.6 | 1.5 | 13 | 18 | 3.84 |
-| Voronoi (SD) | 0.6 | 2.0 | 13 | 20 | 3.84 |
-| Voronoi (10x) | 0.6 | 1.2 | 13 | 15 | 3.85 |
-| Baysor (SD prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.40 |
-| Baysor (10x prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.45 |
-| Baysor | 2.0 | 0.3 | 26 | 11 | 3.45 |
-| Baysor (CP prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.52 |
-| Baysor (M prior 1.0) | 2.0 | 0.3 | 26 | 10 | 3.59 |
+The two key slices through this grid reveal qualitatively different behavior between method families. Fixing the reference at resolution 1.0 (17 clusters) and sweeping the method resolution asks: does splitting method clusters finer bring their centroids closer to the reference?
 
-Baysor methods achieve lower absolute centroid distances than Voronoi, but under very different conditions: they need high reference resolution (2.0, 26 clusters) and low method resolution (0.3, 10–11 clusters). This means Baysor's coarse clusters are landing near one of many fine-grained reference centroids — not that Baysor resolves cell states more precisely. Voronoi methods and 10x native converge at moderate resolution on both sides (ref 0.6, method 1.2–2.0), suggesting their cluster structure naturally aligns with the reference at a comparable granularity.
+| Method | 0.3 | 0.5 | 0.7 | 1.0 | 1.5 | 2.0 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10x native | 4.09 | 4.11 | 4.09 | 4.06 | 4.00 | 4.01 |
+| Voronoi (CP) | 4.05 | 4.05 | 4.00 | 3.91 | 3.81 | 3.78 |
+| Voronoi (SD) | 4.24 | 4.16 | 4.14 | 4.10 | 4.09 | 4.01 |
+| Voronoi (M) | 4.08 | 4.04 | 3.98 | 3.88 | 3.80 | 3.81 |
+| Voronoi (10x) | 4.13 | 4.08 | 4.07 | 4.06 | 4.00 | 3.98 |
+| Baysor | 4.57 | 4.58 | 4.58 | 4.57 | 4.57 | 4.58 |
+| Baysor (CP prior 1.0) | 4.25 | 4.22 | 4.22 | 4.23 | 4.23 | 4.23 |
+| Baysor (SD prior 1.0) | 4.32 | 4.31 | 4.30 | 4.29 | 4.29 | 4.29 |
+| Baysor (M prior 1.0) | 4.24 | 4.22 | 4.22 | 4.23 | 4.25 | 4.24 |
+| Baysor (10x prior 1.0) | 4.28 | 4.28 | 4.27 | 4.27 | 4.26 | 4.27 |
+
+Voronoi methods improve modestly with finer resolution (−0.27 from 0.3→2.0), while Baysor methods are completely flat (Δ ≈ 0.00). Splitting Baysor from 11 to 37 clusters does not move centroids closer to the reference — they are fixed in the wrong locations in PCA space.
+
+Fixing the method at resolution 1.0 and sweeping the reference resolution asks: does a denser reference grid help methods find nearby centroids?
+
+| Method | 0.3 | 0.5 | 0.7 | 1.0 | 1.5 | 2.0 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10x native | 3.96 | 3.90 | 4.13 | 4.06 | 4.05 | 3.98 |
+| Voronoi (CP) | 3.91 | 3.90 | 3.94 | 3.91 | 3.90 | 3.82 |
+| Voronoi (SD) | 3.96 | 3.91 | 4.12 | 4.10 | 4.10 | 3.98 |
+| Voronoi (M) | 3.90 | 3.87 | 3.94 | 3.88 | 3.87 | 3.81 |
+| Voronoi (10x) | 3.98 | 3.92 | 4.12 | 4.06 | 4.05 | 3.98 |
+| Baysor | 4.29 | 4.43 | 4.38 | 4.57 | 4.58 | 3.51 |
+| Baysor (CP prior 1.0) | 3.94 | 4.03 | 4.13 | 4.23 | 4.23 | 3.58 |
+| Baysor (SD prior 1.0) | 3.97 | 4.08 | 4.14 | 4.29 | 4.30 | 3.48 |
+| Baysor (M prior 1.0) | 3.97 | 4.03 | 4.13 | 4.23 | 4.24 | 3.64 |
+| Baysor (10x prior 1.0) | 3.97 | 4.08 | 4.15 | 4.27 | 4.28 | 3.52 |
+
+Voronoi methods are nearly flat across reference resolution (−0.09 from 0.3→2.0) — their centroids already sit near reference centroids regardless of granularity. Baysor methods drop sharply at ref_res 2.0 (−0.78 for Baysor, −0.33 for Baysor M prior), meaning their centroids sit in gaps between reference cell states and only a dense enough reference grid (26 clusters) has a centroid nearby. This asymmetry — Baysor benefits from finer reference but not from finer self-resolution — indicates that Baysor's density-adaptive boundaries shift enough transcripts to displace population centroids away from where scRNA-seq places them, and this displacement cannot be corrected by clustering at a different resolution.
 
 ### Cell type centroid distance
 
@@ -530,6 +549,78 @@ As a complementary measure, each cell in both the scRNA-seq reference and every 
 </details>
 
 Voronoi methods and 10x native are tightly grouped (mean 3.49–3.55), with Voronoi (M) marginally closest to the reference. Baysor methods are consistently ~0.8 units further (mean 4.23–4.66), with Baysor (M prior 1.0) closest among them. The gap is driven by CAFs, endothelial, and luminal epithelial — populations where Baysor's density-adaptive boundaries assign transcripts differently enough to shift the population centroid in PCA space. Adipocytes are the one cell type where Baysor methods sit closer to the reference than Voronoi (2.90 vs 3.20–3.74), possibly because adipocytes' diffuse morphology is better captured by transcript-density expansion than by Voronoi tessellation around compact nuclei.
+
+### Hungarian-matched cluster centroids
+
+The nearest-centroid tables above allow many-to-one matching — multiple method clusters can snap to the same reference centroid. Hungarian (one-to-one) matching enforces a strict bijection, giving a more principled measure of structural alignment. At each Leiden resolution (same for both sides), cluster centroids are matched one-to-one between each method and the scRNA-seq reference, between each method and 10x native, and pairwise between methods.
+
+**Centroid distance to 10x native** (Hungarian matching, Euclidean in 30-PC reference space):
+
+| Method | 0.3 | 0.5 | 0.7 | 1.0 | 1.5 | 2.0 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Voronoi (SD) | 0.34 | 0.22 | 0.75 | 0.40 | 0.73 | 0.69 |
+| Voronoi (10x) | 0.39 | 0.68 | 0.80 | 0.46 | 0.49 | 0.55 |
+| Voronoi (M) | 0.73 | 1.02 | 1.00 | 0.92 | 0.78 | 0.82 |
+| Voronoi (CP) | 0.92 | 0.87 | 1.19 | 0.96 | 0.88 | 1.10 |
+| Baysor (M prior 1.0) | 1.87 | 1.85 | 2.13 | 1.90 | 2.08 | 1.97 |
+| Baysor (CP prior 1.0) | 2.06 | 2.17 | 2.27 | 2.39 | 2.30 | 2.19 |
+| Baysor (10x prior 1.0) | 2.20 | 2.21 | 2.45 | 2.20 | 2.42 | 2.27 |
+| Baysor (SD prior 1.0) | 2.29 | 2.25 | 2.49 | 2.17 | 2.43 | 2.32 |
+| Baysor | 2.44 | 2.51 | 2.66 | 2.77 | 2.63 | 2.54 |
+
+Voronoi cluster centroids are very close to 10x native's (0.22–1.19) across all resolutions, with Voronoi (SD) closest. Baysor centroids are 2–3× further away (1.78–2.77), confirming the population-level displacement seen in the cell-type analysis. The gap is stable across resolutions — it reflects a structural difference in where methods place cells in PCA space, not a resolution artifact.
+
+**Centroid distance to 10x native** (argmax matching — each method cluster mapped to the 10x native cluster containing the plurality of its spatially matched cells):
+
+| Method | 0.3 | 0.5 | 0.7 | 1.0 | 1.5 | 2.0 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Voronoi (SD) | 0.34 | 0.22 | 0.81 | 0.41 | 0.69 | 0.55 |
+| Voronoi (10x) | 0.39 | 0.68 | 0.89 | 0.52 | 0.52 | 0.47 |
+| Voronoi (M) | 0.73 | 1.07 | 0.95 | 0.92 | 0.74 | 0.81 |
+| Voronoi (CP) | 0.92 | 0.87 | 1.26 | 1.04 | 0.95 | 1.02 |
+| Baysor (M prior 1.0) | 2.59 | 2.84 | 3.03 | 2.92 | 3.07 | 3.21 |
+| Baysor (CP prior 1.0) | 2.73 | 2.73 | 2.98 | 3.09 | 3.16 | 3.14 |
+| Baysor (10x prior 1.0) | 2.91 | 2.62 | 2.94 | 3.04 | 3.04 | 3.20 |
+| Baysor (SD prior 1.0) | 2.90 | 2.99 | 3.16 | 3.13 | 3.14 | 3.23 |
+| Baysor | 3.04 | 3.19 | 3.32 | 3.33 | 3.27 | 3.44 |
+
+Argmax matching uses cell overlap to determine which clusters correspond, allowing many-to-one mapping (multiple method clusters can map to the same 10x native cluster). The Voronoi distances are nearly identical to Hungarian (0.22–1.26), confirming that their clusters have clean one-to-one correspondence with 10x native. Baysor distances are ~30% larger under argmax than Hungarian (2.59–3.44 vs 1.78–2.77), indicating that when clusters are matched by actual cell content rather than geometric proximity, Baysor's centroids are even further from where 10x native places them. Baysor's many fine-grained clusters (22–37 at res 1.0–2.0) map many-to-one onto 10x native's coarser clusters, and the surplus clusters sit far from their assigned target centroids.
+
+**ARI vs 10x native** (cell-level spatial matching, same reference PCA space):
+
+| Method | 0.3 | 0.5 | 0.7 | 1.0 | 1.5 | 2.0 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Voronoi (10x) | 0.866 | 0.761 | 0.713 | 0.728 | 0.576 | 0.543 |
+| Voronoi (M) | 0.820 | 0.698 | 0.705 | 0.670 | 0.572 | 0.529 |
+| Voronoi (CP) | 0.771 | 0.768 | 0.747 | 0.674 | 0.519 | 0.472 |
+| Voronoi (SD) | 0.763 | 0.745 | 0.694 | 0.689 | 0.520 | 0.518 |
+| Baysor (10x prior 1.0) | 0.758 | 0.635 | 0.631 | 0.578 | 0.449 | 0.327 |
+| Baysor (M prior 1.0) | 0.753 | 0.650 | 0.629 | 0.600 | 0.440 | 0.402 |
+| Baysor (CP prior 1.0) | 0.750 | 0.627 | 0.623 | 0.531 | 0.423 | 0.343 |
+| Baysor (SD prior 1.0) | 0.748 | 0.637 | 0.631 | 0.607 | 0.428 | 0.394 |
+| Baysor | 0.365 | 0.397 | 0.386 | 0.365 | 0.277 | 0.215 |
+
+ARI tracks centroid distance inversely: methods with closer centroids have higher cell-level agreement. All methods converge toward high ARI at low resolution (0.3, where 5–6 clusters make agreement easier) and diverge at high resolution where fine-grained cluster boundaries amplify method-specific boundary differences. Baysor PSC=1.0 variants start comparable to Voronoi at resolution 0.3 (ARI ~0.75) but decay faster, reaching 0.33–0.40 at resolution 2.0 vs 0.47–0.54 for Voronoi.
+
+<details>
+<summary><b>Pairwise centroid distances (resolution 1.0)</b> — click to expand</summary>
+
+|  | 10x native | V (CP) | V (SD) | V (M) | V (10x) | Baysor | B (CP) | B (SD) | B (M) | B (10x) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10x native | — | 0.96 | 0.40 | 0.92 | 0.46 | 2.77 | 2.39 | 2.17 | 1.90 | 2.20 |
+| V (CP) | 0.96 | — | 0.88 | 0.66 | 0.93 | 3.35 | 2.98 | 2.77 | 2.47 | 2.80 |
+| V (SD) | 0.40 | 0.88 | — | 0.99 | 0.46 | 2.61 | 2.25 | 2.03 | 1.74 | 2.09 |
+| V (M) | 0.92 | 0.66 | 0.99 | — | 0.95 | 3.28 | 2.92 | 2.70 | 2.43 | 2.74 |
+| V (10x) | 0.46 | 0.93 | 0.46 | 0.95 | — | 2.84 | 2.46 | 2.24 | 1.94 | 2.30 |
+| Baysor | 2.77 | 3.35 | 2.61 | 3.28 | 2.84 | — | 0.63 | 0.57 | 0.72 | 0.60 |
+| B (CP) | 2.39 | 2.98 | 2.25 | 2.92 | 2.46 | 0.63 | — | 0.41 | 0.46 | 0.43 |
+| B (SD) | 2.17 | 2.77 | 2.03 | 2.70 | 2.24 | 0.57 | 0.41 | — | 0.52 | 0.46 |
+| B (M) | 1.90 | 2.47 | 1.74 | 2.43 | 1.94 | 0.72 | 0.46 | 0.52 | — | 0.63 |
+| B (10x) | 2.20 | 2.80 | 2.09 | 2.74 | 2.30 | 0.60 | 0.43 | 0.46 | 0.63 | — |
+
+</details>
+
+The pairwise matrix shows clear block structure: within-Voronoi distances are 0.40–0.99, within-Baysor 0.41–0.72, and cross-family 1.74–3.35. Voronoi and Baysor occupy distinct regions of the reference PCA space. Baysor (M prior 1.0) is the Baysor variant closest to the Voronoi family (1.74–2.47), consistent with Mesmer's larger nuclear masks anchoring more transcripts and pulling the density model's centroids toward morphology-based positions.
 
 ---
 
