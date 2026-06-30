@@ -75,6 +75,7 @@ def main() -> None:
     }
 
     for optional_key, optional_file in [
+        ("baysor_prior_c05",          "adata_baysor_prior_c05.h5ad"),
         ("baysor_prior_c08",          "adata_baysor_prior_c08.h5ad"),
         ("baysor_prior_c10",          "adata_baysor_prior_c10.h5ad"),
         ("baysor_stardist_prior_c10", "adata_baysor_stardist_prior_c10.h5ad"),
@@ -82,6 +83,22 @@ def main() -> None:
         ("baysor_10x_ranger_prior_c10", "adata_baysor_10x_ranger_prior_c10.h5ad"),
         ("voronoi_10x_ranger",          "adata_voronoi_10x_ranger.h5ad"),
         ("10x_ranger",                  "adata_10x_ranger.h5ad"),
+        ("cellpose_exp10um",            "adata_cellpose_exp10um.h5ad"),
+        ("cellpose_exp20um",            "adata_cellpose_exp20um.h5ad"),
+        ("stardist_exp10um",            "adata_stardist_exp10um.h5ad"),
+        ("stardist_exp20um",            "adata_stardist_exp20um.h5ad"),
+        ("mesmer_exp10um",              "adata_mesmer_exp10um.h5ad"),
+        ("mesmer_exp20um",              "adata_mesmer_exp20um.h5ad"),
+        ("10x_ranger_exp10um",          "adata_10x_ranger_exp10um.h5ad"),
+        ("10x_ranger_exp20um",          "adata_10x_ranger_exp20um.h5ad"),
+        ("watershed_10x",              "adata_watershed_10x.h5ad"),
+        ("watershed_stardist",         "adata_watershed_stardist.h5ad"),
+        ("watershed_mesmer",           "adata_watershed_mesmer.h5ad"),
+        ("cellpose_cyto3",             "adata_cellpose_cyto3.h5ad"),
+        ("cellpose_cyto3_eosin",       "adata_cellpose_cyto3_eosin.h5ad"),
+        ("cellpose_cyto3_density",     "adata_cellpose_cyto3_density.h5ad"),
+        ("mesmer_wholecell_eosin",     "adata_mesmer_wholecell_eosin.h5ad"),
+        ("mesmer_wholecell_density",   "adata_mesmer_wholecell_density.h5ad"),
         ("bidcell",                      "adata_bidcell.h5ad"),
         ("segger",                       "adata_segger.h5ad"),
     ]:
@@ -288,10 +305,17 @@ def main() -> None:
     # Generic comparison loop for optional methods
     from segbench.constants import METHOD_LABELS
     optional_methods = [
-        "baysor_prior_c08", "baysor_prior_c10",
+        "baysor_prior_c05", "baysor_prior_c08", "baysor_prior_c10",
         "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
         "baysor_10x_ranger_prior_c10",
         "voronoi_10x_ranger", "10x_ranger",
+        "cellpose_exp10um", "cellpose_exp20um",
+        "stardist_exp10um", "stardist_exp20um",
+        "mesmer_exp10um", "mesmer_exp20um",
+        "10x_ranger_exp10um", "10x_ranger_exp20um",
+        "watershed_10x", "watershed_stardist", "watershed_mesmer",
+        "cellpose_cyto3", "cellpose_cyto3_eosin", "cellpose_cyto3_density",
+        "mesmer_wholecell_eosin", "mesmer_wholecell_density",
         "bidcell", "segger",
     ]
     for method_key in optional_methods:

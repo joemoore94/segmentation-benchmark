@@ -48,9 +48,6 @@ DENSITY_CSV_KEY = {
     "baysor_prior_c10": "10x native vs. Baysor (prior 1.0)",
 }
 
-apply_style()
-
-
 def _grid_dims(n: int) -> tuple[int, int]:
     ncols = min(n, 3)
     nrows = math.ceil(n / ncols)
@@ -78,6 +75,7 @@ def _make_grid(n: int, sharex: bool = False, sharey: bool = False):
 
 
 def fig_nuclear_mask_sizes() -> None:
+    apply_style()
     adata_cellpose = ad.read_h5ad(ROI_DIR / "adata_cellpose.h5ad")
     adata_stardist = ad.read_h5ad(ROI_DIR / "adata_stardist.h5ad")
     adata_mesmer = ad.read_h5ad(ROI_DIR / "adata_mesmer.h5ad")
@@ -106,6 +104,7 @@ def fig_nuclear_mask_sizes() -> None:
 
 
 def fig_transcripts_per_cell() -> None:
+    apply_style()
     counts = pd.read_csv(TABLES_DIR / "cell_counts.csv", index_col="method")
     methods = [m for m in MAIN_METHODS if m in counts.index]
 
@@ -148,6 +147,7 @@ def fig_transcripts_per_cell() -> None:
 
 
 def fig_expression_correlation() -> None:
+    apply_style()
     rows = []
     for m, label in _available_comparisons():
         corr = pd.read_csv(TABLES_DIR / f"expression_correlation_10x_{m}.csv")
@@ -196,6 +196,7 @@ def fig_expression_correlation() -> None:
 
 
 def fig_disagreement_spatial_map() -> None:
+    apply_style()
     _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
     for matcher_name, suffix in _MATCHER_SUFFIXES.items():
         matcher_label = "Hungarian (one-to-one)" if matcher_name == "hungarian" else "Argmax (many-to-one)"
@@ -234,6 +235,7 @@ def fig_disagreement_spatial_map() -> None:
 
 
 def fig_density_vs_disagreement() -> None:
+    apply_style()
     log_density = pd.read_csv(TABLES_DIR / "10x_log_density.csv", index_col=0)["log_density"]
 
     _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
@@ -355,6 +357,7 @@ def fig_pca_umap() -> None:
 
 
 def fig_local_morans_map() -> None:
+    apply_style()
     LISA_COLORS = {"HH": "#C44E52", "LL": "#4C72B0", "HL": "#DD8452", "LH": "#CCB974"}
     _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
     for matcher_name, suffix in _MATCHER_SUFFIXES.items():
@@ -390,6 +393,7 @@ def fig_local_morans_map() -> None:
 
 
 def fig_de_volcano() -> None:
+    apply_style()
     _MATCHER_SUFFIXES = {"hungarian": "", "argmax": "_argmax"}
     for matcher_name, suffix in _MATCHER_SUFFIXES.items():
         matcher_label = "Hungarian (one-to-one)" if matcher_name == "hungarian" else "Argmax (many-to-one)"
@@ -436,6 +440,7 @@ def fig_de_volcano() -> None:
 
 def fig_spatial_morans_dotplot() -> None:
     """Dumbbell plot of Global Moran's I (Hungarian vs Argmax) for all methods."""
+    apply_style()
     import json
 
     ALL_METHODS_ORDERED = [
@@ -517,6 +522,7 @@ def fig_spatial_morans_dotplot() -> None:
 
 
 def fig_cluster_confusion() -> None:
+    apply_style()
     from matplotlib.patches import Rectangle
 
     ct_short = {

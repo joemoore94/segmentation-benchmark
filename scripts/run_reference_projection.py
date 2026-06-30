@@ -43,6 +43,7 @@ from segbench.constants import (
     CLUSTER_ANNOTATIONS,
     CELLTYPE_COLORS,
     METHOD_COLORS as _MC,
+    METHOD_LABELS as _ML,
     NUCLEAR_ONLY,
 )
 from segbench.compare import cluster_cell_types
@@ -51,9 +52,12 @@ from segbench.style import apply_style
 ROI_DIR = Path("data/processed/roi")
 REF_PATH = Path("data/reference/scrna_3p_filtered_feature_bc_matrix.h5")
 FIGURES = Path("results/figures")
+TABLES_DIR = Path("results/tables")
 
 # key → (file stem, display label)
-# 10x native is adata_10x.h5ad (not adata_10x_native.h5ad)
+# 10x native is adata_10x.h5ad (not adata_10x_native.h5ad).
+# All methods go through scRNA-seq scoring; 10x native is scored as a method
+# alongside every other segmentation so it can be compared on Benchmark 3.
 EXPANSION_METHODS = [
     ("10x",                         "10x native"),
     ("voronoi",                     "Voronoi (CP)"),
@@ -61,10 +65,29 @@ EXPANSION_METHODS = [
     ("voronoi_mesmer",              "Voronoi (M)"),
     ("voronoi_10x_ranger",          "Voronoi (10x)"),
     ("baysor",                      "Baysor"),
+    ("baysor_prior",                "Baysor (CP prior 0.2)"),
+    ("baysor_prior_c05",            "Baysor (CP prior 0.5)"),
+    ("baysor_prior_c08",            "Baysor (CP prior 0.8)"),
     ("baysor_prior_c10",            "Baysor (CP prior 1.0)"),
     ("baysor_stardist_prior_c10",   "Baysor (SD prior 1.0)"),
     ("baysor_mesmer_prior_c10",     "Baysor (M prior 1.0)"),
     ("baysor_10x_ranger_prior_c10", "Baysor (10x prior 1.0)"),
+    ("cellpose_exp10um",            "Expansion 10µm (CP)"),
+    ("cellpose_exp20um",            "Expansion 20µm (CP)"),
+    ("stardist_exp10um",            "Expansion 10µm (SD)"),
+    ("stardist_exp20um",            "Expansion 20µm (SD)"),
+    ("mesmer_exp10um",              "Expansion 10µm (M)"),
+    ("mesmer_exp20um",              "Expansion 20µm (M)"),
+    ("10x_ranger_exp10um",          "Expansion 10µm (10x)"),
+    ("10x_ranger_exp20um",          "Expansion 20µm (10x)"),
+    ("watershed_10x",               "Watershed (10x)"),
+    ("watershed_stardist",          "Watershed (SD)"),
+    ("watershed_mesmer",            "Watershed (M)"),
+    ("cellpose_cyto3",              "Cellpose cyto3 (DAPI)"),
+    ("cellpose_cyto3_eosin",        "Cellpose cyto3 (DAPI+eosin)"),
+    ("cellpose_cyto3_density",      "Cellpose cyto3 (DAPI+density)"),
+    ("mesmer_wholecell_eosin",      "Mesmer WC (DAPI+eosin)"),
+    ("mesmer_wholecell_density",    "Mesmer WC (DAPI+density)"),
 ]
 
 METHOD_COLORS = {}
@@ -562,14 +585,30 @@ def main() -> None:
     print("=" * 95)
     print(f"{'Method':<30} {'Ref clusters':>12}  {'ARI (before)':>12}  {'ARI (after)':>12}  {'ΔARI':>7}  {'Med. disp.':>11}")
     print("-" * 90)
-    for _, label in available:
+    summary_rows = []
+    for key, label in available:
         n_cl = len(set(ref_leiden[label]))
-        med_d = (f"{np.median(disp_by_method[label]):.2f}"
-                 if label in disp_by_method else "—")
+        med_disp = (float(np.median(disp_by_method[label]))
+                    if label in disp_by_method else None)
+        med_d_str = f"{med_disp:.2f}" if med_disp is not None else "—"
         ab = ari_before[label]
         aa = ari_after[label]
         d_ari = aa - ab
-        print(f"{label:<30} {n_cl:>12}  {ab:>12.3f}  {aa:>12.3f}  {d_ari:>+7.3f}  {med_d:>11}")
+        print(f"{label:<30} {n_cl:>12}  {ab:>12.3f}  {aa:>12.3f}  {d_ari:>+7.3f}  {med_d_str:>11}")
+        summary_rows.append({
+            "method_key": key if key != "10x" else "10x_native",
+            "method_label": label,
+            "n_ref_clusters": n_cl,
+            "ari_own_vs_10x": ab,
+            "ari_ref_vs_10x": aa,
+            "delta_ari": d_ari,
+            "median_displacement": med_disp,
+        })
+
+    TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    summary_df = pd.DataFrame(summary_rows)
+    summary_df.to_csv(TABLES_DIR / "scrna_ref_projection_summary.csv", index=False)
+    print(f"\nSaved summary to results/tables/scrna_ref_projection_summary.csv")
 
     print("\nDone.")
 
