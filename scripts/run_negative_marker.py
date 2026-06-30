@@ -46,18 +46,51 @@ FIGURES = Path("results/figures")
 MIN_COUNTS = 2
 
 _ALL_METHODS = [
-    ("10x_native",        "adata_10x.h5ad"),
-    ("cellpose",          "adata_cellpose.h5ad"),
-    ("stardist",          "adata_stardist.h5ad"),
-    ("mesmer",            "adata_mesmer.h5ad"),
-    ("voronoi",           "adata_voronoi.h5ad"),
-    ("voronoi_stardist",  "adata_voronoi_stardist.h5ad"),
-    ("voronoi_mesmer",    "adata_voronoi_mesmer.h5ad"),
-    ("baysor",            "adata_baysor.h5ad"),
-    ("baysor_prior_c08",  "adata_baysor_prior_c08.h5ad"),
-    ("baysor_prior_c10",  "adata_baysor_prior_c10.h5ad"),
-    ("bidcell",           "adata_bidcell.h5ad"),
-    ("segger",            "adata_segger.h5ad"),
+    # Reference
+    ("10x_native",                   "adata_10x.h5ad"),
+    # Nuclear-only detectors
+    ("cellpose",                     "adata_cellpose.h5ad"),
+    ("stardist",                     "adata_stardist.h5ad"),
+    ("mesmer",                       "adata_mesmer.h5ad"),
+    ("10x_ranger",                   "adata_10x_ranger.h5ad"),
+    # Voronoi expansion
+    ("voronoi",                      "adata_voronoi.h5ad"),
+    ("voronoi_stardist",             "adata_voronoi_stardist.h5ad"),
+    ("voronoi_mesmer",               "adata_voronoi_mesmer.h5ad"),
+    ("voronoi_10x_ranger",           "adata_voronoi_10x_ranger.h5ad"),
+    # Geometric expansion 10µm
+    ("cellpose_exp10um",             "adata_cellpose_exp10um.h5ad"),
+    ("stardist_exp10um",             "adata_stardist_exp10um.h5ad"),
+    ("mesmer_exp10um",               "adata_mesmer_exp10um.h5ad"),
+    ("10x_ranger_exp10um",           "adata_10x_ranger_exp10um.h5ad"),
+    # Geometric expansion 20µm
+    ("cellpose_exp20um",             "adata_cellpose_exp20um.h5ad"),
+    ("stardist_exp20um",             "adata_stardist_exp20um.h5ad"),
+    ("mesmer_exp20um",               "adata_mesmer_exp20um.h5ad"),
+    ("10x_ranger_exp20um",           "adata_10x_ranger_exp20um.h5ad"),
+    # Watershed expansion
+    ("watershed_10x",                "adata_watershed_10x.h5ad"),
+    ("watershed_stardist",           "adata_watershed_stardist.h5ad"),
+    ("watershed_mesmer",             "adata_watershed_mesmer.h5ad"),
+    # Baysor PSC sweep (CellPose prior)
+    ("baysor",                       "adata_baysor.h5ad"),
+    ("baysor_prior",                 "adata_baysor_prior.h5ad"),
+    ("baysor_prior_c05",             "adata_baysor_prior_c05.h5ad"),
+    ("baysor_prior_c08",             "adata_baysor_prior_c08.h5ad"),
+    ("baysor_prior_c10",             "adata_baysor_prior_c10.h5ad"),
+    # Baysor other detectors at PSC=1.0
+    ("baysor_stardist_prior_c10",    "adata_baysor_stardist_prior_c10.h5ad"),
+    ("baysor_mesmer_prior_c10",      "adata_baysor_mesmer_prior_c10.h5ad"),
+    ("baysor_10x_ranger_prior_c10",  "adata_baysor_10x_ranger_prior_c10.h5ad"),
+    # Whole-cell NN
+    ("cellpose_cyto3",               "adata_cellpose_cyto3.h5ad"),
+    ("cellpose_cyto3_eosin",         "adata_cellpose_cyto3_eosin.h5ad"),
+    ("cellpose_cyto3_density",       "adata_cellpose_cyto3_density.h5ad"),
+    ("mesmer_wholecell_eosin",       "adata_mesmer_wholecell_eosin.h5ad"),
+    ("mesmer_wholecell_density",     "adata_mesmer_wholecell_density.h5ad"),
+    # Others — skipped if not present on disk
+    ("bidcell",                      "adata_bidcell.h5ad"),
+    ("segger",                       "adata_segger.h5ad"),
 ]
 
 
@@ -187,7 +220,7 @@ def main() -> None:
     plot_detail = detail_df[~detail_df["method"].isin(nuclear_labels)].copy()
 
     apply_style()
-    fig = plt.figure(figsize=(30, 10))
+    fig = plt.figure(figsize=(44, 14))
     gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1.5, 1], wspace=0.4)
 
     ax_a = fig.add_subplot(gs[0])

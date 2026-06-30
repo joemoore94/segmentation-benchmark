@@ -24,47 +24,60 @@ Each method is evaluated against all three anchors. The anchors are also compare
 
 The 4-detector × N-expansion factorial design cleanly separates nuclear detection quality from expansion strategy. Mesmer produces the best nuclear detections regardless of expansion method (Voronoi M: ARI 0.686, Baysor M prior: ARI 0.518), while 10x Ranger — despite being purpose-built for Xenium — is comparable to CellPose and StarDist. Voronoi consistently outperforms Baysor PSC=1.0 on ARI (0.58–0.69 vs 0.50–0.53) and cell-level displacement in scRNA-seq reference PCA space (0.92–1.41 vs 2.01–2.97 units). Voronoi methods also reproduce 10x native's cell type composition within 1–3 percentage points, while Baysor without a prior fundamentally reshapes it: luminal epithelial drops from 36.5% to 10.7% and CAFs rise from 28.3% to 37.2%.
 
-The negative marker analysis — the one metric that requires no reference method — complicates this picture. Baysor prior variants have the lowest violation rates (2.17% raw, 0.31 per 1000 tx) compared to Voronoi (4.49–6.45%, 0.37–0.43 per 1000 tx), indicating that density-adaptive boundaries produce fewer cross-lineage contamination artifacts even where they disagree with 10x native. The cross-lineage bleed analysis confirms these violations are boundary artifacts: T cells near CAFs show elevated CAF-marker expression under Voronoi but not Baysor, with bleed intensity correlated to proximity to the nearest CAF.
+The negative marker analysis — the one metric that requires no reference method — reveals a third ranking. Whole-cell NN methods, which score only modestly on Benchmark 1 (ARI 0.54–0.62), have by far the lowest cross-lineage violation rates: Cellpose cyto3 (DAPI) reaches 0.77% (0.14 per 1000 tx), a factor of 3–8 lower than any Voronoi or geometric method. Baysor prior variants at PSC ≥ 0.8 are next-lowest (1.79–2.34%), while Voronoi methods (4.49–6.45%) and 10x native itself (4.50%) cluster together. The pattern confirms that methods which reproduce 10x native's DAPI-expansion logic (high B1 ARI, high B2 negative delta) also produce more cross-lineage boundary contamination. The cross-lineage bleed analysis confirms these violations are boundary artifacts: T cells near CAFs show elevated CAF-marker expression under Voronoi but not Baysor, with bleed intensity correlated to proximity to the nearest CAF.
 
-Baysor's prior_segmentation_confidence parameter exhibits a sharp threshold between PSC 0.2 and 0.8 — below 0.2 the prior has almost no effect, while at 0.8+ cell counts nearly double, ARI jumps from 0.32 to 0.49, and negative marker violations halve. Among the four luminal epithelial subclusters, cluster 3 (NNMT/LUM/POSTN) was flagged as ambiguous — either genuine EMT or segmentation contamination. A cross-method comparison of stromal-to-luminal marker ratios (ranging from 2.90 for Baysor M prior to 3.69 for Voronoi CP) confirms that the stromal signal is at least partly a boundary artifact: methods with broader expansion pull proportionally more CAF transcripts into these cells.
+Baysor's prior_segmentation_confidence parameter exhibits a graduated threshold. Below PSC 0.2, the prior has almost no effect. Between PSC 0.2 and 0.5, violation rates begin dropping (4.71% → 3.28%) even though ARI remains near the no-prior baseline. At PSC ≥ 0.8, cell counts nearly double, ARI jumps from 0.35 to 0.49, and violations drop further to 2.17–2.23%. Among the four luminal epithelial subclusters, cluster 3 (NNMT/LUM/POSTN) was flagged as ambiguous — either genuine EMT or segmentation contamination. A cross-method comparison of stromal-to-luminal marker ratios (ranging from 2.90 for Baysor M prior to 3.69 for Voronoi CP) confirms that the stromal signal is at least partly a boundary artifact: methods with broader expansion pull proportionally more CAF transcripts into these cells.
 
-Method ordering is stable across Leiden resolutions 0.3–2.0. In scRNA-seq reference PCA space, Voronoi and Baysor occupy distinct regions (within-family centroid distances 0.4–1.0 vs cross-family 1.7–3.4), and this block structure persists across all resolutions tested.
+Method ordering is stable across Leiden resolutions 0.3–2.0. In scRNA-seq reference PCA space (Benchmark 3), all nuclear-seeded expanded methods — Voronoi (3.48–3.54), geometric expansion (3.47–3.56), watershed (3.47–3.58) — land in essentially the same B3 band as 10x native (3.50). B3 primarily distinguishes three tiers: nuclear-seeded expansion methods are indistinguishable from 10x native; whole-cell NN methods form an intermediate tier (3.68–4.30, with Mesmer WC closest and Cellpose cyto3 DAPI-only furthest); and Baysor methods remain ~0.8 units further regardless of PSC or detector (Baysor PSC ≥ 0.8 at 4.22–4.38, PSC ≤ 0.5 at 4.61–4.65). B3 does not differentiate within the expanded-nuclear cluster.
 
 The H&E morphology anchor (Benchmark 2) produces a fundamentally different ranking. Whole-cell NN methods — which scored modestly on Benchmark 1 (ARI 0.54–0.62) — top the H&E ranking: Cellpose cyto3 DAPI+density reaches ARI 0.807, Mesmer WC density 0.776. Critically, 10x native itself scores only 0.590 against the H&E anchor — lower than 22 of 31 tested methods — revealing that the platform's proprietary expansion does not follow cytoplasm boundaries. Methods with the largest positive Benchmark 2 − Benchmark 1 delta are capturing real morphology; methods with negative deltas (Voronoi CP, Voronoi M, 10x native) are reproducing the platform's DAPI-expansion logic rather than cell shape.
 
-### Full results table (Benchmark 1: 10x native anchor — original factorial methods)
+### Full results table (Benchmark 1: 10x native anchor)
 
 | Comparison | Matched pairs | Median corr | ARI | Hungarian Disagree | Hungarian Moran's I | Argmax Disagree | Argmax Moran's I |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **Nuclear-only** | | | | | | | |
-| 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 30.8% | 0.178 | 30.5% | 0.189 |
-| 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 33.5% | 0.215 | 33.4% | 0.221 |
-| 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.9% | 0.090 | 27.4% | 0.098 |
-| 10x native vs. 10x Ranger | 23,155 | 0.822 | 0.504 | 35.0% | 0.191 | 34.5% | 0.203 |
-| **Voronoi** | | | | | | | |
-| 10x native vs. Voronoi (CP) | 18,966 | 0.959 | 0.630 | 21.9% | 0.076 | 21.9% | 0.076 |
-| 10x native vs. Voronoi (SD) | 21,428 | 0.959 | 0.584 | 31.9% | 0.194 | 27.7% | 0.229 |
-| 10x native vs. Voronoi (M) | 20,595 | 0.964 | 0.686 | 18.8% | 0.161 | 18.8% | 0.161 |
-| 10x native vs. Voronoi (10x) | 23,153 | 0.967 | 0.592 | 28.3% | 0.172 | 25.8% | 0.168 |
-| **Baysor** | | | | | | | |
-| 10x native vs. Baysor | 10,953 | 0.786 | 0.305 | 51.7% | 0.033 | 43.8% | 0.079 |
-| 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | 51.9% | 0.036 | 39.2% | 0.086 |
-| 10x native vs. Baysor (CP prior 0.8) | 20,108 | 0.884 | 0.488 | 38.8% | 0.219 | 37.4% | 0.234 |
-| 10x native vs. Baysor (CP prior 1.0) | 20,308 | 0.902 | 0.501 | 33.8% | 0.111 | 32.1% | 0.122 |
-| 10x native vs. Baysor (SD prior 1.0) | 21,814 | 0.905 | 0.498 | 37.7% | 0.136 | 32.9% | 0.170 |
-| 10x native vs. Baysor (M prior 1.0) | 21,148 | 0.924 | 0.518 | 32.3% | 0.115 | 30.7% | 0.119 |
-| 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | 34.7% | 0.208 | 33.1% | 0.204 |
-| **New methods (triage vs. 10x native)** | | | | | | | |
-| 10x native vs. Expansion 10µm (CP) | 19,343 | 0.981 | 0.604 | — | — | — | — |
-| 10x native vs. Expansion 20µm (CP) | 19,343 | 0.982 | 0.603 | — | — | — | — |
-| 10x native vs. Watershed (10x) | 23,142 | 0.979 | 0.664 | — | — | — | — |
-| 10x native vs. Cellpose cyto3 (DAPI) | 19,765 | 0.854 | 0.540 | — | — | — | — |
-| 10x native vs. Cellpose cyto3 (DAPI+eosin) | 16,740 | 0.911 | 0.598 | — | — | — | — |
-| 10x native vs. Cellpose cyto3 (DAPI+density) | 19,714 | 0.903 | 0.569 | — | — | — | — |
-| 10x native vs. Mesmer WC (DAPI+eosin) | 20,579 | 0.927 | 0.590 | — | — | — | — |
-| 10x native vs. Mesmer WC (DAPI+density) | 20,316 | 0.913 | 0.617 | — | — | — | — |
+| **Nuclear-only detectors** | | | | | | | |
+| 10x native vs. CellPose | 18,966 | 0.822 | 0.547 | 33.5% | 0.169 | 32.8% | 0.189 |
+| 10x native vs. StarDist | 21,429 | 0.826 | 0.545 | 31.2% | 0.094 | 30.6% | 0.111 |
+| 10x native vs. Mesmer | 20,595 | 0.879 | 0.557 | 27.3% | 0.095 | 26.7% | 0.096 |
+| 10x native vs. 10x Ranger | 23,155 | 0.822 | 0.504 | 41.3% | 0.209 | 40.5% | 0.293 |
+| **Voronoi expansion** | | | | | | | |
+| 10x native vs. Voronoi (CP) | 18,966 | 0.959 | 0.630 | 28.1% | 0.158 | 27.7% | 0.159 |
+| 10x native vs. Voronoi (SD) | 21,428 | 0.959 | 0.584 | 32.7% | 0.203 | 27.2% | 0.212 |
+| 10x native vs. Voronoi (M) | 20,595 | 0.964 | 0.686 | 27.7% | 0.220 | 27.1% | 0.212 |
+| 10x native vs. Voronoi (10x) | 23,153 | 0.967 | 0.592 | 27.0% | 0.221 | 27.0% | 0.221 |
+| **Geometric expansion 10µm** | | | | | | | |
+| 10x native vs. Expansion 10µm (CP) | 19,343 | 0.981 | 0.604 | 27.0% | 0.198 | 21.7% | 0.134 |
+| 10x native vs. Expansion 10µm (SD) | 21,818 | 0.980 | 0.631 | 27.6% | 0.226 | 27.2% | 0.224 |
+| 10x native vs. Expansion 10µm (M) | 20,860 | 0.978 | 0.670 | 20.8% | 0.114 | 20.4% | 0.112 |
+| 10x native vs. Expansion 10µm (10x) | 23,624 | 0.993 | 0.691 | 21.7% | 0.120 | 19.2% | 0.112 |
+| **Geometric expansion 20µm** | | | | | | | |
+| 10x native vs. Expansion 20µm (CP) | 19,343 | 0.982 | 0.603 | 27.6% | 0.113 | 22.6% | 0.133 |
+| 10x native vs. Expansion 20µm (SD) | 21,825 | 0.981 | 0.644 | 26.2% | 0.223 | 25.8% | 0.221 |
+| 10x native vs. Expansion 20µm (M) | 20,856 | 0.979 | 0.680 | 20.1% | 0.143 | 19.2% | 0.141 |
+| 10x native vs. Expansion 20µm (10x) | 23,624 | 0.994 | 0.710 | 20.0% | 0.153 | 19.2% | 0.192 |
+| **Watershed expansion** | | | | | | | |
+| 10x native vs. Watershed (10x) | 23,142 | 0.979 | 0.664 | 25.1% | 0.221 | 24.1% | 0.220 |
+| 10x native vs. Watershed (SD) | 21,393 | 0.966 | 0.656 | 21.6% | 0.095 | 20.7% | 0.098 |
+| 10x native vs. Watershed (M) | 20,494 | 0.965 | 0.674 | 20.0% | 0.110 | 19.6% | 0.107 |
+| **Baysor PSC sweep (CP prior)** | | | | | | | |
+| 10x native vs. Baysor (no prior) | 10,953 | 0.786 | 0.305 | 49.7% | 0.049 | 44.9% | 0.106 |
+| 10x native vs. Baysor (CP prior 0.2) | 11,454 | 0.798 | 0.318 | 55.4% | 0.049 | 42.9% | 0.103 |
+| 10x native vs. Baysor (CP prior 0.5) | 15,316 | 0.798 | 0.349 | 52.0% | 0.068 | 44.2% | 0.100 |
+| 10x native vs. Baysor (CP prior 0.8) | 20,108 | 0.884 | 0.488 | 41.9% | 0.134 | 40.0% | 0.164 |
+| 10x native vs. Baysor (CP prior 1.0) | 20,308 | 0.902 | 0.501 | 37.8% | 0.146 | 36.2% | 0.162 |
+| **Baysor other detectors at PSC=1.0** | | | | | | | |
+| 10x native vs. Baysor (SD prior 1.0) | 21,814 | 0.905 | 0.498 | 39.7% | 0.116 | 35.3% | 0.147 |
+| 10x native vs. Baysor (M prior 1.0) | 21,148 | 0.924 | 0.518 | 37.5% | 0.137 | 34.9% | 0.162 |
+| 10x native vs. Baysor (10x prior 1.0) | 22,910 | 0.914 | 0.530 | 37.0% | 0.139 | 35.3% | 0.154 |
+| **Whole-cell NN** | | | | | | | |
+| 10x native vs. Cellpose cyto3 (DAPI) | 19,765 | 0.854 | 0.540 | 31.2% | 0.103 | 30.3% | 0.126 |
+| 10x native vs. Cellpose cyto3 (DAPI+eosin) | 16,740 | 0.911 | 0.598 | 31.6% | 0.200 | 30.7% | 0.214 |
+| 10x native vs. Cellpose cyto3 (DAPI+density) | 19,714 | 0.903 | 0.569 | 32.6% | 0.187 | 31.9% | 0.209 |
+| 10x native vs. Mesmer WC (DAPI+eosin) | 20,579 | 0.927 | 0.590 | 31.2% | 0.199 | 30.7% | 0.203 |
+| 10x native vs. Mesmer WC (DAPI+density) | 20,316 | 0.913 | 0.617 | 25.7% | 0.109 | 25.3% | 0.111 |
 
-*Matched pairs*: nearest-centroid matching. *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index. *Disagreement*: fraction of matched pairs assigned to different clusters after alignment. *—*: full-waterfall analysis pending for new methods. Nuclear-only methods capture 35–52% of transcripts and are excluded from downstream figures past the recovery section.
+*Matched pairs*: nearest-centroid matching (max 10µm). *Median corr*: per-pair Pearson correlation of log-normalised expression. *ARI*: Adjusted Rand Index between each method's Leiden clustering and 10x native's Leiden clustering, computed on matched cells. *Disagreement*: fraction of matched pairs assigned to different clusters after label alignment. Nuclear-only methods capture 35–52% of transcripts and are excluded from downstream figures past the recovery section.
 
 ---
 
@@ -101,12 +114,12 @@ Baysor's `prior_segmentation_confidence` (PSC) controls how strongly the nuclear
 | PSC | Cells | Matched pairs | Median tx/cell | Median corr | ARI | Disagree (H) | Moran's I (H) | Tier 1 violations |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 0.0 | 18,321 | 10,953 | 53 | 0.786 | 0.305 | 51.7% | 0.033 | 5.01% |
-| 0.2 | 19,061 | 11,454 | 53 | 0.798 | 0.318 | 51.9% | 0.036 | — |
-| 0.5 | 24,147 | — | — | — | — | — | — | — |
+| 0.2 | 19,061 | 11,454 | 53 | 0.798 | 0.318 | 51.9% | 0.036 | 4.71% |
+| 0.5 | 24,147 | — | 49 | — | — | — | — | 3.28% |
 | 0.8 | 29,771 | 20,108 | 67 | 0.884 | 0.488 | 38.8% | 0.219 | 2.23% |
 | 1.0 | 30,473 | 20,308 | 69 | 0.902 | 0.501 | 33.8% | 0.111 | 2.17% |
 
-The sweep reveals a sharp transition between PSC 0.2 and 0.8. At PSC ≤ 0.2, the prior barely constrains the density model: cell counts, transcript capture, and ARI are nearly identical to the no-prior baseline. At PSC ≥ 0.8, the nuclear prior locks enough transcripts to prevent merging: cell counts jump to ~30,000, matched pairs nearly double, and ARI increases from 0.32 to 0.49. The Moran's I jump from 0.036 to 0.219 at PSC=0.8 indicates that the prior converts Baysor's diffuse, spatially random disagreement into structured disagreement concentrated at tissue boundaries. PSC=0.5 (24,147 cells) sits in the transition; full-waterfall analysis for this variant is pending.
+The sweep reveals a sharp transition between PSC 0.2 and 0.8, with PSC=0.5 sitting in the transition zone. At PSC ≤ 0.2, the prior barely constrains the density model: cell counts, transcript capture, and ARI are nearly identical to the no-prior baseline, and negative marker violations remain high (4.71–5.01%). Between PSC 0.2 and 0.5, violation rates drop notably from 4.71% to 3.28% — indicating the prior begins to limit cross-boundary transcript merging — but ARI and matched-pair counts remain near the no-prior regime. At PSC ≥ 0.8, the nuclear prior locks enough transcripts to prevent merging: cell counts jump to ~30,000, matched pairs nearly double, ARI increases from 0.32 to 0.49, and violations drop further to 2.17–2.23%. The Moran's I jump from 0.036 to 0.219 at PSC=0.8 indicates that the prior converts Baysor's diffuse, spatially random disagreement into structured disagreement concentrated at tissue boundaries. Full B1 comparison metrics for PSC=0.5 are pending.
 
 ### Cell and transcript recovery
 
@@ -145,15 +158,15 @@ All four detectors operate on the same DAPI image but produce substantially diff
 | Watershed (M) | 21,697 | — | 100.0% |
 | Baysor (no prior) | 18,321 | 53 | 98.6% |
 | Baysor (CP prior 0.2) | 19,061 | 53 | 98.7% |
-| Baysor (CP prior 0.5) | 24,147 | — | — |
+| Baysor (CP prior 0.5) | 24,147 | 49 | 97.3% |
 | Baysor (CP prior 0.8) | 29,771 | 67 | 99% |
 | Baysor (CP prior 1.0) | 30,473 | 69 | 99% |
 | Baysor (SD prior 1.0) | 34,230 | 63 | 98.9% |
 | Baysor (M prior 1.0) | 31,764 | 74 | 98.9% |
 | Baysor (10x prior 1.0) | 33,113 | 65 | 98.9% |
-| Cellpose cyto3 (DAPI) | 19,765 | — | 40.8% |
-| Cellpose cyto3 (DAPI+eosin) | 16,740 | — | 45.6% |
-| Cellpose cyto3 (DAPI+density) | 19,714 | — | 54.6% |
+| Cellpose cyto3 (DAPI) | 21,641 | 55 | 40.3% |
+| Cellpose cyto3 (DAPI+eosin) | 17,450 | 77 | 45.0% |
+| Cellpose cyto3 (DAPI+density) | 20,782 | 76 | 53.8% |
 | Mesmer WC (DAPI+eosin) | 21,841 | 91 | 68.3% |
 | Mesmer WC (DAPI+density) | 21,493 | 86 | 63.7% |
 
@@ -399,18 +412,18 @@ Nuclei appear white where DAPI (green) and hematoxylin (magenta) overlap, with m
 | CellPose | 18,624 | 0.873 | 0.701 | 0.547 | +0.154 |
 | 10x Ranger | 20,641 | 0.870 | 0.689 | 0.504 | +0.185 |
 | **Geometric expansion** | | | | | |
-| Expansion 10µm (SD) | 20,895 | 0.930 | 0.728 | — | — |
-| Expansion 20µm (SD) | 20,634 | 0.928 | 0.714 | — | — |
-| Expansion 10µm (M) | 20,954 | 0.945 | 0.616 | — | — |
-| Expansion 20µm (M) | 20,740 | 0.944 | 0.636 | — | — |
-| Expansion 10µm (10x) | 20,687 | 0.928 | 0.621 | — | — |
-| Expansion 20µm (10x) | 20,469 | 0.926 | 0.590 | — | — |
-| Expansion 10µm (CP) | 18,709 | 0.930 | 0.552 | 0.604 | −0.052 |
+| Expansion 10µm (SD) | 20,895 | 0.930 | 0.728 | 0.631 | +0.097 |
+| Expansion 20µm (SD) | 20,634 | 0.928 | 0.714 | 0.644 | +0.070 |
+| Expansion 20µm (M) | 20,740 | 0.944 | 0.636 | 0.680 | −0.044 |
+| Expansion 10µm (M) | 20,954 | 0.945 | 0.616 | 0.670 | −0.054 |
+| Expansion 10µm (10x) | 20,687 | 0.928 | 0.621 | 0.691 | −0.070 |
 | Expansion 20µm (CP) | 18,508 | 0.927 | 0.626 | 0.603 | +0.023 |
+| Expansion 10µm (CP) | 18,709 | 0.930 | 0.552 | 0.604 | −0.052 |
+| Expansion 20µm (10x) | 20,469 | 0.926 | 0.590 | 0.710 | −0.120 |
 | **Watershed** | | | | | |
 | Watershed (10x) | 19,960 | 0.933 | 0.711 | 0.664 | +0.047 |
-| Watershed (M) | 20,172 | 0.949 | 0.658 | — | — |
-| Watershed (SD) | 20,139 | 0.935 | 0.598 | — | — |
+| Watershed (M) | 20,172 | 0.949 | 0.658 | 0.674 | −0.016 |
+| Watershed (SD) | 20,139 | 0.935 | 0.598 | 0.656 | −0.058 |
 | **Voronoi** | | | | | |
 | Voronoi (SD) | 20,859 | 0.914 | 0.664 | 0.584 | +0.080 |
 | Voronoi (M) | 20,951 | 0.927 | 0.605 | 0.686 | −0.081 |
@@ -423,7 +436,7 @@ Nuclei appear white where DAPI (green) and hematoxylin (magenta) overlap, with m
 | Baysor (SD prior 1.0) | 20,905 | 0.917 | 0.646 | 0.498 | +0.148 |
 | Baysor (CP prior 1.0) | 19,465 | 0.912 | 0.654 | 0.501 | +0.153 |
 | Baysor (CP prior 0.8) | 19,255 | 0.897 | 0.590 | 0.488 | +0.102 |
-| Baysor (CP prior 0.5) | 14,644 | 0.843 | 0.473 | — | — |
+| Baysor (CP prior 0.5) | 14,644 | 0.843 | 0.473 | 0.349 | +0.124 |
 | Baysor (CP prior 0.2) | 10,567 | 0.847 | 0.415 | 0.318 | +0.097 |
 | Baysor (no prior) | 9,998 | 0.839 | 0.471 | 0.305 | +0.166 |
 
@@ -465,18 +478,42 @@ Leiden clustering in the shared reference PCA space (resolution 1.0) produces 12
 
 | Method | Ref clusters | ARI (own-PCA vs. 10x) | ARI (ref-PCA vs. 10x) | ΔARI |
 | --- | ---: | ---: | ---: | ---: |
-| 10x native | 14 | 1.000 | 0.522 | −0.478 |
-| Voronoi (CP) | 12 | 0.568 | 0.454 | −0.114 |
-| Voronoi (SD) | 13 | 0.555 | 0.462 | −0.093 |
-| Voronoi (M) | 13 | 0.614 | 0.480 | −0.135 |
-| Voronoi (10x) | 13 | 0.624 | 0.500 | −0.124 |
-| Baysor | 23 | 0.172 | 0.181 | +0.009 |
-| Baysor (CP prior 1.0) | 22 | 0.327 | 0.266 | −0.061 |
-| Baysor (SD prior 1.0) | 25 | 0.306 | 0.290 | −0.017 |
-| Baysor (M prior 1.0) | 25 | 0.324 | 0.288 | −0.036 |
-| Baysor (10x prior 1.0) | 24 | 0.343 | 0.291 | −0.052 |
-
-*Note: rows for new factorial methods (geometric, watershed, Cellpose cyto3, Mesmer WC) to be added once `run_reference_projection.py` completes with the expanded method list.*
+| **10x native** | 14 | 1.000 | 0.494 | −0.506 |
+| **Voronoi** | | | | |
+| Voronoi (CP) | 13 | 0.568 | 0.466 | −0.102 |
+| Voronoi (SD) | 14 | 0.555 | 0.452 | −0.103 |
+| Voronoi (M) | 13 | 0.614 | 0.477 | −0.137 |
+| Voronoi (10x) | 11 | 0.624 | 0.489 | −0.135 |
+| **Geometric 10µm** | | | | |
+| Expansion 10µm (CP) | 14 | 0.591 | 0.450 | −0.141 |
+| Expansion 10µm (SD) | 13 | 0.595 | 0.510 | −0.085 |
+| Expansion 10µm (M) | 12 | 0.653 | 0.511 | −0.142 |
+| Expansion 10µm (10x) | 14 | 0.691 | 0.518 | −0.172 |
+| **Geometric 20µm** | | | | |
+| Expansion 20µm (CP) | 13 | 0.593 | 0.453 | −0.141 |
+| Expansion 20µm (SD) | 14 | 0.606 | 0.453 | −0.154 |
+| Expansion 20µm (M) | 13 | 0.663 | 0.496 | −0.167 |
+| Expansion 20µm (10x) | 15 | 0.710 | 0.510 | −0.199 |
+| **Watershed** | | | | |
+| Watershed (10x) | 12 | 0.658 | 0.468 | −0.190 |
+| Watershed (SD) | 12 | 0.606 | 0.488 | −0.118 |
+| Watershed (M) | 13 | 0.651 | 0.477 | −0.174 |
+| **Baysor PSC sweep** | | | | |
+| Baysor (no prior) | 24 | 0.172 | 0.179 | +0.007 |
+| Baysor (CP prior 0.2) | 24 | 0.140 | 0.192 | +0.052 |
+| Baysor (CP prior 0.5) | 20 | 0.206 | 0.229 | +0.023 |
+| Baysor (CP prior 0.8) | 23 | 0.297 | 0.283 | −0.015 |
+| Baysor (CP prior 1.0) | 21 | 0.327 | 0.290 | −0.036 |
+| **Baysor other detectors** | | | | |
+| Baysor (SD prior 1.0) | 25 | 0.306 | 0.275 | −0.031 |
+| Baysor (M prior 1.0) | 26 | 0.324 | 0.296 | −0.028 |
+| Baysor (10x prior 1.0) | 22 | 0.343 | 0.298 | −0.045 |
+| **Whole-cell NN** | | | | |
+| Cellpose cyto3 (DAPI) | 15 | 0.512 | 0.443 | −0.069 |
+| Cellpose cyto3 (DAPI+eosin) | 11 | 0.583 | 0.488 | −0.094 |
+| Cellpose cyto3 (DAPI+density) | 12 | 0.553 | 0.458 | −0.095 |
+| Mesmer WC (DAPI+eosin) | 12 | 0.566 | 0.471 | −0.095 |
+| Mesmer WC (DAPI+density) | 12 | 0.595 | 0.478 | −0.117 |
 
 ![Method convergence: internal vs. reference PCA pairwise ARI](results/figures/convergence_delta_ari.png)
 
@@ -490,17 +527,36 @@ Even 10x native's own reference-space clustering only achieves ARI 0.522 against
 
 | Method | Matched cells | Median displacement |
 | --- | ---: | ---: |
+| Expansion 20µm (10x) | 23,628 | 0.32 |
+| Expansion 10µm (10x) | 23,628 | 0.37 |
+| Watershed (10x) | 23,581 | 0.73 |
+| Expansion 20µm (SD) | 23,596 | 0.75 |
+| Expansion 10µm (SD) | 23,562 | 0.79 |
+| Expansion 10µm (M) | 23,606 | 0.87 |
+| Expansion 20µm (M) | 23,617 | 0.89 |
 | Voronoi (10x) | 23,626 | 0.92 |
+| Expansion 10µm (CP) | 23,413 | 1.00 |
+| Watershed (SD) | 23,535 | 1.02 |
+| Expansion 20µm (CP) | 23,516 | 1.06 |
 | Voronoi (SD) | 23,515 | 1.08 |
+| Watershed (M) | 23,563 | 1.11 |
 | Voronoi (M) | 23,580 | 1.18 |
 | Voronoi (CP) | 23,267 | 1.41 |
+| Mesmer WC (DAPI+eosin) | 23,603 | 1.71 |
+| Mesmer WC (DAPI+density) | 23,574 | 1.89 |
 | Baysor (M prior 1.0) | 23,628 | 2.01 |
+| Cellpose cyto3 (DAPI+density) | 23,412 | 2.15 |
+| Cellpose cyto3 (DAPI+eosin) | 22,632 | 2.24 |
 | Baysor (CP prior 1.0) | 23,626 | 2.27 |
-| Baysor (10x prior 1.0) | 23,629 | 2.28 |
+| Baysor (10x prior 1.0) | 23,629 | 2.29 |
+| Baysor (CP prior 0.8) | 23,626 | 2.41 |
 | Baysor (SD prior 1.0) | 23,628 | 2.41 |
-| Baysor | 22,344 | 2.97 |
+| Cellpose cyto3 (DAPI) | 23,340 | 2.92 |
+| Baysor (CP prior 0.2) | 22,487 | 2.93 |
+| Baysor (no prior) | 22,344 | 2.98 |
+| Baysor (CP prior 0.5) | 23,413 | 3.14 |
 
-For each matched cell pair (nearest centroid, <15 µm), displacement measures how far the same cell moves in the 30-PC reference space depending on which segmentation method assigned its transcripts. Voronoi methods displace cells 0.92–1.41 units from their 10x native position; Baysor displaces them 2.01–2.97 — roughly 2× further.
+For each matched cell pair (nearest centroid, <15 µm), displacement measures how far the same cell moves in the 30-PC reference space depending on which segmentation method assigned its transcripts. Geometric expansion and watershed methods with 10x Ranger detection displace cells as little as 0.32–0.73 units — using the same nuclear seeds as 10x native, only the expansion algorithm differs. Voronoi methods sit at 0.92–1.41. Whole-cell NN methods (Mesmer WC) achieve 1.71–1.89, while Cellpose cyto3 splits sharply by input: DAPI+eosin/density at 2.15–2.24 and DAPI-only at 2.92 (as high as Baysor no-prior). Baysor PSC ≥ 0.8 displaces 2.01–2.41, and Baysor PSC ≤ 0.5 sits at 2.93–3.14.
 
 ### Population centroid distances
 
@@ -512,18 +568,41 @@ Two complementary measures quantify how far each method's cell populations sit f
 
 | Method | Mean | Median | Max |
 | --- | ---: | ---: | ---: |
-| Voronoi (M) | 3.49 | 3.44 | 4.86 |
-| 10x native | 3.51 | 3.38 | 4.96 |
-| Voronoi (10x) | 3.52 | 3.39 | 4.92 |
-| Voronoi (CP) | 3.55 | 3.51 | 4.85 |
-| Voronoi (SD) | 3.55 | 3.44 | 4.96 |
-| Baysor (M prior 1.0) | 4.23 | 3.94 | 5.58 |
-| Baysor (CP prior 1.0) | 4.29 | 4.00 | 5.64 |
-| Baysor (10x prior 1.0) | 4.35 | 4.05 | 5.73 |
-| Baysor (SD prior 1.0) | 4.39 | 4.09 | 5.80 |
-| Baysor | 4.66 | 4.32 | 6.32 |
+| **Nuclear-seeded expansion (Voronoi / Geometric / Watershed)** | | | |
+| Watershed (M) | 3.47 | 3.45 | 4.90 |
+| Expansion 10µm (M) | 3.47 | 3.45 | 4.91 |
+| Expansion 20µm (M) | 3.47 | 3.48 | 4.90 |
+| Expansion 10µm (CP) | 3.47 | 3.38 | 4.88 |
+| Voronoi (M) | 3.48 | 3.48 | 4.87 |
+| Expansion 20µm (CP) | 3.49 | 3.46 | 4.87 |
+| Expansion 20µm (10x) | 3.50 | 3.35 | 4.97 |
+| Voronoi (10x) | 3.50 | 3.42 | 4.93 |
+| Expansion 10µm (10x) | 3.50 | 3.38 | 4.98 |
+| **10x native** | **3.50** | **3.37** | **4.97** |
+| Watershed (10x) | 3.51 | 3.38 | 4.98 |
+| Voronoi (CP) | 3.53 | 3.53 | 4.86 |
+| Voronoi (SD) | 3.54 | 3.42 | 4.97 |
+| Expansion 10µm (SD) | 3.56 | 3.43 | 5.04 |
+| Expansion 20µm (SD) | 3.55 | 3.45 | 5.02 |
+| Watershed (SD) | 3.58 | 3.45 | 5.03 |
+| **Whole-cell NN** | | | |
+| Mesmer WC (DAPI+eosin) | 3.68 | 3.46 | 5.21 |
+| Mesmer WC (DAPI+density) | 3.72 | 3.49 | 5.27 |
+| Cellpose cyto3 (DAPI+eosin) | 3.84 | 3.58 | 5.37 |
+| Cellpose cyto3 (DAPI+density) | 3.87 | 3.63 | 5.39 |
+| Cellpose cyto3 (DAPI) | 4.30 | 4.02 | 5.90 |
+| **Baysor (PSC ≥ 0.8)** | | | |
+| Baysor (M prior 1.0) | 4.22 | 3.95 | 5.58 |
+| Baysor (CP prior 1.0) | 4.28 | 4.01 | 5.65 |
+| Baysor (CP prior 0.8) | 4.29 | 4.03 | 5.69 |
+| Baysor (10x prior 1.0) | 4.33 | 4.06 | 5.74 |
+| Baysor (SD prior 1.0) | 4.38 | 4.10 | 5.81 |
+| **Baysor (PSC ≤ 0.5) / no prior** | | | |
+| Baysor (CP prior 0.5) | 4.64 | 4.28 | 6.35 |
+| Baysor (no prior) | 4.65 | 4.33 | 6.33 |
+| Baysor (CP prior 0.2) | 4.61 | 4.31 | 6.28 |
 
-Voronoi methods and 10x native are tightly grouped (mean 3.49–3.55), with Voronoi (M) marginally closest to the reference. Baysor methods are consistently ~0.8 units further (mean 4.23–4.66). The gap is driven by CAFs, endothelial, and luminal epithelial populations. Adipocytes are the one cell type where Baysor methods sit closer to the reference than Voronoi (2.90 vs 3.20–3.74), possibly because adipocytes' diffuse morphology is better captured by transcript-density expansion than by Voronoi tessellation.
+All nuclear-seeded expanded methods — Voronoi, geometric, and watershed — land in a tight band (3.47–3.58), nearly indistinguishable from 10x native (3.50). The expansion strategy itself does not move methods relative to the scRNA-seq reference once transcripts are fully captured. Whole-cell NN methods show a two-level split: Mesmer WC is closest to the expanded-nuclear range (3.68–3.72), while Cellpose cyto3 eosin/density sits slightly further (3.84–3.87), and Cellpose cyto3 DAPI-only falls into the Baysor-prior range (4.30) — consistent with DAPI-only whole-cell boundaries failing to capture cytoplasm signal reliably. Baysor PSC ≥ 0.8 sits at 4.22–4.38 and Baysor PSC ≤ 0.5 at 4.61–4.65.
 
 **Cluster centroid distance to scRNA-seq** (swept across Leiden resolutions):
 
@@ -565,32 +644,97 @@ The three-anchor framework is designed to surface exactly the disagreements that
 | Method | B1 ARI (vs. 10x native) | B2 ARI (vs. H&E) | B3 centroid dist. | B2 − B1 |
 | --- | ---: | ---: | ---: | ---: |
 | **Whole-cell NN** | | | | |
-| Cellpose cyto3 (DAPI+density) | 0.569 | 0.807 | — | +0.238 |
-| Mesmer WC (DAPI+density) | 0.617 | 0.776 | — | +0.159 |
-| Cellpose cyto3 (DAPI+eosin) | 0.598 | 0.709 | — | +0.111 |
-| Cellpose cyto3 (DAPI only) | 0.540 | 0.675 | — | +0.135 |
-| **Factorial (selected)** | | | | |
-| Expansion 10µm (SD) | — | 0.728 | — | — |
-| Mesmer (nuclear only) | 0.557 | 0.727 | — | +0.170 |
-| Watershed (10x) | 0.664 | 0.711 | — | +0.047 |
-| Voronoi (SD) | 0.584 | 0.664 | 3.55 | +0.080 |
-| Baysor (M prior 1.0) | 0.518 | 0.698 | 4.23 | +0.180 |
-| Voronoi (M) | 0.686 | 0.605 | 3.49 | −0.081 |
-| Voronoi (10x) | 0.592 | 0.632 | 3.52 | +0.040 |
-| Baysor (CP prior 1.0) | 0.501 | 0.654 | 4.29 | +0.153 |
-| Voronoi (CP) | 0.630 | 0.542 | 3.55 | −0.088 |
-| **10x native** | 1.000 | 0.590 | 3.51 | −0.410 |
-| Baysor (no prior) | 0.305 | 0.471 | 4.66 | +0.166 |
+| Cellpose cyto3 (DAPI+density) | 0.569 | 0.807 | 3.87 | +0.238 |
+| Mesmer WC (DAPI+density) | 0.617 | 0.776 | 3.72 | +0.159 |
+| Cellpose cyto3 (DAPI+eosin) | 0.598 | 0.709 | 3.84 | +0.111 |
+| Cellpose cyto3 (DAPI only) | 0.540 | 0.675 | 4.30 | +0.135 |
+| Mesmer WC (DAPI+eosin) | 0.590 | — | 3.68 | — |
+| **Geometric 10µm** | | | | |
+| Expansion 10µm (SD) | 0.631 | 0.728 | 3.56 | +0.097 |
+| Expansion 10µm (M) | 0.670 | 0.616 | 3.47 | −0.054 |
+| Expansion 10µm (10x) | 0.691 | 0.621 | 3.50 | −0.070 |
+| Expansion 10µm (CP) | 0.604 | 0.552 | 3.47 | −0.052 |
+| **Geometric 20µm** | | | | |
+| Expansion 20µm (SD) | 0.644 | 0.714 | 3.55 | +0.070 |
+| Expansion 20µm (M) | 0.680 | 0.636 | 3.47 | −0.044 |
+| Expansion 20µm (10x) | 0.710 | 0.590 | 3.50 | −0.120 |
+| Expansion 20µm (CP) | 0.603 | 0.626 | 3.49 | +0.023 |
+| **Watershed** | | | | |
+| Watershed (10x) | 0.664 | 0.711 | 3.51 | +0.047 |
+| Watershed (M) | 0.674 | 0.658 | 3.47 | −0.016 |
+| Watershed (SD) | 0.656 | 0.598 | 3.58 | −0.058 |
+| **Voronoi** | | | | |
+| Voronoi (M) | 0.686 | 0.605 | 3.48 | −0.081 |
+| Voronoi (10x) | 0.592 | 0.632 | 3.50 | +0.040 |
+| Voronoi (SD) | 0.584 | 0.664 | 3.54 | +0.080 |
+| Voronoi (CP) | 0.630 | 0.542 | 3.53 | −0.088 |
+| **10x native** | 1.000 | 0.590 | 3.50 | −0.410 |
+| **Baysor PSC sweep** | | | | |
+| Baysor (CP prior 1.0) | 0.501 | 0.654 | 4.28 | +0.153 |
+| Baysor (CP prior 0.8) | 0.488 | 0.590 | 4.29 | +0.102 |
+| Baysor (M prior 1.0) | 0.518 | 0.698 | 4.22 | +0.180 |
+| Baysor (SD prior 1.0) | 0.498 | 0.646 | 4.38 | +0.148 |
+| Baysor (10x prior 1.0) | 0.530 | 0.681 | 4.33 | +0.151 |
+| Baysor (CP prior 0.5) | 0.349 | 0.473 | 4.64 | +0.124 |
+| Baysor (CP prior 0.2) | 0.318 | 0.415 | 4.61 | +0.097 |
+| Baysor (no prior) | 0.305 | 0.471 | 4.65 | +0.166 |
 
-Three patterns are visible across anchors.
+Four patterns emerge from the complete three-anchor view.
 
-**Methods that score high on all three anchors don't exist.** Voronoi (M) has the highest B1 ARI (0.686) but a negative B2 delta (−0.081 vs. H&E). Cellpose cyto3 density tops B2 (0.807) but is lower on B1 (0.569). No single method dominates across all three axes — which is the point. Each anchor is measuring something real and different.
+**Methods that score high on all three anchors don't exist.** Voronoi (M) has the highest B1 ARI (0.686) but a negative B2 delta (−0.081 vs. H&E). Cellpose cyto3 density tops B2 (0.807) but is lower on B1 (0.569) and B3 (3.87). No single method dominates across all three axes — which is the point. Each anchor is measuring something real and different.
 
-**B2 − B1 sign divides the method space cleanly.** Methods with positive B2 − B1 (whole-cell NN, nuclear-only detectors, Baysor prior variants, most geometric/watershed methods) agree more with H&E morphology than with 10x native. Methods with negative B2 − B1 (Voronoi CP, Voronoi M, 10x native itself) agree more with the platform's DAPI-expansion logic than with cytoplasm extent. This is not a performance ranking — it is a characterization of what each method is actually capturing.
+**B2 − B1 sign divides the method space cleanly.** Methods with positive B2 − B1 (whole-cell NN, Baysor prior variants, StarDist-based geometric/watershed) agree more with H&E morphology than with 10x native. Methods with negative B2 − B1 (Voronoi CP, Voronoi M, geometric expansion with 10x Ranger, 10x native itself) agree more with the platform's DAPI-expansion logic. This is not a performance ranking — it is a characterization of what each method captures.
 
-**10x native's B2 score (0.590) is lower than 22 of 31 tested methods.** This is the clearest signal from the three-anchor framework: the platform standard diverges substantially from tissue morphology. The ~23,600 cells it defines are not a morphologically faithful segmentation — they are a DAPI-based nuclear detection combined with a proprietary expansion that does not follow cytoplasm boundaries. Benchmarks anchored solely on 10x native (B1) are measuring agreement with this expansion logic, not with cell biology.
+**10x native's B2 score (0.590) is lower than 26 of 33 tested methods.** The platform standard diverges substantially from tissue morphology. Its proprietary expansion does not follow cytoplasm boundaries; benchmarks anchored solely on 10x native measure agreement with this expansion logic, not with cell biology.
 
-**B3 tells a third story.** Voronoi methods and 10x native cluster tightly in scRNA-seq reference space (centroid distances 3.49–3.55), while Baysor methods sit further (4.23–4.66). Whole-cell NN methods are not yet scored on B3. The B3 picture partially favors 10x native — its cells project closer to the scRNA-seq reference than most Baysor variants — but this likely reflects shared DAPI-centric biases between the platform's segmentation and the reference projection rather than genuine transcriptomic fidelity.
+**B3 resolves the space into three tiers, not a continuous ranking.** All nuclear-seeded expanded methods — Voronoi (3.48–3.54), geometric (3.47–3.56), watershed (3.47–3.58) — land in essentially the same B3 band as 10x native (3.50). The expansion strategy does not move methods relative to the scRNA-seq reference once transcripts are fully captured; it is the presence of cytoplasm signal that matters. Whole-cell NN methods show a split: Mesmer WC (3.68–3.72) falls just above the expanded-nuclear cluster, while Cellpose cyto3 eosin/density (3.84–3.87) sits slightly further, and Cellpose cyto3 DAPI-only (4.30) falls into the Baysor-prior range — DAPI-only whole-cell boundaries fail to add cytoplasm signal. Baysor PSC ≥ 0.8 sits at 4.22–4.38 and Baysor PSC ≤ 0.5 at 4.61–4.65. Critically, Baysor's B3 gap relative to Voronoi (~0.8 units) persists regardless of which detector provides the prior.
+
+**The negative marker analysis adds a fourth axis.** Whole-cell NN methods, which score mid-table on B1 and top B2, have by far the lowest cross-lineage violation rates (0.77–2.53%). This is a biologically independent signal: they produce fewer cells with impossible co-expression patterns, suggesting their learned boundaries cause less transcript leakage between adjacent lineages. High B1 ARI is weakly negatively correlated with low violation rate — methods that match 10x native most closely tend to have slightly higher violation rates, consistent with both reproducing the same boundary placement errors.
+
+### Three-Way Anchor Correlation
+
+To characterize how similar the three ranking systems are as evaluation instruments, Spearman rank correlations were computed across all 28 non-anchor, non-nuclear-only methods. B3 centroid distance is inverted so that lower distance = higher rank, consistent with B1 and B2 where higher = better.
+
+| Anchor pair | Spearman ρ | p-value |
+| --- | ---: | ---: |
+| B1 vs. B2 | 0.139 | 0.49 |
+| B1 vs. B3 | 0.832 | <0.0001 |
+| B2 vs. B3 | 0.006 | 0.98 |
+
+B1 and B3 are strongly correlated: methods that best reproduce 10x native clustering also project closest to the scRNA-seq reference cell-type centroids. Both anchors reward high transcript capture per cell and accurate boundary placement — the signals they encode are largely redundant. B2 is orthogonal to both. H&E morphology ranks methods by how well their boundaries follow visible cytoplasm and membrane signal, a property that is independent of whether those cells cluster like dissociated single cells. A method that draws accurate boundaries around complex morphology (whole-cell NN, StarDist-based expansion) can have mediocre B1 and mid-range B3; conversely, a method that reproduces 10x native clustering well can have a B2 far below the morphologically-accurate methods.
+
+The top-5 methods per anchor share almost no overlap:
+
+| Rank | B1 top 5 | B2 top 5 | B3 top 5 |
+| ---: | --- | --- | --- |
+| 1 | 10x native — 1.000 | Cellpose cyto3 density — 0.807 | Expansion 10µm (CP) — 3.47 |
+| 2 | Expansion 20µm (10x) — 0.710 | Mesmer WC density — 0.776 | Watershed (M) — 3.47 |
+| 3 | Expansion 10µm (10x) — 0.691 | Expansion 10µm (SD) — 0.728 | Expansion 10µm (M) — 3.47 |
+| 4 | Voronoi (M) — 0.686 | Expansion 20µm (SD) — 0.714 | Expansion 20µm (M) — 3.47 |
+| 5 | Expansion 20µm (M) — 0.680 | Watershed (10x) — 0.711 | Voronoi (M) — 3.48 |
+
+Across the full top-10 lists, only one method appears in all three: Watershed (10x) (B1=0.664, B2=0.711, B3=3.51). It scores in the upper quarter on each anchor without topping any of them — a generalist that avoids the failure modes each individual anchor exposes. The three anchors are genuinely measuring different things, and their near-zero pairwise correlation with B2 confirms that H&E morphology provides orthogonal signal that neither the platform comparison nor the scRNA-seq reference captures.
+
+### Full-Waterfall Promotion
+
+Stages 7–16 (resolution sweep, cell type annotation, composition, spatial disagreement, phenotypic distortion, negative marker analysis) are computationally expensive and analytically deep. Three criteria determine which methods are promoted beyond the triage benchmarks:
+
+1. Not nuclear-only (≥ 60% transcript capture required; nuclear-only methods recover 35–52%).
+2. Pass the negative marker screen (violation rate ≤ 4%; Voronoi CP at 6.45% is borderline but included for comparison).
+3. Represent a distinct region of the B1×B2×B3 space — not just a near-duplicate of an already-promoted method.
+
+| Method | B1 | B2 | Neg. rate | Status |
+| --- | ---: | ---: | ---: | --- |
+| 10x native | 1.000 | 0.590 | 4.50% | Full waterfall (baseline) |
+| Voronoi (CP/SD/M/10x) | 0.58–0.69 | 0.54–0.66 | 4.49–6.45% | Full waterfall (B1 leaders) |
+| Baysor PSC sweep (CP/SD/M/10x prior) | 0.30–0.53 | 0.47–0.70 | 1.79–5.01% | Full waterfall (density-adaptive) |
+| **Watershed (10x)** | **0.664** | **0.711** | **3.30%** | **Promoted — only method top-10 on all three anchors** |
+| **Cellpose cyto3 (DAPI+density)** | **0.569** | **0.807** | **1.84%** | **Promoted — B2 leader, lowest neg. rate among WC NN** |
+| **Mesmer WC (DAPI+density)** | **0.617** | **0.776** | **2.17%** | **Promoted — second B2, adds Mesmer WC boundary style** |
+| Geometric ×8, Watershed SD/M | 0.60–0.71 | 0.60–0.73 | 2.4–4.9% | Triage only — near-duplicates of promoted methods on B3 |
+| Cellpose cyto3 (DAPI/DAPI+eosin) | 0.54–0.60 | 0.67–0.71 | 0.77–1.64% | Triage only — dominated by DAPI+density on all anchors |
+
+The three newly promoted methods cover the distinct regions of the B2×B3 plane that the original waterfall methods do not: Watershed (10x) is the only method strong on both the platform-like B1 anchor and the morphology B2 anchor simultaneously; Cellpose cyto3 DAPI+density and Mesmer WC DAPI+density sample the high-B2, mid-B1 space where whole-cell NN methods with strong morphological priors sit. The geometric expansion methods (×8) cluster tightly with the already-promoted Voronoi methods on B3 and offer no new information about the reference PCA landscape; they are retained in the synthesis tables but not run through stages 7–16.
 
 ---
 
@@ -732,17 +876,51 @@ Eleven Tier 1 pairs are defined from the 380-gene panel, each pairing a lineage-
 
 | Method | Cells | Tier 1 violations | Violation rate | Violations per 1000 tx |
 | --- | ---: | ---: | ---: | ---: |
-| Voronoi (CP) | 20,166 | 1,300 | 6.45% | 0.43 |
-| Voronoi (M) | 21,697 | 1,189 | 5.48% | 0.39 |
-| Baysor (no prior) | 18,321 | 918 | 5.01% | 0.95 |
+| **10x native** | | | | |
 | 10x native | 23,629 | 1,064 | 4.50% | 0.36 |
+| **Voronoi expansion** | | | | |
+| Voronoi (CP) | 20,166 | 1,300 | 6.45% | 0.43 |
 | Voronoi (SD) | 24,743 | 1,111 | 4.49% | 0.37 |
-| Baysor (prior 0.8) | 29,771 | 664 | 2.23% | 0.33 |
-| Baysor (prior 1.0) | 30,473 | 661 | 2.17% | 0.31 |
+| Voronoi (M) | 21,697 | 1,189 | 5.48% | 0.39 |
+| Voronoi (10x) | 23,622 | 1,153 | 4.88% | 0.38 |
+| **Geometric expansion 10µm** | | | | |
+| Expansion 10µm (CP) | 20,166 | 1,147 | 5.69% | 0.40 |
+| Expansion 10µm (SD) | 24,745 | 978 | 3.95% | 0.34 |
+| Expansion 10µm (M) | 21,697 | 1,101 | 5.07% | 0.38 |
+| Expansion 10µm (10x) | 23,624 | 1,008 | 4.27% | 0.35 |
+| **Geometric expansion 20µm** | | | | |
+| Expansion 20µm (CP) | 20,166 | 1,249 | 6.19% | 0.42 |
+| Expansion 20µm (SD) | 24,745 | 1,052 | 4.25% | 0.36 |
+| Expansion 20µm (M) | 21,697 | 1,153 | 5.31% | 0.39 |
+| Expansion 20µm (10x) | 23,624 | 1,069 | 4.53% | 0.36 |
+| **Watershed expansion** | | | | |
+| Watershed (10x) | 23,624 | 1,154 | 4.88% | 0.40 |
+| Watershed (SD) | 24,745 | 1,126 | 4.55% | 0.40 |
+| Watershed (M) | 21,697 | 1,207 | 5.56% | 0.41 |
+| **Baysor PSC sweep (CP prior)** | | | | |
+| Baysor (no prior) | 18,321 | 918 | 5.01% | 0.95 |
+| Baysor (CP prior 0.2) | 19,061 | 898 | 4.71% | 0.89 |
+| Baysor (CP prior 0.5) | 24,147 | 792 | 3.28% | 0.67 |
+| Baysor (CP prior 0.8) | 29,771 | 664 | 2.23% | 0.33 |
+| Baysor (CP prior 1.0) | 30,473 | 661 | 2.17% | 0.31 |
+| **Baysor other detectors at PSC=1.0** | | | | |
+| Baysor (SD prior 1.0) | 34,230 | 613 | 1.79% | 0.28 |
+| Baysor (M prior 1.0) | 31,764 | 742 | 2.34% | 0.32 |
+| Baysor (10x prior 1.0) | 33,113 | 631 | 1.91% | 0.29 |
+| **Whole-cell NN** | | | | |
+| Cellpose cyto3 (DAPI) | 21,641 | 167 | 0.77% | 0.14 |
+| Cellpose cyto3 (DAPI+eosin) | 17,450 | 287 | 1.64% | 0.21 |
+| Cellpose cyto3 (DAPI+density) | 20,782 | 382 | 1.84% | 0.24 |
+| Mesmer WC (DAPI+eosin) | 21,841 | 552 | 2.53% | 0.28 |
+| Mesmer WC (DAPI+density) | 21,493 | 467 | 2.17% | 0.25 |
 
-Nuclear-only methods are excluded because their low transcript capture (35–52%) makes violations trivially rare. Among expansion methods, Voronoi (CP) has the highest raw violation rate (6.45%) and the highest transcript-normalized rate (0.43 per 1000 tx). Baysor prior variants have the lowest rates on both metrics (2.17% raw, 0.31 per 1000 tx), indicating that density-adaptive expansion produces fewer cross-lineage boundary artifacts than geometric nearest-centroid assignment.
+Nuclear-only methods (CellPose, StarDist, Mesmer, 10x Ranger nuclei) are excluded because their low transcript capture (35–52%) makes violations trivially rare. The expanded analysis across all 29 methods reveals a clear family-level pattern. Whole-cell NN methods have by far the lowest violation rates — Cellpose cyto3 (DAPI) reaches just 0.77% (0.14 per 1000 tx), lower than any geometric or Voronoi method by a factor of 3–8. This is a qualitatively different result from Benchmark 1 where whole-cell NN methods scored only modestly on ARI (0.54–0.62). When boundaries are evaluated against biology rather than against 10x native, methods that learned real cell morphology outperform centroid-based expansion.
 
-The LYZ+GATA3 pair (macrophage + luminal epithelial) dominates violations across all methods, consistent with macrophages infiltrating the tumor epithelium where segmentation boundaries are most ambiguous. Baysor without a prior has a low raw violation rate (5.01%) but the highest transcript-normalized rate (0.95 per 1000 tx) because its cells contain fewer transcripts (median 53 tx/cell).
+Among geometric methods, Voronoi (CP) has the highest raw violation rate (6.45%, 0.43 per 1000 tx) and geometric expansion at 20µm (CP) is nearly as high (6.19%). Watershed methods (4.5–5.6%) are similar to Voronoi/geometric despite using the DAPI gradient — the gradient provides limited discrimination between adjacent cells of different lineages. Geometric expansion using StarDist nuclei at 10µm is the best among centroid-based methods (3.95%), likely because StarDist finds the most cells and its nuclei are well-calibrated in size, leaving less inter-nuclear space to be incorrectly expanded into.
+
+The Baysor PSC sweep shows a monotonic improvement with increasing prior strength. The transition between PSC=0.2 (4.71%) and PSC=0.5 (3.28%) marks where the prior begins to limit cross-lineage merging, with PSC=0.8 and 1.0 (2.17–2.23%) approaching the whole-cell NN range. Baysor (SD prior 1.0) achieves the lowest rate among all Baysor variants (1.79%), probably because StarDist detects more cells and its prior provides more precise nuclear anchoring. Baysor without a prior has a low raw rate (5.01%) but the highest transcript-normalized rate (0.95 per 1000 tx) because its tendency to merge cells produces very large segments that accumulate diverse transcripts.
+
+The LYZ+GATA3 pair (macrophage + luminal epithelial) dominates violations across all methods, consistent with macrophages infiltrating tumor epithelium where segmentation boundaries are most ambiguous.
 
 ### Cross-lineage bleed: spatial structure
 

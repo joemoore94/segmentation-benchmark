@@ -155,7 +155,14 @@ def main() -> None:
 
     # ---------------------------------------------------------------- shared gene set
     ref_genes = set(ref.var_names)
-    shared_genes = sorted(set(xenium_genes) & ref_genes)
+    xenium_in_ref = set(xenium_genes) & ref_genes
+    # Further restrict to genes present in ALL loaded adatas (some new adatas may have
+    # filtered out low-count genes that are present in adata_10x but not elsewhere)
+    all_adata_genes = set.intersection(*[set(adatas_raw[lbl].var_names) for _, lbl in available])
+    shared_genes = sorted(xenium_in_ref & all_adata_genes)
+    dropped = xenium_in_ref - all_adata_genes
+    if dropped:
+        print(f"  Note: {len(dropped)} gene(s) dropped (not in all adatas): {sorted(dropped)}")
     print(f"\nXenium panel genes in reference: {len(shared_genes)} / {len(xenium_genes)}")
 
     # ---------------------------------------------------------------- fit reference PCA
