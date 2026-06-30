@@ -43,10 +43,13 @@ CAF_MARKERS = ["LUM", "SFRP4", "FBLN1", "CCDC80", "THBS2", "MMP2"]
 T_CELL_MARKERS = ["CD3E", "CD3G", "TRAC", "TRBC1", "CD96", "IL7R", "CCL5"]
 
 METHODS = [
-    ("10x_native",       "adata_10x.h5ad"),
-    ("voronoi",          "adata_voronoi.h5ad"),
-    ("voronoi_mesmer",   "adata_voronoi_mesmer.h5ad"),
-    ("baysor_prior_c10", "adata_baysor_prior_c10.h5ad"),
+    ("10x_native",              "adata_10x.h5ad"),
+    ("voronoi",                 "adata_voronoi.h5ad"),
+    ("voronoi_mesmer",          "adata_voronoi_mesmer.h5ad"),
+    ("baysor_prior_c10",        "adata_baysor_prior_c10.h5ad"),
+    ("watershed_10x",           "adata_watershed_10x.h5ad"),
+    ("cellpose_cyto3_density",  "adata_cellpose_cyto3_density.h5ad"),
+    ("mesmer_wholecell_density", "adata_mesmer_wholecell_density.h5ad"),
 ]
 
 
@@ -260,7 +263,10 @@ def main() -> None:
 
     # Multi-method comparison panel
     apply_style(scatter=True)
-    fig, axes = plt.subplots(2, 2, figsize=(24, 22))
+    _n = len(METHODS)
+    _ncols = min(_n, 4)
+    _nrows = (_n + _ncols - 1) // _ncols
+    fig, axes = plt.subplots(_nrows, _ncols, figsize=(6 * _ncols, 5.5 * _nrows))
     axes = axes.ravel()
 
     stats_rows = []

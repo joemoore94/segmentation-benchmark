@@ -42,6 +42,7 @@ _ARI_LOOKUP: dict[str, float] = {
     "baysor": 0.305, "baysor_prior_c08": 0.488, "baysor_prior_c10": 0.501,
     "baysor_stardist_prior_c10": 0.000, "baysor_mesmer_prior_c10": 0.000,
     "bidcell": 0.000, "segger": 0.000,
+    "watershed_10x": 0.664, "cellpose_cyto3_density": 0.569, "mesmer_wholecell_density": 0.617,
 }
 _ALL_COMPARISONS = list(_ARI_LOOKUP)
 COMPARISONS = [

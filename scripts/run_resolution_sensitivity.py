@@ -49,6 +49,7 @@ _ALL_METHODS = [
     "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10",
     "baysor_10x_ranger_prior_c10",
     "bidcell", "segger",
+    "watershed_10x", "cellpose_cyto3_density", "mesmer_wholecell_density",
 ]
 METHODS = [(k, METHOD_LABELS[k]) for k in _ALL_METHODS]
 

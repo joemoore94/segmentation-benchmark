@@ -32,6 +32,7 @@ import scanpy as sc
 import scipy.sparse as sp
 from scipy.stats import gaussian_kde
 from sklearn.decomposition import PCA
+import umap as umap_lib
 from segbench.style import apply_style
 
 ROI_DIR = Path("data/processed/roi")
@@ -43,6 +44,7 @@ _ALL_METHODS = [
     "cellpose", "stardist", "mesmer",
     "voronoi", "voronoi_stardist", "voronoi_mesmer",
     "baysor", "baysor_prior_c08", "baysor_prior_c10", "baysor_stardist_prior_c10", "baysor_mesmer_prior_c10", "bidcell", "segger",
+    "watershed_10x", "cellpose_cyto3_density", "mesmer_wholecell_density",
 ]
 METHODS = [(k, METHOD_LABELS[k]) for k in _ALL_METHODS]
 

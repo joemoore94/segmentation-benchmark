@@ -59,6 +59,9 @@ METHODS = [
     ("baysor_10x_ranger_prior_c10",   "adata_baysor_10x_ranger_prior_c10.h5ad"),
     ("bidcell",           "adata_bidcell.h5ad"),
     ("segger",            "adata_segger.h5ad"),
+    ("watershed_10x",           "adata_watershed_10x.h5ad"),
+    ("cellpose_cyto3_density",  "adata_cellpose_cyto3_density.h5ad"),
+    ("mesmer_wholecell_density", "adata_mesmer_wholecell_density.h5ad"),
 ]
 
 PLOT_METHODS = [(k, f) for k, f in METHODS if k not in NUCLEAR_ONLY]
@@ -67,7 +70,9 @@ FAMILY_COLORS = {
     "Reference":          "#55A868",
     "Nuclear":            "#4C72B0",
     "Voronoi":            "#17BECF",
+    "Watershed":          "#2CA02C",
     "Transcript-density": "#DD8452",
+    "Whole-cell NN":      "#9467BD",
     "Multimodal":         "#E377C2",
 }
 
